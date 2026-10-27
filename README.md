@@ -20,6 +20,7 @@ Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina 
 ## Instalación local
 
 ```bash
+git clone https://github.com/Shadow7099/nexora-.git nexora
 cd nexora
 npm install                      # también genera el cliente de Prisma
 cp .env.example .env             # y complete DATABASE_URL y SESSION_SECRET
