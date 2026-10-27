@@ -1,0 +1,798 @@
+// Nexora — esquema relacional (PostgreSQL)
+//
+// Principios:
+// - Multiempresa desde el día uno: toda tabla de negocio lleva company_id.
+//   Las relaciones críticas usan claves foráneas compuestas (id, company_id),
+//   así la base de datos impide enlazar un registro con una sede o empleado de
+//   otra empresa aunque el código tuviera un error.
+// - El tiempo real nunca se borra: attendance_event y audit_log son de solo
+//   inserción (lo garantiza un trigger en la migración). Las correcciones se
+//   registran como eventos nuevos que referencian al original.
+// - Una sola jornada abierta por empleado: índice único parcial en
+//   work_session (ver migración).
+// - Los parámetros laborales están versionados por fecha y citan su fuente.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enumeraciones ─────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  COMPANY_ADMIN
+  EMPLOYEE
+}
+
+enum CompanyStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DocumentType {
+  CC
+  CE
+  PPT
+  PASAPORTE
+  TI
+}
+
+enum ContractType {
+  INDEFINIDO
+  FIJO
+  OBRA_LABOR
+  APRENDIZAJE
+  PRESTACION_SERVICIOS
+}
+
+enum SalaryType {
+  ORDINARIO
+  INTEGRAL
+}
+
+enum PayFrequency {
+  QUINCENAL
+  MENSUAL
+}
+
+enum ArlRiskClass {
+  I
+  II
+  III
+  IV
+  V
+}
+
+enum DeviceStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+enum PunchType {
+  IN
+  OUT
+  BREAK_START
+  BREAK_END
+}
+
+enum PunchSource {
+  QR
+  ADMIN_MANUAL
+  SYSTEM
+}
+
+enum GeoStatus {
+  INSIDE
+  OUTSIDE
+  LOW_ACCURACY
+  UNAVAILABLE
+  NOT_REQUIRED
+}
+
+enum VerificationMethod {
+  PASSKEY
+  DEVICE_TOKEN
+  ADMIN
+}
+
+enum PunchStatus {
+  ACCEPTED
+  FLAGGED
+}
+
+enum AttemptReason {
+  OUTSIDE_RADIUS
+  LOW_ACCURACY
+  LOCATION_DENIED
+  DEVICE_NOT_BOUND
+  DEVICE_REVOKED
+  INVALID_QR
+  QR_REVOKED
+  WRONG_COMPANY
+  DUPLICATE_PUNCH
+  NO_OPEN_SESSION
+  RATE_LIMITED
+  PASSKEY_FAILED
+  OTHER
+}
+
+enum WorkSessionStatus {
+  OPEN
+  CLOSED
+  NEEDS_REVIEW
+}
+
+enum ShiftStatus {
+  PLANNED
+  CANCELLED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum NoveltyType {
+  VACACIONES
+  INCAPACIDAD_COMUN
+  INCAPACIDAD_LABORAL
+  LICENCIA_MATERNIDAD
+  LICENCIA_PATERNIDAD
+  LICENCIA_REMUNERADA
+  LICENCIA_NO_REMUNERADA
+  LICENCIA_LUTO
+  CALAMIDAD_DOMESTICA
+  PERMISO
+  AUSENCIA_INJUSTIFICADA
+  SUSPENSION
+}
+
+enum ParameterUnit {
+  COP
+  PERCENT
+  HOURS
+  MINUTES
+  TIME_OF_DAY
+  DAYS
+  COUNT
+}
+
+enum PayrollStatus {
+  DRAFT
+  REVIEWED
+  CLOSED
+}
+
+// ─────────────────────────── Empresas y usuarios ──────────────────────────
+
+model Company {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  name                 String
+  legalName            String?       @map("legal_name")
+  nit                  String?
+  slug                 String        @unique
+  timezone             String        @default("America/Bogota")
+  status               CompanyStatus @default(TRIAL)
+  // Preparación SaaS (sin cobro todavía)
+  planCode             String?       @map("plan_code")
+  maxEmployees         Int?          @map("max_employees")
+  maxSites             Int?          @map("max_sites")
+  // Reglas operativas de la empresa
+  lateToleranceMin     Int           @default(5) @map("late_tolerance_min")
+  geoMaxAccuracyM      Int           @default(100) @map("geo_max_accuracy_m")
+  requireDeviceBinding Boolean       @default(true) @map("require_device_binding")
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  users              User[]
+  sites              Site[]
+  employees          Employee[]
+  devices            DeviceBinding[]
+  shiftTemplates     ShiftTemplate[]
+  schedulePatterns   SchedulePattern[]
+  scheduledShifts    ScheduledShift[]
+  attendanceEvents   AttendanceEvent[]
+  attendanceAttempts AttendanceAttempt[]
+  workSessions       WorkSession[]
+  overtimeRequests   OvertimeRequest[]
+  novelties          Novelty[]
+  holidays           Holiday[]
+  laborParameters    LaborParameter[]
+  payrollPeriods     PayrollPeriod[]
+  payrollEstimates   PayrollEstimate[]
+  auditLogs          AuditLog[]
+  qrCodes            SiteQrCode[]
+  contracts          EmployeeContract[]
+
+  @@map("company")
+}
+
+model User {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  companyId          String?   @map("company_id") @db.Uuid
+  email              String    @unique
+  name               String
+  passwordHash       String    @map("password_hash")
+  role               Role
+  active             Boolean   @default(true)
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  failedLogins       Int       @default(0) @map("failed_logins")
+  lockedUntil        DateTime? @map("locked_until") @db.Timestamptz(3)
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company            Company?            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee           Employee?
+  sessions           Session[]
+  passkeys           PasskeyCredential[]
+  consents           DataConsent[]
+  managedSites       Site[]              @relation("SiteManager")
+  auditLogs          AuditLog[]          @relation("AuditActor")
+  decidedOvertime    OvertimeRequest[]   @relation("OvertimeDecider")
+  decidedNovelties   Novelty[]           @relation("NoveltyDecider")
+  requestedNovelties Novelty[]           @relation("NoveltyRequester")
+  manualPunches      AttendanceEvent[]   @relation("PunchCreatedBy")
+
+  @@index([companyId, role])
+  @@map("app_user")
+}
+
+model Session {
+  // id = SHA-256 del token de la cookie; el token en claro nunca se guarda.
+  id              String   @id
+  userId          String   @map("user_id") @db.Uuid
+  deviceBindingId String?  @map("device_binding_id") @db.Uuid
+  expiresAt       DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt      DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  userAgent       String?  @map("user_agent")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceBinding DeviceBinding? @relation(fields: [deviceBindingId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("session")
+}
+
+model PasskeyCredential {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  deviceBindingId String?   @map("device_binding_id") @db.Uuid
+  credentialId    String    @unique @map("credential_id") // base64url
+  publicKey       Bytes     @map("public_key")
+  counter         BigInt    @default(0)
+  transports      String[]  @default([])
+  name            String?
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt      DateTime? @map("last_used_at") @db.Timestamptz(3)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceBinding DeviceBinding? @relation(fields: [deviceBindingId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("passkey_credential")
+}
+
+// Autorización de tratamiento de datos (Ley 1581 de 2012).
+model DataConsent {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  policyVersion String   @map("policy_version")
+  acceptedAt    DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  userAgent     String?  @map("user_agent")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, policyVersion])
+  @@map("data_consent")
+}
+
+// ───────────────────────────────── Sedes ─────────────────────────────────
+
+model Site {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  name          String
+  address       String
+  city          String
+  latitude      Decimal  @db.Decimal(9, 6)
+  longitude     Decimal  @db.Decimal(9, 6)
+  radiusMeters  Int      @default(80) @map("radius_meters")
+  managerUserId String?  @map("manager_user_id") @db.Uuid
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company          Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  manager          User?                @relation("SiteManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  openingHours     SiteOpeningHours[]
+  qrCodes          SiteQrCode[]
+  employeesDefault Employee[]
+  shifts           ScheduledShift[]
+  patternDays      SchedulePatternDay[]
+  events           AttendanceEvent[]
+  sessions         WorkSession[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, name])
+  @@map("site")
+}
+
+model SiteOpeningHours {
+  id        String @id @default(uuid(7)) @db.Uuid
+  siteId    String @map("site_id") @db.Uuid
+  weekday   Int // 1 = lunes … 7 = domingo (ISO 8601)
+  opensMin  Int    @map("opens_min") // minutos desde 00:00
+  closesMin Int    @map("closes_min") // puede ser > 1440 si cierra al día siguiente
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, weekday])
+  @@map("site_opening_hours")
+}
+
+// El QR impreso contiene una URL con publicCode + firma HMAC.
+// Rotar = revocar el actual y crear una versión nueva.
+model SiteQrCode {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  siteId     String    @map("site_id") @db.Uuid
+  publicCode String    @unique @map("public_code")
+  version    Int
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+
+  company Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site    Site              @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Cascade)
+  events  AttendanceEvent[]
+
+  @@unique([siteId, version])
+  @@map("site_qr_code")
+}
+
+// ─────────────────────────────── Empleados ───────────────────────────────
+
+model Employee {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  companyId      String         @map("company_id") @db.Uuid
+  userId         String         @unique @map("user_id") @db.Uuid
+  documentType   DocumentType   @map("document_type")
+  documentNumber String         @map("document_number")
+  firstName      String         @map("first_name")
+  lastName       String         @map("last_name")
+  phone          String?
+  position       String
+  defaultSiteId  String?        @map("default_site_id") @db.Uuid
+  hireDate       DateTime       @map("hire_date") @db.Date
+  status         EmployeeStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company     Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user        User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  defaultSite Site?              @relation(fields: [defaultSiteId], references: [id], onDelete: SetNull)
+  contracts   EmployeeContract[]
+  devices     DeviceBinding[]
+  patterns    SchedulePattern[]
+  shifts      ScheduledShift[]
+  events      AttendanceEvent[]
+  sessions    WorkSession[]
+  overtime    OvertimeRequest[]
+  novelties   Novelty[]
+  estimates   PayrollEstimate[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, documentType, documentNumber])
+  @@index([companyId, status])
+  @@map("employee")
+}
+
+// Condiciones contractuales versionadas: la pre-nómina usa la vigente en cada fecha.
+model EmployeeContract {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  companyId     String       @map("company_id") @db.Uuid
+  employeeId    String       @map("employee_id") @db.Uuid
+  contractType  ContractType @map("contract_type")
+  salaryType    SalaryType   @default(ORDINARIO) @map("salary_type")
+  monthlySalary Decimal      @map("monthly_salary") @db.Decimal(14, 2)
+  weeklyHours   Decimal      @map("weekly_hours") @db.Decimal(5, 2)
+  payFrequency  PayFrequency @map("pay_frequency")
+  arlRiskClass  ArlRiskClass @default(I) @map("arl_risk_class")
+  startDate     DateTime     @map("start_date") @db.Date
+  endDate       DateTime?    @map("end_date") @db.Date
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@index([employeeId, startDate])
+  @@map("employee_contract")
+}
+
+// Vinculación de dispositivo: un token aleatorio en cookie httpOnly de larga
+// duración; en BD solo se guarda su hash. No se usa la IP como identificador.
+model DeviceBinding {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  companyId    String       @map("company_id") @db.Uuid
+  employeeId   String       @map("employee_id") @db.Uuid
+  tokenHash    String       @unique @map("token_hash")
+  label        String
+  userAgent    String?      @map("user_agent")
+  status       DeviceStatus @default(PENDING)
+  approvedById String?      @map("approved_by_id") @db.Uuid
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  activatedAt  DateTime?    @map("activated_at") @db.Timestamptz(3)
+  lastSeenAt   DateTime?    @map("last_seen_at") @db.Timestamptz(3)
+  revokedAt    DateTime?    @map("revoked_at") @db.Timestamptz(3)
+  revokeReason String?      @map("revoke_reason")
+
+  company  Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee            @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  sessions Session[]
+  passkeys PasskeyCredential[]
+  events   AttendanceEvent[]
+
+  @@index([employeeId, status])
+  @@map("device_binding")
+}
+
+// ──────────────────────────────── Horarios ───────────────────────────────
+
+model ShiftTemplate {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  companyId    String  @map("company_id") @db.Uuid
+  name         String
+  startMin     Int     @map("start_min") // minutos desde 00:00
+  endMin       Int     @map("end_min") // > 1440 si termina al día siguiente
+  breakMinutes Int     @default(0) @map("break_minutes")
+  breakPaid    Boolean @default(false) @map("break_paid")
+  color        String  @default("blue")
+  active       Boolean @default(true)
+
+  company     Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  patternDays SchedulePatternDay[]
+  shifts      ScheduledShift[]
+
+  @@unique([companyId, name])
+  @@map("shift_template")
+}
+
+// Patrón cíclico (semanal o rotativo) que genera turnos programados.
+model SchedulePattern {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  employeeId    String    @map("employee_id") @db.Uuid
+  name          String
+  cycleDays     Int       @default(7) @map("cycle_days")
+  anchorDate    DateTime  @map("anchor_date") @db.Date // día 0 del ciclo
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+
+  company  Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee             @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  days     SchedulePatternDay[]
+
+  @@index([employeeId, effectiveFrom])
+  @@map("schedule_pattern")
+}
+
+// Un día del ciclo puede tener varias filas (turno partido) o ninguna (descanso).
+model SchedulePatternDay {
+  id         String @id @default(uuid(7)) @db.Uuid
+  patternId  String @map("pattern_id") @db.Uuid
+  dayIndex   Int    @map("day_index")
+  templateId String @map("template_id") @db.Uuid
+  siteId     String @map("site_id") @db.Uuid
+
+  pattern  SchedulePattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  template ShiftTemplate   @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  site     Site            @relation(fields: [siteId], references: [id], onDelete: Restrict)
+
+  @@index([patternId, dayIndex])
+  @@map("schedule_pattern_day")
+}
+
+// Turno concreto de un empleado en una fecha (materializado desde un patrón o manual).
+model ScheduledShift {
+  id           String      @id @default(uuid(7)) @db.Uuid
+  companyId    String      @map("company_id") @db.Uuid
+  employeeId   String      @map("employee_id") @db.Uuid
+  siteId       String      @map("site_id") @db.Uuid
+  templateId   String?     @map("template_id") @db.Uuid
+  workDate     DateTime    @map("work_date") @db.Date
+  startAt      DateTime    @map("start_at") @db.Timestamptz(3)
+  endAt        DateTime    @map("end_at") @db.Timestamptz(3)
+  breakMinutes Int         @default(0) @map("break_minutes")
+  breakPaid    Boolean     @default(false) @map("break_paid")
+  status       ShiftStatus @default(PLANNED)
+  note         String?
+
+  company  Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee       @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  site     Site           @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Restrict)
+  template ShiftTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  sessions WorkSession[]
+
+  @@index([companyId, workDate])
+  @@index([employeeId, startAt])
+  @@map("scheduled_shift")
+}
+
+model Holiday {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  companyId String?  @map("company_id") @db.Uuid // null = festivo nacional
+  date      DateTime @db.Date
+  name      String
+  source    String // p. ej. "Ley 51 de 1983 (Ley Emiliani)"
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, date])
+  @@index([date])
+  @@map("holiday")
+}
+
+// ─────────────────────────────── Asistencia ──────────────────────────────
+
+// Marcación inmutable (solo inserción). Hora tomada del servidor.
+model AttendanceEvent {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  companyId       String             @map("company_id") @db.Uuid
+  employeeId      String             @map("employee_id") @db.Uuid
+  siteId          String             @map("site_id") @db.Uuid
+  type            PunchType
+  occurredAt      DateTime           @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  source          PunchSource
+  status          PunchStatus        @default(ACCEPTED)
+  verification    VerificationMethod
+  geoStatus       GeoStatus          @map("geo_status")
+  latitude        Decimal?           @db.Decimal(9, 6)
+  longitude       Decimal?           @db.Decimal(9, 6)
+  accuracyMeters  Int?               @map("accuracy_meters")
+  distanceMeters  Int?               @map("distance_meters")
+  qrCodeId        String?            @map("qr_code_id") @db.Uuid
+  deviceBindingId String?            @map("device_binding_id") @db.Uuid
+  createdById     String?            @map("created_by_id") @db.Uuid // solo marcaciones manuales
+  reason          String? // obligatorio si es manual o corrige otra
+  correctsEventId String?            @map("corrects_event_id") @db.Uuid
+  idempotencyKey  String             @unique @map("idempotency_key")
+  userAgent       String?            @map("user_agent")
+
+  company       Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee      Employee          @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
+  site          Site              @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Restrict)
+  qrCode        SiteQrCode?       @relation(fields: [qrCodeId], references: [id], onDelete: Restrict)
+  deviceBinding DeviceBinding?    @relation(fields: [deviceBindingId], references: [id], onDelete: Restrict)
+  createdBy     User?             @relation("PunchCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  corrects      AttendanceEvent?  @relation("Correction", fields: [correctsEventId], references: [id], onDelete: Restrict)
+  correctedBy   AttendanceEvent[] @relation("Correction")
+  opensSession  WorkSession?      @relation("SessionIn")
+  closesSession WorkSession?      @relation("SessionOut")
+
+  @@index([companyId, occurredAt])
+  @@index([employeeId, occurredAt])
+  @@map("attendance_event")
+}
+
+// Intentos rechazados: evidencia para auditoría y detección de abuso.
+model AttendanceAttempt {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  companyId  String?       @map("company_id") @db.Uuid
+  userId     String?       @map("user_id") @db.Uuid
+  siteId     String?       @map("site_id") @db.Uuid
+  reason     AttemptReason
+  detail     Json?
+  occurredAt DateTime      @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  userAgent  String?       @map("user_agent")
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, occurredAt])
+  @@index([userId, occurredAt])
+  @@map("attendance_attempt")
+}
+
+// Jornada: par entrada/salida. El tiempo registrado sale de aquí y no se
+// modifica por decisiones de aprobación.
+model WorkSession {
+  id               String            @id @default(uuid(7)) @db.Uuid
+  companyId        String            @map("company_id") @db.Uuid
+  employeeId       String            @map("employee_id") @db.Uuid
+  siteId           String            @map("site_id") @db.Uuid
+  scheduledShiftId String?           @map("scheduled_shift_id") @db.Uuid
+  inEventId        String            @unique @map("in_event_id") @db.Uuid
+  outEventId       String?           @unique @map("out_event_id") @db.Uuid
+  startAt          DateTime          @map("start_at") @db.Timestamptz(3)
+  endAt            DateTime?         @map("end_at") @db.Timestamptz(3)
+  breakMinutes     Int               @default(0) @map("break_minutes")
+  status           WorkSessionStatus @default(OPEN)
+  reviewNote       String?           @map("review_note")
+
+  company  Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee          @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
+  site     Site              @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Restrict)
+  shift    ScheduledShift?   @relation(fields: [scheduledShiftId], references: [id], onDelete: SetNull)
+  inEvent  AttendanceEvent   @relation("SessionIn", fields: [inEventId], references: [id], onDelete: Restrict)
+  outEvent AttendanceEvent?  @relation("SessionOut", fields: [outEventId], references: [id], onDelete: Restrict)
+  overtime OvertimeRequest[]
+
+  @@index([companyId, startAt])
+  @@index([employeeId, startAt])
+  @@map("work_session")
+}
+
+// ───────────────────────── Horas extra y novedades ───────────────────────
+
+// La decisión del administrador vive aquí; los minutos detectados quedan
+// intactos aunque se rechace la solicitud.
+model OvertimeRequest {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  companyId       String        @map("company_id") @db.Uuid
+  employeeId      String        @map("employee_id") @db.Uuid
+  workSessionId   String?       @map("work_session_id") @db.Uuid
+  workDate        DateTime      @map("work_date") @db.Date
+  detectedMinutes Int           @map("detected_minutes")
+  approvedMinutes Int?          @map("approved_minutes")
+  employeeNote    String?       @map("employee_note")
+  status          RequestStatus @default(PENDING)
+  decidedById     String?       @map("decided_by_id") @db.Uuid
+  decidedAt       DateTime?     @map("decided_at") @db.Timestamptz(3)
+  decisionNote    String?       @map("decision_note")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee    Employee     @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
+  workSession WorkSession? @relation(fields: [workSessionId], references: [id], onDelete: Restrict)
+  decidedBy   User?        @relation("OvertimeDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+
+  @@unique([workSessionId])
+  @@index([companyId, status])
+  @@map("overtime_request")
+}
+
+model Novelty {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  companyId    String        @map("company_id") @db.Uuid
+  employeeId   String        @map("employee_id") @db.Uuid
+  type         NoveltyType
+  startDate    DateTime      @map("start_date") @db.Date
+  endDate      DateTime      @map("end_date") @db.Date
+  hours        Decimal?      @db.Decimal(6, 2) // permisos por horas
+  note         String?
+  status       RequestStatus @default(PENDING)
+  requestedBy  String        @map("requested_by") @db.Uuid
+  decidedById  String?       @map("decided_by_id") @db.Uuid
+  decidedAt    DateTime?     @map("decided_at") @db.Timestamptz(3)
+  decisionNote String?       @map("decision_note")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee  Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
+  decidedBy User?    @relation("NoveltyDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  requester User     @relation("NoveltyRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+
+  @@index([companyId, startDate])
+  @@index([employeeId, startDate])
+  @@map("novelty")
+}
+
+// ─────────────────────────────── Pre-nómina ──────────────────────────────
+
+// Parámetro legal versionado. companyId null = valor nacional.
+// Ningún valor se inventa: cada fila cita norma y URL de verificación.
+model LaborParameter {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  companyId   String?       @map("company_id") @db.Uuid
+  key         String // p. ej. SMMLV, AUX_TRANSPORTE, RECARGO_NOCTURNO
+  value       Decimal       @db.Decimal(16, 4)
+  unit        ParameterUnit
+  validFrom   DateTime      @map("valid_from") @db.Date
+  validTo     DateTime?     @map("valid_to") @db.Date
+  legalSource String        @map("legal_source")
+  sourceUrl   String?       @map("source_url")
+  verifiedAt  DateTime?     @map("verified_at") @db.Date
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, key, validFrom])
+  @@index([key, validFrom])
+  @@map("labor_parameter")
+}
+
+model PayrollPeriod {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  companyId String        @map("company_id") @db.Uuid
+  startDate DateTime      @map("start_date") @db.Date
+  endDate   DateTime      @map("end_date") @db.Date
+  frequency PayFrequency
+  status    PayrollStatus @default(DRAFT)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  estimates PayrollEstimate[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, startDate, endDate])
+  @@map("payroll_period")
+}
+
+// Estimación (no liquidación legal). Guarda copia de los parámetros usados
+// y las advertencias, para que el cálculo sea reproducible y auditable.
+model PayrollEstimate {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  companyId         String   @map("company_id") @db.Uuid
+  periodId          String   @map("period_id") @db.Uuid
+  employeeId        String   @map("employee_id") @db.Uuid
+  grossEstimate     Decimal  @map("gross_estimate") @db.Decimal(14, 2)
+  deductions        Decimal  @db.Decimal(14, 2)
+  netEstimate       Decimal  @map("net_estimate") @db.Decimal(14, 2)
+  employerCost      Decimal  @map("employer_cost") @db.Decimal(14, 2)
+  parameterSnapshot Json     @map("parameter_snapshot")
+  warnings          Json     @default("[]")
+  computedAt        DateTime @default(now()) @map("computed_at") @db.Timestamptz(3)
+
+  company  Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  period   PayrollPeriod         @relation(fields: [periodId, companyId], references: [id, companyId], onDelete: Cascade)
+  employee Employee              @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
+  lines    PayrollEstimateLine[]
+
+  @@unique([periodId, employeeId])
+  @@map("payroll_estimate")
+}
+
+model PayrollEstimateLine {
+  id         String  @id @default(uuid(7)) @db.Uuid
+  estimateId String  @map("estimate_id") @db.Uuid
+  concept    String // p. ej. SALARIO_BASICO, HED, RN, AUX_TRANSPORTE, SALUD_EMPLEADO
+  kind       String // DEVENGADO | DEDUCCION | APORTE_EMPLEADOR | PROVISION
+  quantity   Decimal @db.Decimal(10, 2)
+  rate       Decimal @db.Decimal(16, 4)
+  amount     Decimal @db.Decimal(14, 2)
+  basis      String // explicación legible del cálculo
+
+  estimate PayrollEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  @@index([estimateId])
+  @@map("payroll_estimate_line")
+}
+
+// ──────────────────────────────── Auditoría ──────────────────────────────
+
+// Solo inserción (trigger en la migración).
+model AuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String?  @map("company_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String // p. ej. employee.create, overtime.approve, device.revoke
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  before      Json?
+  after       Json?
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  userAgent   String?  @map("user_agent")
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  actor   User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([companyId, occurredAt])
+  @@index([entityType, entityId])
+  @@map("audit_log")
+}

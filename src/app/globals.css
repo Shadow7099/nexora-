@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+/* Modo oscuro por clase (next-themes pone .dark en <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Tokens de diseño Nexora.
+ * Neutros fríos, azul profundo como primario y violeta como acento.
+ * Toda la UI usa estos tokens; nunca colores sueltos.
+ */
+:root {
+  --bg: oklch(0.985 0.002 260);
+  --bg-subtle: oklch(0.967 0.004 260);
+  --surface: oklch(1 0 0);
+  --surface-raised: oklch(1 0 0);
+  --border: oklch(0.915 0.006 260);
+  --border-strong: oklch(0.86 0.01 260);
+  --fg: oklch(0.21 0.02 265);
+  --fg-muted: oklch(0.47 0.02 265);
+  --fg-subtle: oklch(0.6 0.015 265);
+
+  --primary: oklch(0.45 0.17 262);
+  --primary-hover: oklch(0.4 0.17 262);
+  --primary-fg: oklch(0.99 0 0);
+  --primary-soft: oklch(0.95 0.03 262);
+  --accent: oklch(0.55 0.2 295);
+  --accent-soft: oklch(0.95 0.035 295);
+
+  --success: oklch(0.56 0.13 155);
+  --success-soft: oklch(0.95 0.04 155);
+  --warning: oklch(0.62 0.14 70);
+  --warning-soft: oklch(0.96 0.05 85);
+  --danger: oklch(0.56 0.19 25);
+  --danger-soft: oklch(0.95 0.03 25);
+
+  --ring: oklch(0.55 0.17 262 / 0.45);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 265 / 0.05);
+  --shadow-md: 0 1px 2px oklch(0.2 0.02 265 / 0.04), 0 4px 16px oklch(0.2 0.02 265 / 0.06);
+}
+
+.dark {
+  --bg: oklch(0.155 0.008 265);
+  --bg-subtle: oklch(0.185 0.01 265);
+  --surface: oklch(0.195 0.01 265);
+  --surface-raised: oklch(0.225 0.012 265);
+  --border: oklch(0.28 0.012 265);
+  --border-strong: oklch(0.34 0.014 265);
+  --fg: oklch(0.95 0.005 265);
+  --fg-muted: oklch(0.72 0.012 265);
+  --fg-subtle: oklch(0.58 0.012 265);
+
+  --primary: oklch(0.66 0.15 262);
+  --primary-hover: oklch(0.71 0.14 262);
+  --primary-fg: oklch(0.16 0.02 265);
+  --primary-soft: oklch(0.3 0.07 262);
+  --accent: oklch(0.7 0.16 295);
+  --accent-soft: oklch(0.3 0.08 295);
+
+  --success: oklch(0.72 0.14 155);
+  --success-soft: oklch(0.3 0.06 155);
+  --warning: oklch(0.8 0.13 80);
+  --warning-soft: oklch(0.32 0.06 75);
+  --danger: oklch(0.7 0.17 25);
+  --danger-soft: oklch(0.32 0.08 25);
+
+  --ring: oklch(0.66 0.15 262 / 0.5);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px oklch(0 0 0 / 0.35);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-card: var(--shadow-sm);
+  --shadow-pop: var(--shadow-md);
+
+  --animate-fade-up: fade-up 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: none; }
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+  html.dark { color-scheme: dark; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
