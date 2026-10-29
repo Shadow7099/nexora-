@@ -50,19 +50,27 @@ Plataforma SaaS de asistencia con QR por sede, horarios, horas extra con aprobac
 
 **Regla de oro de autorización:** cada Server Action y cada lectura vuelve a verificar la sesión y el rol en el servidor. Ocultar un botón no es seguridad.
 
-## 3. Multiempresa (aislamiento de datos)
+## 3. Sesiones y autorización
+
+- `src/server/sessions.ts`: crea, valida y revoca sesiones; ingreso con bloqueo por intentos; cambio de contraseña. No depende de Next.js, por eso se prueba directamente.
+- `src/server/current.ts`: une la cookie con la sesión (`requireActor`) y fuerza los pasos pendientes (contraseña temporal, autorización de datos).
+- `src/server/authz.ts`: reglas por rol; devuelven el `company_id` que la consulta debe usar.
+- `src/server/*.ts`: cada función recibe el actor y verifica permisos antes de tocar datos. Las acciones de servidor (`actions.ts`) solo obtienen el actor y delegan.
+- `src/proxy.ts`: redirección rápida a `/ingresar` si no hay cookie. **No** es la seguridad real; esa está en el servidor.
+
+## 4. Multiempresa (aislamiento de datos)
 
 Tres capas, de afuera hacia adentro:
 
 1. **DAL:** ninguna consulta recibe `companyId` desde el navegador; se toma de la sesión.
 2. **Claves foráneas compuestas** `(id, company_id)`: la base de datos **rechaza** enlazar un empleado de la empresa A con una sede de la empresa B, aunque el código tenga un error. Está probado en `tests/db/guarantees.test.ts`.
-3. **Pruebas automáticas** de acceso cruzado (fase 2): un administrador de la empresa A intentando leer o modificar datos de B.
+3. **Pruebas automáticas** de acceso cruzado (`tests/db/tenancy.test.ts`): un administrador de la empresa A intenta leer, editar, desactivar o resetear empleados de B y recibe "no existe" (no se revela que el registro existe).
 
 4. **API pública cerrada:** RLS activo sin políticas y sin permisos para los roles públicos de Supabase (`anon`, `authenticated`). La app se conecta como dueña de las tablas desde el servidor; nadie más puede leer filas.
 
 *Futuro:* políticas RLS por `company_id` como quinta capa cuando haya varias empresas en producción.
 
-## 4. Modelo de datos
+## 5. Modelo de datos
 
 Esquema completo en [`prisma/schema.prisma`](../prisma/schema.prisma), con garantías adicionales en la migración inicial.
 
@@ -96,7 +104,7 @@ Rechazar una hora extra **no** borra ni reduce el tiempo registrado: solo cambia
 ### Garantías impuestas por la base de datos (probadas)
 
 - Una sola jornada abierta por empleado (índice único parcial). Impide la doble entrada incluso con dos solicitudes simultáneas.
-- `attendance_event` y `audit_log`: `UPDATE`/`DELETE` bloqueados por trigger.
+- `attendance_event` y `audit_log`: `UPDATE`, `DELETE` y `TRUNCATE` bloqueados por trigger.
 - Marcación manual sin motivo ni autor → rechazada.
 - Horas extra aprobadas > detectadas → rechazado. Una decisión sin quién y cuándo → rechazada.
 - Un solo QR vigente por sede. Coordenadas y radio dentro de rango.
@@ -109,7 +117,7 @@ Rechazar una hora extra **no** borra ni reduce el tiempo registrado: solo cambia
 - Los turnos que cruzan la medianoche se guardan con `start_at`/`end_at` reales; la plantilla usa minutos > 1440 (por ejemplo 22:00–06:00 = 1320–1800).
 - Turno partido = dos filas el mismo día. Descanso = ninguna fila.
 
-## 5. Seguridad de la marcación con QR
+## 6. Seguridad de la marcación con QR
 
 ### Flujo
 
@@ -130,7 +138,7 @@ Rechazar una hora extra **no** borra ni reduce el tiempo registrado: solo cambia
 
 Por esto la recomendación es **probar 30 días con los empleados reales** y revisar los intentos rechazados antes de ofrecerlo a otras empresas.
 
-## 6. Pre-nómina (fase 6)
+## 7. Pre-nómina (fase 6)
 
 - Cada valor legal (SMMLV, auxilio de transporte, recargos, horas extra, jornada máxima, inicio de la jornada nocturna, aportes…) es una fila de `labor_parameter` con **fecha de vigencia, norma y URL de verificación**. No hay porcentajes escritos en el código.
 - Si falta un parámetro para alguna fecha del período, el cálculo **no inventa**: marca la línea con una advertencia y pide revisión humana.
@@ -139,7 +147,7 @@ Por esto la recomendación es **probar 30 días con los empleados reales** y rev
 
 Cambios graduales ya identificados que el modelo versionado debe soportar, **pendientes de verificar en fuente primaria en la fase 6**: Ley 2466 de 2025 (jornada nocturna desde las 7:00 p. m., recargo dominical y festivo escalonado, reducción de la jornada máxima a 42 h en julio de 2026) y el salario mínimo 2026 (Decreto 1469 de 2025, suspendido, y reemplazado por el Decreto 0159 de 2026).
 
-## 7. Datos personales (Ley 1581 de 2012)
+## 8. Datos personales (Ley 1581 de 2012)
 
 - Se registra la **autorización** de cada usuario con versión de la política (`data_consent`).
 - La ubicación se toma solo al marcar y se guarda junto a la marcación como evidencia, nunca en seguimiento.
@@ -147,6 +155,6 @@ Cambios graduales ya identificados que el modelo versionado debe soportar, **pen
 - Sin secretos en el frontend; variables de entorno solo en el servidor.
 - **Requiere revisión jurídica:** el texto de la política de tratamiento, el aviso de privacidad, el tiempo de conservación de las coordenadas y el registro de bases de datos ante la SIC si aplica.
 
-## 8. Preparación SaaS (sin cobros todavía)
+## 9. Preparación SaaS (sin cobros todavía)
 
 `company` ya tiene `status` (prueba, activa, suspendida), `plan_code`, `max_employees` y `max_sites`. El rol `SUPERADMIN` administra empresas. La facturación por suscripción **no** se construye en esta versión.

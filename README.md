@@ -4,7 +4,7 @@
 
 Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina estimada para pymes colombianas.
 
-> Estado: **Fase 1 de 8 terminada** (arquitectura, base de datos y sistema de diseño). Ver [docs/PLAN.md](docs/PLAN.md).
+> Estado: **Fase 2 de 8 terminada** (ingreso, roles, empleados y configuración). Ver [docs/PLAN.md](docs/PLAN.md).
 
 ## Documentación
 
@@ -46,22 +46,29 @@ Empresa ficticia **Panadería El Trigal** con sedes en Villavicencio Centro, Vil
 | Empleado | `juan@eltrigal.test` (y `laura@`, `andres@`, `valentina@`, `camila@`, `santiago@`, `diego@`, `paula@`) |
 | Superadministrador | `plataforma@nexora.test` |
 
-El inicio de sesión se habilita en la fase 2.
+Ingrese en `/ingresar`. En el primer ingreso cada usuario acepta la autorización de datos.
 
-## Verificar la fase 1
+## Pruebas
 
 ```bash
-npm run check        # tipos + lint + 26 pruebas (utilidades y garantías de la BD)
+npm run check        # tipos + lint + pruebas unitarias y de base de datos (Vitest)
 npm run build
-npm run test:e2e     # 16 pruebas en navegador (escritorio y celular)
+npm run test:e2e     # pruebas en navegador, escritorio y celular (Playwright)
 ```
+
+Las pruebas **nunca usan la base de datos de trabajo**: crean y borran sus propias bases (`nexora_test` y `nexora_e2e_test`; el nombre debe terminar en `_test`). El usuario de PostgreSQL necesita permiso `CREATEDB`. Se pueden cambiar con `TEST_DATABASE_URL` y `E2E_DATABASE_URL`.
 
 Para usar un Chromium ya instalado: `CHROMIUM_PATH=/ruta/a/chromium npm run test:e2e`.
 
-Páginas disponibles:
-- `/`: presentación
-- `/sistema`: sistema de diseño
-- `/sistema/admin` y `/sistema/empleado`: vistas previas del diseño (datos de ejemplo, sin BD)
+## Rutas
+
+| Ruta | Quién | Qué |
+|---|---|---|
+| `/ingresar` | todos | inicio de sesión |
+| `/admin` | administrador | resumen, empleados, configuración |
+| `/app` | empleado | saludo, sede y horario de hoy |
+| `/plataforma` | superadministrador | empresas registradas |
+| `/sistema` | público | sistema de diseño |
 
 ## Estructura
 
@@ -75,7 +82,9 @@ src/
   components/ui/         componentes base (botón, tarjeta, insignia, campo…)
   components/layout/     estructura del panel admin y de la app del empleado
   components/employee/   pantalla de marcación
-  lib/                   BD, contraseñas, formato de fechas y moneda
+  lib/                   BD, contraseñas, validación, turnos, formato de fechas y moneda
+  server/                lógica de negocio con autorización (sesiones, empleados, empresa)
+  proxy.ts               redirección optimista a /ingresar sin cookie
 tests/
   unit/  db/  e2e/
 docs/

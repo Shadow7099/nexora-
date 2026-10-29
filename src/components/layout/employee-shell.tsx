@@ -2,19 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CURRENT_PHASE, employeeNav, isActive } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
 
 /** Diseñado primero para celular: barra superior mínima y pestañas abajo. */
-export function EmployeeShell({ children }: { children: React.ReactNode }) {
+export function EmployeeShell({ children, logout }: { children: React.ReactNode; logout?: () => Promise<void> }) {
   const pathname = usePathname();
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col">
       <header className="flex h-14 items-center justify-between px-4">
         <Logo />
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          {logout && (
+            <form action={logout}>
+              <button type="submit" className="grid size-9 place-items-center rounded-md text-fg-subtle hover:bg-bg-subtle hover:text-fg" aria-label="Cerrar sesión" title="Cerrar sesión">
+                <LogOut className="size-4" />
+              </button>
+            </form>
+          )}
+        </div>
       </header>
       <main className="flex-1 px-4 pb-28">{children}</main>
       <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">

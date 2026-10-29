@@ -190,3 +190,10 @@ describe("API de datos cerrada", () => {
     expect(rows).toEqual([]);
   });
 });
+
+describe("TRUNCATE bloqueado en tablas de solo inserción", () => {
+  it("no permite vaciar marcaciones ni auditoría", async () => {
+    expect(await pgError(`TRUNCATE attendance_event CASCADE`)).toBe("23001");
+    expect(await pgError(`TRUNCATE audit_log CASCADE`)).toBe("23001");
+  });
+});

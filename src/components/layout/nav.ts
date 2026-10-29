@@ -15,13 +15,13 @@ import {
 } from "lucide-react";
 
 /** Última fase entregada y probada. Las secciones de fases posteriores se muestran deshabilitadas. */
-export const CURRENT_PHASE = 1;
+export const CURRENT_PHASE = 2;
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; phase: number };
 
 /** Fase en la que cada sección queda funcional (para no anunciar lo que aún no existe). */
 export const adminNav: NavItem[] = [
-  { href: "/admin", label: "Resumen", icon: LayoutDashboard, phase: 7 },
+  { href: "/admin", label: "Resumen", icon: LayoutDashboard, phase: 2 },
   { href: "/admin/asistencia", label: "Asistencia", icon: ClipboardCheck, phase: 4 },
   { href: "/admin/empleados", label: "Empleados", icon: Users, phase: 2 },
   { href: "/admin/sedes", label: "Sedes y QR", icon: Building2, phase: 3 },
@@ -33,7 +33,7 @@ export const adminNav: NavItem[] = [
 ];
 
 export const employeeNav: NavItem[] = [
-  { href: "/app", label: "Inicio", icon: Home, phase: 4 },
+  { href: "/app", label: "Inicio", icon: Home, phase: 2 },
   { href: "/app/historial", label: "Historial", icon: BarChart3, phase: 4 },
   { href: "/app/solicitudes", label: "Solicitudes", icon: ListChecks, phase: 5 },
 ];
