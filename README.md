@@ -11,6 +11,7 @@ Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina 
 - [Arquitectura, modelo de datos y seguridad](docs/ARQUITECTURA.md)
 - [Plan de implementación por fases](docs/PLAN.md)
 - [Información pendiente de la empresa real](docs/PENDIENTES.md)
+- [Despliegue: Supabase y Vercel](docs/DESPLIEGUE.md)
 
 ## Requisitos
 
@@ -50,7 +51,7 @@ El inicio de sesión se habilita en la fase 2.
 ## Verificar la fase 1
 
 ```bash
-npm run check        # tipos + lint + 25 pruebas (utilidades y garantías de la BD)
+npm run check        # tipos + lint + 26 pruebas (utilidades y garantías de la BD)
 npm run build
 npm run test:e2e     # 16 pruebas en navegador (escritorio y celular)
 ```

@@ -181,3 +181,12 @@ describe("coherencia de sedes", () => {
     expect(await qr(2)).toBe("23505");
   });
 });
+
+describe("API de datos cerrada", () => {
+  it("todas las tablas de la app tienen RLS activo", async () => {
+    const { rows } = await client.query(
+      `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations' AND NOT rowsecurity`,
+    );
+    expect(rows).toEqual([]);
+  });
+});

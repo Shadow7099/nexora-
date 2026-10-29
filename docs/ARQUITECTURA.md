@@ -58,7 +58,9 @@ Tres capas, de afuera hacia adentro:
 2. **Claves foráneas compuestas** `(id, company_id)`: la base de datos **rechaza** enlazar un empleado de la empresa A con una sede de la empresa B, aunque el código tenga un error. Está probado en `tests/db/guarantees.test.ts`.
 3. **Pruebas automáticas** de acceso cruzado (fase 2): un administrador de la empresa A intentando leer o modificar datos de B.
 
-*Futuro:* Row Level Security de PostgreSQL como cuarta capa cuando haya varias empresas en producción.
+4. **API pública cerrada:** RLS activo sin políticas y sin permisos para los roles públicos de Supabase (`anon`, `authenticated`). La app se conecta como dueña de las tablas desde el servidor; nadie más puede leer filas.
+
+*Futuro:* políticas RLS por `company_id` como quinta capa cuando haya varias empresas en producción.
 
 ## 4. Modelo de datos
 
