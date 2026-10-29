@@ -18,7 +18,14 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
   const parsed = loginSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error), data: { email: String(formData.get("email") ?? "") } };
 
-  const result = await authenticate(parsed.data.email, parsed.data.password, await getUserAgent());
+  let result: Awaited<ReturnType<typeof authenticate>>;
+  try {
+    result = await authenticate(parsed.data.email, parsed.data.password, await getUserAgent());
+  } catch (e) {
+    // Fallo de infraestructura (p. ej. base de datos no configurada o caída): mensaje claro, sin detalles internos.
+    console.error("login: error de infraestructura", e);
+    return { ok: false, message: "El servicio no está disponible en este momento. Intenta en unos minutos.", data: { email: parsed.data.email } };
+  }
   if (!result.ok) {
     const message =
       result.reason === "locked"

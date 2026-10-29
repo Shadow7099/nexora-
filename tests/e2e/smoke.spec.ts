@@ -57,3 +57,9 @@ test("capturas de revisión", async ({ page }, info) => {
     }
   }
 });
+
+test("una ruta inexistente muestra la página 404 en español", async ({ page }) => {
+  const res = await page.goto("/no-existe-esta-ruta");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1, name: "Esta página no existe" })).toBeVisible();
+});
