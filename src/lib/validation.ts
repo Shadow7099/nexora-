@@ -43,6 +43,7 @@ export const companySettingsSchema = z.object({
   lateToleranceMin: z.coerce.number().int().min(0, { error: "No puede ser negativa." }).max(60, { error: "Máximo 60 minutos." }),
   geoMaxAccuracyM: z.coerce.number().int().min(10, { error: "Mínimo 10 m." }).max(1000, { error: "Máximo 1000 m." }),
   requireDeviceBinding: z.boolean(),
+  parafiscalExempt: z.boolean().default(false),
 });
 
 /** Convierte los errores de Zod en { campo: primer mensaje }. */

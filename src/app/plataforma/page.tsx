@@ -20,7 +20,7 @@ export default async function PlatformPage() {
   const actor = await requireActor({ roles: ["SUPERADMIN"] });
   const companies = await listCompanies(actor);
   return (
-    <AdminShell user={{ name: actor.name, companyName: "Nexora · Plataforma", roleLabel: "Superadministrador" }} logout={logoutAction} nav={[]}>
+    <AdminShell user={{ name: actor.name, companyName: "Nexora · Plataforma", roleLabel: "Superadministrador" }} logout={logoutAction} nav="platform">
       <PageHeader title="Empresas" description={`${companies.length} registradas. Sin acceso a datos personales de sus empleados.`} />
       <Card className="overflow-hidden">
         {companies.length === 0 ? (

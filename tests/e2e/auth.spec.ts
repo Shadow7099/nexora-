@@ -142,8 +142,10 @@ test("ninguna página privada desborda horizontalmente (escritorio y celular)", 
   const noOverflow = async (path: string) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow, `${path} no debe tener scroll horizontal`).toBeLessThanOrEqual(0);
+    const m = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth - window.innerWidth, inner: window.innerWidth, screen: window.screen.width }));
+    expect(m.overflow, `${path} no debe tener scroll horizontal`).toBeLessThanOrEqual(0);
+    // En celular Chrome agranda el viewport si algo no cabe: también se compara con el ancho de la pantalla.
+    expect(m.inner, `${path} no debe agrandar el viewport`).toBeLessThanOrEqual(m.screen);
   };
   await login(page, "admin@eltrigal.test");
   for (const path of ["/admin", "/admin/empleados", "/admin/empleados/nuevo", "/admin/configuracion"]) await noOverflow(path);
@@ -191,8 +193,10 @@ test("todos los módulos del administrador abren con datos reales y sin desborda
     const res = await page.goto(path);
     expect(res?.status(), path).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow, `${path} no debe tener scroll horizontal`).toBeLessThanOrEqual(0);
+    const m = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth - window.innerWidth, inner: window.innerWidth, screen: window.screen.width }));
+    expect(m.overflow, `${path} no debe tener scroll horizontal`).toBeLessThanOrEqual(0);
+    // En celular Chrome agranda el viewport si algo no cabe: también se compara con el ancho de la pantalla.
+    expect(m.inner, `${path} no debe agrandar el viewport`).toBeLessThanOrEqual(m.screen);
   }
   // Datos reales: un QR por sede y los 8 empleados de la demo en la grilla de horarios.
   await page.goto("/admin/sedes");
@@ -202,9 +206,9 @@ test("todos los módulos del administrador abren con datos reales y sin desborda
   // Coherencia de la demo: nadie programado por encima de las 42 h semanales pactadas.
   const weekly = await page.locator("tbody tr td:last-child").allTextContents();
   for (const t of weekly) expect(Number(t.match(/^(\d+) h/)?.[1] ?? 0), t).toBeLessThanOrEqual(42);
-  // Pre-nómina: sin parámetros legales no calcula y lo advierte.
+  // Pre-nómina: los parámetros legales están cargados, pero se advierte que falta la validación del contador.
   await page.goto("/admin/pre-nomina");
-  await expect(page.getByText("Faltan los parámetros laborales vigentes")).toBeVisible();
+  await expect(page.getByText(/parámetro\(s\) legales aún sin validar/)).toBeVisible();
 });
 
 test("el empleado abre su historial y solicitudes, pero no los módulos del administrador", async ({ page }) => {

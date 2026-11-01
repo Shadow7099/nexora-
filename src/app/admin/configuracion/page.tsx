@@ -28,7 +28,7 @@ export default async function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <SettingsForm values={{ lateToleranceMin: s.lateToleranceMin, geoMaxAccuracyM: s.geoMaxAccuracyM, requireDeviceBinding: s.requireDeviceBinding }} />
+              <SettingsForm values={{ lateToleranceMin: s.lateToleranceMin, geoMaxAccuracyM: s.geoMaxAccuracyM, requireDeviceBinding: s.requireDeviceBinding, parafiscalExempt: s.parafiscalExempt }} />
             </CardContent>
           </Card>
           <Card>

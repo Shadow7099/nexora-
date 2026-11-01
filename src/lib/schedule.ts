@@ -10,7 +10,7 @@ export type PatternDayInput = {
   dayIndex: number;
   siteId: string;
   siteName: string;
-  template: { name: string; startMin: number; endMin: number; breakMinutes: number };
+  template: { name: string; startMin: number; endMin: number; breakMinutes: number; breakPaid?: boolean };
 };
 
 export type PatternInput = {
@@ -32,6 +32,7 @@ export type OverrideInput = {
   start: Date;
   end: Date;
   breakMinutes: number;
+  breakPaid?: boolean;
   siteId: string;
   siteName: string;
   templateName: string;
@@ -44,6 +45,8 @@ export type ResolvedShift = {
   startMin: number;
   endMin: number;
   breakMinutes: number;
+  /** true si el descanso es remunerado (no se descuenta en la pre-nómina). */
+  breakPaid?: boolean;
   siteId: string;
   siteName: string;
   templateName: string;
@@ -59,7 +62,7 @@ export function localDate(at: Date, timeZone = DEFAULT_TZ) {
 }
 
 /** Desfase (ms) de una zona horaria en un instante: hora local − UTC. */
-function tzOffset(at: Date, timeZone: string) {
+export function tzOffset(at: Date, timeZone: string) {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -110,6 +113,7 @@ export function shiftsOn(patterns: PatternInput[], isoDate: string, timeZone = D
         startMin: Math.round((o.start.getTime() - midnight) / 60000),
         endMin: Math.round((o.end.getTime() - midnight) / 60000),
         breakMinutes: o.breakMinutes,
+        breakPaid: o.breakPaid ?? false,
         siteId: o.siteId,
         siteName: o.siteName,
         templateName: o.templateName,
@@ -132,6 +136,7 @@ export function shiftsOn(patterns: PatternInput[], isoDate: string, timeZone = D
         startMin: d.template.startMin,
         endMin: d.template.endMin,
         breakMinutes: d.template.breakMinutes,
+        breakPaid: d.template.breakPaid ?? false,
         siteId: d.siteId,
         siteName: d.siteName,
         templateName: d.template.name,

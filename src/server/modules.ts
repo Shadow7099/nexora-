@@ -67,31 +67,6 @@ export async function weekSchedule(actor: Actor, weekOffset = 0, now = new Date(
   };
 }
 
-/** Contrato vigente de cada empleado y estado de los parámetros legales. */
-export async function payrollPreview(actor: Actor, now = new Date()) {
-  const companyId = requireCompanyAdmin(actor);
-  const [employees, parameters] = await Promise.all([
-    db.employee.findMany({
-      where: { companyId, status: "ACTIVE" },
-      orderBy: { firstName: "asc" },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        position: true,
-        contracts: {
-          where: { startDate: { lte: now }, OR: [{ endDate: null }, { endDate: { gte: now } }] },
-          orderBy: { startDate: "desc" },
-          take: 1,
-          select: { contractType: true, monthlySalary: true, weeklyHours: true, payFrequency: true, arlRiskClass: true },
-        },
-      },
-    }),
-    db.laborParameter.count({ where: { OR: [{ companyId: null }, { companyId }] } }),
-  ]);
-  return { employees, parametersLoaded: parameters };
-}
-
 export async function attendanceSummary(actor: Actor) {
   const companyId = requireCompanyAdmin(actor);
   const [events, openSessions, attempts, pendingDevices] = await Promise.all([

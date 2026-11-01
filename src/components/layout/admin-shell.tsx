@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
-import { adminNav, CURRENT_PHASE, isActive, type NavItem } from "@/components/layout/nav";
+import { adminNav, CURRENT_PHASE, isActive, platformNav, type NavItem } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
 
 type ShellUser = { name: string; companyName: string; roleLabel?: string };
@@ -15,17 +15,21 @@ type ShellUser = { name: string; companyName: string; roleLabel?: string };
 export function AdminShell({
   user,
   logout,
-  nav = adminNav,
+  nav: navProp = "admin",
   children,
 }: {
   user: ShellUser;
   /** Acción de servidor para cerrar sesión (ausente en la vista previa del diseño). */
   logout?: () => Promise<void>;
-  /** Secciones del menú (por defecto, las del administrador de empresa). */
-  nav?: NavItem[];
+  /**
+   * Secciones del menú: "admin" (por defecto), "platform" o una lista propia
+   * (solo desde componentes cliente: los iconos no se pueden enviar desde el servidor).
+   */
+  nav?: "admin" | "platform" | NavItem[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const nav = navProp === "admin" ? adminNav : navProp === "platform" ? platformNav : navProp;
   const [open, setOpen] = useState(false);
 
   // Cierra el menú móvil con Escape.
@@ -46,7 +50,7 @@ export function AdminShell({
       </div>
       <p className="truncate px-2 pb-2 text-xs font-medium text-fg-subtle">{user.companyName}</p>
       {nav.map(({ href, label, icon: Icon, phase }) => {
-        const active = isActive(pathname, href, "/admin");
+        const active = isActive(pathname, href, nav[0]?.href ?? "/admin");
         const preview = phase > CURRENT_PHASE;
         return (
           <Link

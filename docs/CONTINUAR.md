@@ -1,7 +1,7 @@
 # Nexora: guía para continuar en un chat nuevo
 
 > Pega este archivo (o su enlace) al iniciar el chat nuevo. Resume qué está hecho, cómo está montado, las reglas del proyecto y el plan detallado de las fases que faltan.
-> Última actualización: 1 de noviembre de 2026 · commit `f38c407` en `main`.
+> Última actualización: 1 de noviembre de 2026 · fase 6 terminada.
 
 ---
 
@@ -11,9 +11,9 @@
 Eres el responsable técnico de Nexora (repositorio Shadow7099/nexora-, rama main).
 Lee primero docs/CONTINUAR.md, docs/ARQUITECTURA.md y docs/PLAN.md.
 Respeta las reglas de la sección 4 de CONTINUAR.md.
-Sigue con la fase 6 (pre-nómina) según la sección 6: empieza investigando y
-citando los parámetros legales vigentes, cárgalos versionados y muéstrame la
-tabla de parámetros para que un contador la valide antes de calcular.
+Sigue con la fase 7 (dashboard y reportes) según la sección 6. La pre-nómina
+(fase 6) ya está hecha: sus parámetros legales siguen pendientes de validación
+por un contador (Plataforma → Parámetros laborales).
 Trabaja por partes, prueba todo (Vitest + Playwright) y no avances con algo que no funcione.
 ```
 
@@ -28,11 +28,11 @@ Trabaja por partes, prueba todo (Vitest + Playwright) y no avances con algo que 
 | 3. Sedes, QR (imprimir/rotar), plantillas, horarios, cambios puntuales, festivos | ✅ |
 | 4. Marcación QR + ubicación + celular vinculado + passkeys, PWA | ✅ |
 | 5. Horas extra (detección/aprobación), novedades, correcciones | ✅ |
-| **6. Pre-nómina estimada** | ⏳ Siguiente |
-| **7. Dashboard con gráficos y reportes (Excel/CSV/PDF)** | ⏳ |
+| 6. Pre-nómina estimada (parámetros legales versionados, cálculo, detalle por empleado) | ✅ (parámetros sin validar por contador) |
+| **7. Dashboard con gráficos y reportes (Excel/CSV/PDF)** | ⏳ Siguiente |
 | **8. Calidad, seguridad, manuales, despliegue final, resumen académico** | ⏳ |
 
-Pruebas al cierre de la fase 5: **116** unitarias/BD (Vitest) y **58** de navegador (Playwright, escritorio y celular). Todas en verde.
+Pruebas al cierre de la fase 6: **144** unitarias/BD (Vitest) y **64** de navegador (Playwright, escritorio y celular). Todas en verde.
 
 Pendiente del usuario: **probar una marcación real con un celular** (aún hay 0 marcaciones reales en producción; ver sección 7).
 
@@ -52,7 +52,7 @@ Pendiente del usuario: **probar una marcación real con un celular** (aún hay 0
 `admin@eltrigal.test` · `juan@`, `laura@`, `andres@`, `valentina@`, `camila@`, `santiago@`, `diego@`, `paula@eltrigal.test` · `plataforma@nexora.test` (superadmin).
 
 **Migraciones aplicadas en Supabase** (también registradas en `_prisma_migrations` con su checksum SHA-256, para que `prisma migrate deploy` las reconozca):
-`20261027150316_init`, `20261029000000_lock_data_api`, `20261029010000_fix_function_search_path`, `20261029020000_block_truncate`, `20261101195716_attendance_phase4`.
+`20261027150316_init`, `20261029000000_lock_data_api`, `20261029010000_fix_function_search_path`, `20261029020000_block_truncate`, `20261101195716_attendance_phase4`, `20261102000000_payroll_phase6` (columna `company.parafiscal_exempt` + 35 parámetros laborales nacionales).
 Las fases 3 y 5 no necesitaron migración.
 
 Datos demo en Supabase: dos semanas de marcaciones **simuladas** (`source = SYSTEM`, 18–31 oct 2026). Para que aparezcan sus horas extra: Solicitudes → **Revisar jornadas pasadas**.
@@ -108,38 +108,17 @@ Usuario `nexora/nexora` con CREATEDB.
 
 ## 6. Fases que faltan (plan detallado)
 
-### Fase 6 · Pre-nómina estimada
+### Fase 6 · Pre-nómina estimada ✅ (hecha)
 
-**Objetivo:** estimar, por período (quincena o mes) y empleado, devengados, deducciones y costo del empleador, con advertencias. Nunca presentarlo como liquidación legal.
-
-**Paso 1: parámetros legales (antes de escribir cálculo).** Investigar en fuente primaria (Diario Oficial, Función Pública, MinTrabajo) y cargar en `labor_parameter` con `valid_from/valid_to`, `legal_source`, `source_url`, `verified_at`:
-
-| Clave sugerida | Qué es | Pista a verificar (no usar sin confirmar) |
-|---|---|---|
-| `SMMLV` | Salario mínimo mensual | 2026: $1.750.905 (Decreto 1469 de 2025, suspendido; reexpedido Decreto 0159 de 2026) |
-| `AUX_TRANSPORTE` | Auxilio de transporte | 2026: $249.095 (Decreto 1470 de 2025) |
-| `AUX_TRANSPORTE_TOPE_SMMLV` | Hasta cuántos SMMLV aplica | 2 SMMLV |
-| `JORNADA_MAX_SEMANAL` | Horas semanales máximas | 42 h desde julio de 2026 (Ley 2466 de 2025; fecha exacta 15 o 16 de julio, verificar) |
-| `NOCTURNA_INICIO` / `NOCTURNA_FIN` | Franja nocturna | 7:00 p. m. – 6:00 a. m. (Ley 2466 de 2025) |
-| `RECARGO_NOCTURNO` | Recargo nocturno | Verificar % |
-| `HE_DIURNA`, `HE_NOCTURNA` | Horas extra | Verificar % |
-| `RECARGO_DOMINICAL_FESTIVO` | Dominical/festivo | Escalonado por Ley 2466: 80 % → 90 % (1 jul 2026) → 100 % (1 jul 2027); verificar |
-| `HE_DOMINICAL_DIURNA/NOCTURNA` | Extra en dominical/festivo | Verificar regla de acumulación |
-| `SALUD_EMPLEADO`, `PENSION_EMPLEADO` | Deducciones del trabajador | Verificar % |
-| `SALUD_EMPLEADOR`, `PENSION_EMPLEADOR`, `ARL_CLASE_I..V`, `CAJA`, `ICBF`, `SENA` | Aportes del empleador | Verificar % y exoneraciones (art. 114-1 E.T.) |
-| `CESANTIAS`, `INT_CESANTIAS`, `PRIMA`, `VACACIONES` | Provisiones | Verificar % |
-
-Mostrar la tabla en una pantalla de **Parámetros laborales** (solo lectura para el admin de empresa; edición por superadmin) para que **un contador la valide** antes de usarla.
-
-**Paso 2: clasificación de minutos (función pura en `src/lib/payroll.ts`, con pruebas):**
-- Cortar cada jornada en tramos diurno/nocturno según la franja vigente en esa fecha.
-- Marcar domingo/festivo con `holidayOn()`.
-- Separar ordinarias de extra usando **solo `approved_minutes`** de `overtime_request` (las rechazadas no se pagan como extra, pero el tiempo sigue registrado).
-- Descontar descansos no pagados; aplicar novedades (vacaciones, incapacidad, licencias) según su tipo.
-
-**Paso 3: estimación** en `payroll_period` + `payroll_estimate` + `payroll_estimate_line` (las tablas ya existen), guardando `parameter_snapshot` y `warnings`. Advertencias, como mínimo: parámetro faltante para alguna fecha, salario bajo el SMMLV, contrato sin datos, jornadas por revisar, horas extra pendientes de decisión, incapacidades (quién paga qué días requiere revisión).
-
-**Pruebas obligatorias:** casos calculados a mano y validados (jornada diurna, nocturna que cruza medianoche, domingo, festivo, horas extra aprobadas parcialmente, auxilio con tope); falta de parámetro ⇒ advertencia y sin número; aislamiento entre empresas.
+- **Parámetros:** `prisma/labor-parameters.ts` (fuente única) → SQL de la migración con `scripts/labor-parameters-sql.ts`. Cada fila: valor, vigencia, norma y URL. `verified_at` en null hasta que un contador los valide.
+  Para cambiar un valor (p. ej. salario mínimo 2027): **Plataforma → Parámetros laborales → Nueva versión** (cierra la anterior el día previo; nada se borra). El admin de empresa los ve en solo lectura en Pre-nómina → Parámetros laborales.
+- **Cálculo puro:** `src/lib/payroll.ts` (`estimatePayroll`, `classifyMinutes`, `commercialDays`, `periodFor`). Minuto a minuto según la fecha local: diurno/nocturno, domingo/festivo (con el % vigente ese día), ordinario/extra **aprobada**/no aprobada; descanso no remunerado descontado en proporción. Valor hora = salario ÷ (horas semanales ÷ 6 × 30) — **criterio a validar con el contador**.
+- **Servidor:** `src/server/payroll.ts` (`computePayroll`, `payrollOverview`, `getPayrollEstimate`, `listLaborParameters`, `verifyLaborParameter`, `addLaborParameterVersion`). Guarda `payroll_estimate` + líneas con explicación, copia de parámetros y advertencias.
+- **Bloqueos (sin números):** parámetro faltante para alguna fecha, sin contrato, salario integral, aprendizaje, prestación de servicios.
+- **Advertencias:** parámetros sin validar, jornadas abiertas/por revisar, extras o novedades pendientes, incapacidades/licencias, salario bajo el mínimo, Fondo de Solidaridad (≥ 4 SMMLV, no calculado), tiempo parcial.
+- **No incluye:** retención en la fuente, embargos, libranzas, Fondo de Solidaridad, cotización por semanas, valor real de incapacidades. Exoneración art. 114-1 E.T.: casilla en Configuración (`company.parafiscal_exempt`).
+- **Pendiente del usuario:** que un contador revise la tabla de parámetros y el criterio del valor hora; luego validar cada fila desde `plataforma@nexora.test`.
+- Los sitios .gov.co no eran accesibles desde el contenedor: los valores se contrastaron con varias fuentes secundarias coincidentes. Ver notas en cada parámetro (SMMLV 2026 transitorio por la demanda ante el Consejo de Estado; fecha exacta de la franja nocturna 25 o 26 dic. 2025).
 
 ### Fase 7 · Dashboard y reportes
 
@@ -164,7 +143,7 @@ Mostrar la tabla en una pantalla de **Parámetros laborales** (solo lectura para
 
 1. Probar una marcación real: Sedes y QR → Editar sede → "Usar mi ubicación actual" → escanear el QR con el celular → `juan@eltrigal.test` → Vincular → Registrar entrada.
 2. Reemplazar los datos demo por los reales (sedes, coordenadas, empleados, horarios, salarios). Ver `docs/PENDIENTES.md`.
-3. Validación de un contador para la fase 6 y de un abogado para la política de datos.
+3. Validación de un contador para los parámetros de la fase 6 (y el criterio del valor hora) y de un abogado para la política de datos.
 
 ---
 

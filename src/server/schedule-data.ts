@@ -9,7 +9,7 @@ export async function loadPatterns(companyId: string, employeeIds?: string[]) {
     include: {
       days: {
         include: {
-          template: { select: { name: true, startMin: true, endMin: true, breakMinutes: true } },
+          template: { select: { name: true, startMin: true, endMin: true, breakMinutes: true, breakPaid: true } },
           site: { select: { id: true, name: true } },
         },
       },
@@ -49,6 +49,7 @@ export async function loadOverrides(companyId: string, from: string, to: string,
       start: r.startAt,
       end: r.endAt,
       breakMinutes: r.breakMinutes,
+      breakPaid: r.breakPaid,
       siteId: r.site.id,
       siteName: r.site.name,
       templateName: r.template?.name ?? (r.status === "CANCELLED" ? "Descanso" : "Turno especial"),

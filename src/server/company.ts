@@ -6,7 +6,7 @@ import { requireCompanyAdmin, requireSuperadmin } from "@/server/authz";
 import { AppError } from "@/server/errors";
 import type { Actor } from "@/server/sessions";
 
-const settingsSelect = { name: true, legalName: true, nit: true, timezone: true, lateToleranceMin: true, geoMaxAccuracyM: true, requireDeviceBinding: true } as const;
+const settingsSelect = { name: true, legalName: true, nit: true, timezone: true, lateToleranceMin: true, geoMaxAccuracyM: true, requireDeviceBinding: true, parafiscalExempt: true } as const;
 
 export async function getCompanySettings(actor: Actor) {
   const companyId = requireCompanyAdmin(actor);
@@ -27,7 +27,7 @@ export async function updateCompanySettings(actor: Actor, input: unknown) {
         action: "company.settings_update",
         entityType: "company",
         entityId: companyId,
-        before: { lateToleranceMin: before.lateToleranceMin, geoMaxAccuracyM: before.geoMaxAccuracyM, requireDeviceBinding: before.requireDeviceBinding },
+        before: { lateToleranceMin: before.lateToleranceMin, geoMaxAccuracyM: before.geoMaxAccuracyM, requireDeviceBinding: before.requireDeviceBinding, parafiscalExempt: before.parafiscalExempt },
         after: parsed.data,
       },
       tx,

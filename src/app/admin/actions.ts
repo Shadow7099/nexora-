@@ -66,6 +66,7 @@ export async function updateSettingsAction(_: ActionState, fd: FormData): Promis
       lateToleranceMin: fd.get("lateToleranceMin"),
       geoMaxAccuracyM: fd.get("geoMaxAccuracyM"),
       requireDeviceBinding: fd.get("requireDeviceBinding") === "on",
+      parafiscalExempt: fd.get("parafiscalExempt") === "on",
     });
     revalidatePath("/admin/configuracion");
     return { ok: true, message: "Configuración guardada." };

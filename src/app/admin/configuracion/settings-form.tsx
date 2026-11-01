@@ -5,7 +5,7 @@ import { updateSettingsAction } from "@/app/admin/actions";
 import { FormAlert, SubmitButton } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 
-export function SettingsForm({ values }: { values: { lateToleranceMin: number; geoMaxAccuracyM: number; requireDeviceBinding: boolean } }) {
+export function SettingsForm({ values }: { values: { lateToleranceMin: number; geoMaxAccuracyM: number; requireDeviceBinding: boolean; parafiscalExempt: boolean } }) {
   const [state, action] = useActionState(updateSettingsAction, null);
   const err = state?.fieldErrors ?? {};
   return (
@@ -24,6 +24,16 @@ export function SettingsForm({ values }: { values: { lateToleranceMin: number; g
         <span>
           <span className="font-medium">Exigir celular vinculado para marcar</span>
           <span className="block text-fg-muted">Recomendado. Cada empleado marca solo desde su propio celular; un celular nuevo requiere tu aprobación.</span>
+        </span>
+      </label>
+      <label className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm">
+        <input type="checkbox" name="parafiscalExempt" defaultChecked={values.parafiscalExempt} className="mt-0.5 size-4 accent-[var(--primary)]" />
+        <span>
+          <span className="font-medium">La empresa aplica la exoneración del art. 114-1 del Estatuto Tributario</span>
+          <span className="block text-fg-muted">
+            Sociedades y personas jurídicas declarantes de renta (o personas naturales con dos o más empleados) no pagan salud del empleador, SENA ni
+            ICBF por los trabajadores que devenguen menos de 10 salarios mínimos. Confírmalo con tu contador: cambia el costo estimado de la pre-nómina.
+          </span>
         </span>
       </label>
       <div className="flex justify-end">

@@ -35,7 +35,8 @@ test("las secciones aún no completas se marcan como 'Pronto'", async ({ page, i
   await page.goto("/sistema/admin");
   if (isMobile) await page.getByRole("button", { name: "Abrir menú" }).click();
   const nav = page.getByRole("navigation", { name: "Principal" }).last();
-  await expect(nav.getByRole("link", { name: /Pre-nómina\s*Pronto/ })).toBeVisible();
+  await expect(nav.getByRole("link", { name: /Reportes\s*Pronto/ })).toBeVisible();
+  await expect(nav.getByRole("link", { name: /^Pre-nómina$/ })).toBeVisible();
   await expect(nav.getByRole("link", { name: /^Empleados$/ })).toBeVisible();
 });
 
