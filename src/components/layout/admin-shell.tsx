@@ -46,16 +46,8 @@ export function AdminShell({
       </div>
       <p className="truncate px-2 pb-2 text-xs font-medium text-fg-subtle">{user.companyName}</p>
       {nav.map(({ href, label, icon: Icon, phase }) => {
-        if (phase > CURRENT_PHASE) {
-          return (
-            <span key={href} className="flex h-8 cursor-not-allowed items-center gap-2.5 rounded-md px-2 text-sm text-fg-subtle/70" title={`Disponible en la fase ${phase}`}>
-              <Icon className="size-4" aria-hidden />
-              {label}
-              <span className="ml-auto rounded bg-bg-subtle px-1.5 text-[10px] font-medium ring-1 ring-border">F{phase}</span>
-            </span>
-          );
-        }
         const active = isActive(pathname, href, "/admin");
+        const preview = phase > CURRENT_PHASE;
         return (
           <Link
             key={href}
@@ -69,6 +61,11 @@ export function AdminShell({
           >
             <Icon className={cn("size-4", active ? "text-primary" : "text-fg-subtle")} aria-hidden />
             {label}
+            {preview && (
+              <span className="ml-auto rounded bg-bg-subtle px-1.5 text-[10px] font-medium text-fg-subtle ring-1 ring-border" title={`Se completa en la fase ${phase}`}>
+                Pronto
+              </span>
+            )}
           </Link>
         );
       })}

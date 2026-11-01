@@ -167,8 +167,52 @@ test("capturas de revisión con sesión", async ({ page }, info) => {
   await page.getByRole("link", { name: /Valentina/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Valentina/);
   await shot("admin-empleado");
+  for (const m of ["sedes", "horarios", "pre-nomina"]) {
+    await page.goto(`/admin/${m}`);
+    await shot(`admin-${m}`);
+  }
   await logout(page);
   await page.emulateMedia({ colorScheme: "dark" });
   await login(page, "valentina@eltrigal.test");
   await shot("app-oscuro");
+});
+
+test("todos los módulos del administrador abren con datos reales y sin desbordar", async ({ page }) => {
+  await login(page, "admin@eltrigal.test");
+  const modules: [string, RegExp][] = [
+    ["/admin/asistencia", /Asistencia/],
+    ["/admin/sedes", /Sedes y QR/],
+    ["/admin/horarios", /Horarios/],
+    ["/admin/solicitudes", /Solicitudes/],
+    ["/admin/pre-nomina", /Pre-nómina/],
+    ["/admin/reportes", /Reportes/],
+  ];
+  for (const [path, title] of modules) {
+    const res = await page.goto(path);
+    expect(res?.status(), path).toBe(200);
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, `${path} no debe tener scroll horizontal`).toBeLessThanOrEqual(0);
+  }
+  // Datos reales: un QR por sede y los 8 empleados de la demo en la grilla de horarios.
+  await page.goto("/admin/sedes");
+  await expect(page.getByRole("img", { name: /Código QR de/ })).toHaveCount(4);
+  await page.goto("/admin/horarios");
+  await expect(page.locator("tbody tr").filter({ hasText: "Juan" })).toHaveCount(1);
+  // Coherencia de la demo: nadie programado por encima de las 42 h semanales pactadas.
+  const weekly = await page.locator("tbody tr td:last-child").allTextContents();
+  for (const t of weekly) expect(Number(t.match(/^(\d+) h/)?.[1] ?? 0), t).toBeLessThanOrEqual(42);
+  // Pre-nómina: sin parámetros legales no calcula y lo advierte.
+  await page.goto("/admin/pre-nomina");
+  await expect(page.getByText("Faltan los parámetros laborales vigentes")).toBeVisible();
+});
+
+test("el empleado abre su historial y solicitudes, pero no los módulos del administrador", async ({ page }) => {
+  await login(page, "diego@eltrigal.test");
+  for (const path of ["/app/historial", "/app/solicitudes"]) {
+    expect((await page.goto(path))?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+  await page.goto("/admin/sedes");
+  await expect(page).toHaveURL(/\/app$/);
 });

@@ -35,3 +35,16 @@ Cada fase termina con código funcionando, pruebas automáticas pasando y una fo
 - **Panel de plataforma** (superadministrador): empresas con su estado y tamaño, sin datos personales.
 
 Errores encontrados y corregidos durante las pruebas: correo/documento duplicado se reportaba en el campo equivocado; las páginas de dos columnas desbordaban horizontalmente en celular (tapaban el botón "Desactivar"); TRUNCATE podía vaciar las tablas de solo inserción.
+
+## Módulos en vista previa
+
+Todos los módulos se pueden abrir desde el menú. Los que aún no están completos llevan la etiqueta **Pronto** y un aviso que dice qué se ve ya y qué falta. Nunca muestran datos inventados:
+
+| Módulo | Ya funciona con datos reales | Falta |
+|---|---|---|
+| Sedes y QR | Sedes, dirección, coordenadas, radio, horario, QR vigente por sede | Crear/editar, mapa, imprimir y rotar QR (fase 3) |
+| Horarios | Grilla de la semana desde los patrones (nocturnos, partidos, rotativos) y horas programadas | Editar patrones, turnos sueltos, festivos (fase 3) |
+| Asistencia | Contadores reales (en cero hasta que haya marcaciones) | Marcación con QR (fase 4) |
+| Solicitudes | Contadores reales | Aprobación de horas extra y novedades (fase 5) |
+| Pre-nómina | Contratos y salarios vigentes; advertencia de parámetros legales faltantes | Parámetros verificados y cálculo (fase 6) |
+| Reportes | Catálogo de reportes | Exportación Excel/CSV/PDF y gráficos (fase 7) |

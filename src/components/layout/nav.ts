@@ -14,12 +14,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-/** Última fase entregada y probada. Las secciones de fases posteriores se muestran deshabilitadas. */
+/** Última fase entregada y probada. Las secciones de fases posteriores se abren en modo vista previa. */
 export const CURRENT_PHASE = 2;
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; phase: number };
 
-/** Fase en la que cada sección queda funcional (para no anunciar lo que aún no existe). */
+/** Fase en la que cada sección queda completa; antes se muestra como vista previa honesta. */
 export const adminNav: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard, phase: 2 },
   { href: "/admin/asistencia", label: "Asistencia", icon: ClipboardCheck, phase: 4 },

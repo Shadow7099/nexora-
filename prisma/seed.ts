@@ -160,7 +160,8 @@ async function main() {
           days = weekdays(T.oficina, [0, 1, 2, 3, 4]); // L–V, sáb y dom descanso
           break;
         case "madrugada":
-          days = weekdays(T.madrugada, [0, 1, 2, 3, 4, 5]); // L–S
+          // L–V: 5 × 7,5 h = 37,5 h (por debajo de las 42 h semanales pactadas).
+          days = weekdays(T.madrugada, [0, 1, 2, 3, 4]);
           break;
         case "partido":
           days = [...weekdays(T.partidoAm, [1, 2, 3, 4, 5]), ...weekdays(T.partidoPm, [1, 2, 3, 4, 5])]; // M–S
@@ -169,11 +170,10 @@ async function main() {
           days = weekdays(T.nocturno, [0, 1, 2, 3, 4]); // noches de L a V
           break;
         case "rotativo":
-          // Ciclo de 14 días: semana de mañana y semana de tarde; apoya Primavera los sábados.
+          // Ciclo de 14 días: una semana de mañana (en Primavera, cambio de sede) y una de tarde (en Acacías).
           cycleDays = 14;
           days = [
-            ...weekdays(T.madrugada, [0, 1, 2, 3, 4]),
-            { dayIndex: 5, templateId: T.madrugada, siteId: sites.primavera! },
+            ...[0, 1, 2, 3, 4].map((dayIndex) => ({ dayIndex, templateId: T.madrugada, siteId: sites.primavera! })),
             ...weekdays(T.tarde, [7, 8, 9, 10, 11]),
           ];
           break;
