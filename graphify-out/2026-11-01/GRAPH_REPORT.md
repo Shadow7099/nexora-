@@ -1,191 +1,229 @@
 # Graph Report - nexora-  (2026-11-01)
 
 ## Corpus Check
-- 145 files · ~58,570 words
+- 165 files · ~73,864 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: .example 1, (none) 1, .toml 1)
 
 ## Summary
-- 883 nodes · 3190 edges · 26 communities (24 shown, 2 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 65 edges (avg confidence: 0.84)
-- Token cost: 80,000 input · 11,788 output
+- 935 nodes · 3427 edges · 36 communities (31 shown, 5 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 29 edges (avg confidence: 0.89)
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `df468b60`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Páginas del panel admin
-- Núcleo servidor y datos
-- Acciones de gestión laboral
-- Marcación QR del empleado
-- Datos semilla demo
-- Autenticación y sesiones
-- Empleados y dispositivos
-- Pruebas BD y e2e
-- Seguridad de la marcación
-- Configuración del paquete
-- Dependencias de ejecución
-- Aislamiento multiempresa y migraciones
-- Configuración TypeScript
-- Reglas laborales colombianas
-- Esquema Prisma
-- Rutas y estructura
-- Dependencias de desarrollo
-- Scripts npm
-- Fases 1-3 y horarios
-- Stack y decisiones técnicas
-- Gestión laboral fase 5
-- Layout raíz y tema
-- Iconos de la app
-- Configuración ESLint
-- Configuración Next.js
+- requireActor
+- requireCompanyAdmin
+- gestion-actions.ts
+- m/actions.ts
+- modules.ts
+- current.ts
+- employees.ts
+- attendance.spec.ts
+- lib/payroll.ts
+- package.json
+- dependencies
+- sessions.ts
+- compilerOptions
+- Nexora: Arquitectura
+- attendance.ts
+- proxy.ts
+- devDependencies
+- scripts
+- novelties.ts
+- server/payroll.ts
+- errors.ts
+- src/app/layout.tsx
+- apple-icon.tsx
+- eslint.config.mjs
+- next.config.ts
+- schedule.ts
+- db.ts
+- Nexora: guía para continuar en un chat nuevo
+- devices.ts
+- qr/[id]/page.tsx
+- geo.ts
+- labor-parameters.ts
+- AGENTS.md
+- CLAUDE.md
+- .claude/CLAUDE.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `requireActor()` - 62 edges
-2. `requireCompanyAdmin()` - 55 edges
-3. `next` - 48 edges
-4. `AppError` - 47 edges
-5. `Card()` - 44 edges
-6. `lucide-react` - 43 edges
-7. `audit()` - 41 edges
-8. `SubmitButton()` - 40 edges
-9. `cn()` - 40 edges
-10. `FormAlert()` - 37 edges
+1. `requireActor()` - 73 edges
+2. `requireCompanyAdmin()` - 60 edges
+3. `next` - 53 edges
+4. `AppError` - 53 edges
+5. `Card()` - 50 edges
+6. `lucide-react` - 48 edges
+7. `SubmitButton()` - 45 edges
+8. `audit()` - 45 edges
+9. `cn()` - 44 edges
+10. `FormAlert()` - 41 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `onPunch()` --indirect_call--> `publicCode()`  [INFERRED]
-  src/components/employee/punch-panel.tsx → prisma/seed.ts
-- `Nexora: Arquitectura` --references--> `Nexora (SaaS asistencia y pre-nómina)`  [EXTRACTED]
-  docs/ARQUITECTURA.md → README.md
-- `prisma/schema.prisma` --references--> `employee_contract`  [EXTRACTED]
-  README.md → docs/ARQUITECTURA.md
-- `Prisma 7 (adaptador pg)` --conceptually_related_to--> `prisma/schema.prisma`  [INFERRED]
-  docs/ARQUITECTURA.md → README.md
-- `20261029010000_fix_function_search_path` --conceptually_related_to--> `prisma/migrations`  [INFERRED]
-  docs/DESPLIEGUE.md → README.md
+- `3. Sesiones y autorización` --references--> `requireActor()`  [INFERRED]
+  docs/ARQUITECTURA.md → src/server/current.ts
+- `Fase 6 · Pre-nómina estimada ✅ (hecha)` --references--> `commercialDays()`  [INFERRED]
+  docs/CONTINUAR.md → src/lib/payroll.ts
+- `Fase 6 · Pre-nómina estimada ✅ (hecha)` --references--> `periodFor()`  [INFERRED]
+  docs/CONTINUAR.md → src/lib/payroll.ts
+- `Fase 6 · Pre-nómina estimada ✅ (hecha)` --references--> `classifyMinutes()`  [INFERRED]
+  docs/CONTINUAR.md → src/lib/payroll.ts
+- `Fase 6 · Pre-nómina estimada ✅ (hecha)` --references--> `estimatePayroll()`  [INFERRED]
+  docs/CONTINUAR.md → src/lib/payroll.ts
 
 ## Import Cycles
 - None detected.
 
-## Hyperedges (group relationships)
-- **Capas de verificación de la marcación QR** — concept_qr_public_code, concept_device_binding, concept_passkeys_webauthn, concept_geolocation_check, concept_idempotency_key, concept_table_attendance_attempt [EXTRACTED 1.00]
-- **Capas de aislamiento multiempresa** — concept_dal, concept_composite_foreign_keys, tests_db_tenancy_test, concept_rls_closed_public_api [EXTRACTED 1.00]
-- **Pre-nómina reproducible con parámetros legales versionados** — concept_table_labor_parameter, concept_versioned_labor_parameters, concept_parameter_snapshot, concept_missing_parameter_warning, concept_ley_2466_2025, concept_decreto_0159_2026 [INFERRED 0.85]
+## Communities (36 total, 5 thin omitted)
 
-## Communities (26 total, 2 thin omitted)
-
-### Community 0 - "Páginas del panel admin"
-Cohesion: 0.06
-Nodes (109): class-variance-authority, lucide-react, next, AttendancePage(), metadata, statusBadge, metadata, SettingsPage() (+101 more)
-
-### Community 1 - "Núcleo servidor y datos"
+### Community 0 - "requireActor"
 Cohesion: 0.05
-Nodes (110): server-only, zod, db, globalForPrisma, zonedTimeToUtc(), companySettingsSchema, contractSchema, employeeSchema (+102 more)
+Nodes (131): class-variance-authority, lucide-react, next, AttendancePage(), metadata, statusBadge, metadata, SettingsPage() (+123 more)
 
-### Community 2 - "Acciones de gestión laboral"
-Cohesion: 0.08
-Nodes (72): react, SettingsForm(), addManualSessionAction(), admin(), clearOverrideAction(), closeSessionAction(), createSiteAction(), decideNoveltyAction() (+64 more)
+### Community 1 - "requireCompanyAdmin"
+Cohesion: 0.13
+Nodes (42): fieldErrors(), audit(), requireCompanyAdmin(), updateCompanySettings(), addManualSession(), closeSessionManually(), toMin(), AppError (+34 more)
 
-### Community 3 - "Marcación QR del empleado"
-Cohesion: 0.06
-Nodes (62): @simplewebauthn/browser, @simplewebauthn/server, EmployeeLayout(), EmployeeHomePage(), metadata, bindDeviceAction(), employee(), passkeyRegistrationOptionsAction() (+54 more)
+### Community 2 - "gestion-actions.ts"
+Cohesion: 0.05
+Nodes (100): react, SettingsForm(), EditEmployeeForm(), NewContractForm(), ResetPasswordButton(), StatusButton(), Values, addManualSessionAction() (+92 more)
 
-### Community 4 - "Datos semilla demo"
-Cohesion: 0.08
-Nodes (44): prng(), seedAttendance(), d(), db, hm(), main(), publicCode(), @prisma/adapter-pg (+36 more)
-
-### Community 5 - "Autenticación y sesiones"
+### Community 3 - "m/actions.ts"
 Cohesion: 0.09
-Nodes (43): requireActor, src/server/actions.ts (Server Actions), src/server/, changePasswordAction(), changeSchema, consentAction(), loginAction(), logoutAction() (+35 more)
+Nodes (50): @simplewebauthn/browser, EmployeeHomePage(), metadata, bindDeviceAction(), employee(), passkeyRegistrationOptionsAction(), punchAction(), PunchActionResult (+42 more)
 
-### Community 6 - "Empleados y dispositivos"
-Cohesion: 0.11
-Nodes (33): addContractAction(), admin(), approveDeviceAction(), createEmployeeAction(), echo(), resetPasswordAction(), revokeDeviceAction(), setStatusAction() (+25 more)
+### Community 4 - "modules.ts"
+Cohesion: 0.22
+Nodes (15): addDays(), colombianHolidays(), easterSunday(), Holiday, holidayOn(), holidaysBetween(), iso(), nextMonday() (+7 more)
 
-### Community 7 - "Pruebas BD y e2e"
-Cohesion: 0.07
+### Community 5 - "current.ts"
+Cohesion: 0.14
+Nodes (22): changePasswordAction(), changeSchema, consentAction(), loginAction(), logoutAction(), safeNext(), ConsentPage(), items (+14 more)
+
+### Community 6 - "employees.ts"
+Cohesion: 0.23
+Nodes (21): addContractAction(), admin(), approveDeviceAction(), createEmployeeAction(), echo(), resetPasswordAction(), revokeDeviceAction(), setStatusAction() (+13 more)
+
+### Community 7 - "attendance.spec.ts"
+Cohesion: 0.06
 Nodes (9): PORT, pg, @playwright/test, client, CENTRO, FAR, PEOPLE, pages (+1 more)
 
-### Community 8 - "Seguridad de la marcación"
-Cohesion: 0.13
-Nodes (12): APP_URL, Ley 1581 de 2012 (datos personales), src/components/employee/ (pantalla de marcación), Passkeys (WebAuthn / SimpleWebAuthn), Códigos de rechazo (INVALID_QR, DEVICE_NOT_BOUND, PASSKEY_FAILED, OUTSIDE_RADIUS, DUPLICATE_PUNCH…), /m/<código> (página del QR), device_binding, Información que se necesita de la empresa real (+4 more)
+### Community 8 - "lib/payroll.ts"
+Cohesion: 0.09
+Nodes (34): addDays(), blockedResult(), bump(), classifyMinutes(), commercialDays(), ContractInput, cop(), emptySummary() (+26 more)
 
-### Community 9 - "Configuración del paquete"
+### Community 9 - "package.json"
 Cohesion: 0.09
 Nodes (22): engines, node, name, private, version, clsx, dotenv, @node-rs/argon2 (+14 more)
 
-### Community 10 - "Dependencias de ejecución"
+### Community 10 - "dependencies"
 Cohesion: 0.10
 Nodes (21): dependencies, class-variance-authority, clsx, dotenv, geist, lucide-react, next, next-themes (+13 more)
 
-### Community 11 - "Aislamiento multiempresa y migraciones"
-Cohesion: 0.14
-Nodes (11): DATABASE_URL (transaction pooler 6543), 20261029020000_block_truncate, 20261029010000_fix_function_search_path, 20261027150316_init, 20261029000000_lock_data_api, prisma/migrations, SESSION_SECRET, Supabase (PostgreSQL 17, us-east-1) (+3 more)
+### Community 11 - "sessions.ts"
+Cohesion: 0.15
+Nodes (22): vitest, db, hashPassword(), OPTIONS, verifyPassword(), authenticate(), changePassword(), createSession() (+14 more)
 
-### Community 12 - "Configuración TypeScript"
+### Community 12 - "compilerOptions"
 Cohesion: 0.11
 Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+10 more)
 
-### Community 13 - "Reglas laborales colombianas"
-Cohesion: 0.18
-Nodes (12): Ley 2466 de 2025, Ley 2578 de 2026 (Virgen de Chiquinquirá), Ley 51 de 1983 (festivos), Nexora (SaaS asistencia y pre-nómina), Revisión profesional (jurídica y nómina), Plan de implementación, Fase 6: Pre-nómina, Fase 7: Dashboard y reportes (+4 more)
+### Community 13 - "Nexora: Arquitectura"
+Cohesion: 0.05
+Nodes (42): 1. Decisiones principales, 2. Vista general, 3. Sesiones y autorización, 4. Multiempresa (aislamiento de datos), 5. Modelo de datos, 6. Seguridad de la marcación con QR, 7. Pre-nómina (fase 6), 8. Datos personales (Ley 1581 de 2012) (+34 more)
 
-### Community 14 - "Esquema Prisma"
-Cohesion: 0.22
-Nodes (17): prisma/schema.prisma, parameter_snapshot, app_user, attendance_attempt, audit_log, company, data_consent, holiday (+9 more)
+### Community 14 - "attendance.ts"
+Cohesion: 0.15
+Nodes (24): localDate(), OverrideInput, attendanceDay(), DayStatus, employeeHistory(), employeeToday(), MIN_SECONDS_BETWEEN_PUNCHES, PunchResult (+16 more)
 
-### Community 15 - "Rutas y estructura"
-Cohesion: 0.12
-Nodes (12): src/components/ui/, src/lib/, /admin, /app, /ingresar, /plataforma, Datos de demostración (Panadería El Trigal), Estructura del repositorio (+4 more)
+### Community 15 - "proxy.ts"
+Cohesion: 0.40
+Nodes (3): config, COOKIES, PRIVATE
 
-### Community 16 - "Dependencias de desarrollo"
+### Community 16 - "devDependencies"
 Cohesion: 0.14
 Nodes (14): devDependencies, eslint, eslint-config-next, @playwright/test, tailwindcss, @tailwindcss/turbopack, tsx, @types/node (+6 more)
 
-### Community 17 - "Scripts npm"
+### Community 17 - "scripts"
 Cohesion: 0.15
 Nodes (13): scripts, build, check, db:generate, db:migrate, db:seed, dev, lint (+5 more)
 
-### Community 18 - "Fases 1-3 y horarios"
-Cohesion: 0.20
-Nodes (8): Argon2id (hash de contraseñas), /sistema (sistema de diseño), schedule_pattern, schedule_pattern_day, shift_template, Fase 1: Arquitectura y diseño, Fase 2: Autenticación y usuarios, Fase 3: Empresas y sedes
+### Community 18 - "novelties.ts"
+Cohesion: 0.13
+Nodes (19): zod, companySettingsSchema, contractSchema, employeeSchema, isoDate, loginSchema, money, PASSWORD_MIN (+11 more)
 
-### Community 19 - "Stack y decisiones técnicas"
-Cohesion: 0.20
-Nodes (4): Decreto 0159 de 2026, Decreto 1469 de 2025, prisma migrate deploy (session pooler), Nexora: Arquitectura
+### Community 19 - "server/payroll.ts"
+Cohesion: 0.18
+Nodes (19): Fase 6 · Pre-nómina estimada ✅ (hecha), CONCEPT_LABEL, NoveltyKind, periodFrequency(), Warning, addLaborParameterVersion(), computePayroll(), CONCEPT_ORDER (+11 more)
 
-### Community 20 - "Gestión laboral fase 5"
-Cohesion: 0.38
-Nodes (8): attendance_event, employee, employee_contract, novelty, overtime_request, scheduled_shift, work_session, Fase 5: Gestión laboral
+### Community 20 - "errors.ts"
+Cohesion: 0.18
+Nodes (12): server-only, AuditEntry, Tx, requireSuperadmin(), getCompanySettings(), listCompanies(), settingsSelect, listSessionsToReview() (+4 more)
 
-### Community 21 - "Layout raíz y tema"
+### Community 21 - "src/app/layout.tsx"
 Cohesion: 0.28
 Nodes (6): geist, next-themes, metadata, RootLayout(), viewport, ThemeProvider()
 
-### Community 22 - "Iconos de la app"
+### Community 22 - "apple-icon.tsx"
 Cohesion: 0.31
 Nodes (7): AppleIcon(), contentType, size, contentType, Icon(), Mark(), size
 
-### Community 23 - "Configuración ESLint"
+### Community 23 - "eslint.config.mjs"
 Cohesion: 0.50
 Nodes (3): eslintConfig, eslint, eslint-config-next
 
+### Community 26 - "schedule.ts"
+Cohesion: 0.25
+Nodes (12): currentOrNextShift(), cycleIndex(), isoOf(), PatternDayInput, PatternInput, ResolvedShift, shiftsOn(), toDay() (+4 more)
+
+### Community 27 - "db.ts"
+Cohesion: 0.24
+Nodes (9): prng(), seedAttendance(), d(), db, hm(), main(), publicCode(), @prisma/adapter-pg (+1 more)
+
+### Community 28 - "Nexora: guía para continuar en un chat nuevo"
+Cohesion: 0.17
+Nodes (11): 1. Prompt para el chat nuevo, 2. Estado actual, 3. Infraestructura, 4. Reglas del proyecto (no negociables), 5. Guía técnica rápida, 6. Fases que faltan (plan detallado), 7. Antes del piloto de 30 días (depende del usuario), 8. Mapa del código (graphify) (+3 more)
+
+### Community 29 - "devices.ts"
+Cohesion: 0.24
+Nodes (8): STALE_SESSION_HOURS, approveDevice(), getCompanyDevice(), revokeDevice(), at(), rp, setup(), t0
+
+### Community 30 - "qr/[id]/page.tsx"
+Cohesion: 0.33
+Nodes (7): qrcode, metadata, PrintQrPage(), PrintButton(), publicBaseUrl(), qrSvg(), getSiteForAdmin()
+
+### Community 31 - "geo.ts"
+Cohesion: 0.33
+Nodes (6): distanceMeters(), evaluateLocation(), GeoInput, GeoVerdict, rad(), site
+
+### Community 32 - "labor-parameters.ts"
+Cohesion: 0.47
+Nodes (4): LABOR_PARAMETERS, LaborParameterSeed, q(), rows
+
 ## Knowledge Gaps
-- **19 isolated node(s):** `@prisma/client`, `@tailwindcss/turbopack`, `@types/node`, `@types/pg`, `@types/qrcode` (+14 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 242 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **10 isolated node(s):** `@prisma/client`, `@tailwindcss/turbopack`, `@types/node`, `@types/pg`, `@types/qrcode` (+5 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 297 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `Páginas del panel admin` to `Acciones de gestión laboral`, `Marcación QR del empleado`, `Autenticación y sesiones`, `Empleados y dispositivos`, `Configuración del paquete`, `Rutas y estructura`, `Layout raíz y tema`, `Iconos de la app`, `Configuración Next.js`?**
-  _High betweenness centrality (0.158) - this node is a cross-community bridge._
+- **Why does `requireActor()` connect `requireActor` to `gestion-actions.ts`, `m/actions.ts`, `current.ts`, `employees.ts`, `Nexora: Arquitectura`, `qr/[id]/page.tsx`?**
+  _High betweenness centrality (0.135) - this node is a cross-community bridge._
 - **What connects `@prisma/client`, `@tailwindcss/turbopack`, `@types/node` to the rest of the system?**
-  _19 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Páginas del panel admin` be split into smaller, more focused modules?**
-  _Cohesion score 0.06058165548098434 - nodes in this community are weakly interconnected._
-- **Why does `Nexora: Arquitectura` connect `Stack y decisiones técnicas` to `Seguridad de la marcación`, `Aislamiento multiempresa y migraciones`, `Reglas laborales colombianas`, `Esquema Prisma`, `Rutas y estructura`, `Fases 1-3 y horarios`, `Gestión laboral fase 5`?**
-  _High betweenness centrality (0.070) - this node is a cross-community bridge._
-- **Should `Núcleo servidor y datos` be split into smaller, more focused modules?**
-  _Cohesion score 0.05305010893246187 - nodes in this community are weakly interconnected._
-- **Why does `Estructura del repositorio` connect `Rutas y estructura` to `Datos semilla demo`, `Autenticación y sesiones`, `Seguridad de la marcación`, `Aislamiento multiempresa y migraciones`, `Reglas laborales colombianas`, `Esquema Prisma`?**
-  _High betweenness centrality (0.050) - this node is a cross-community bridge._
-- **Should `Acciones de gestión laboral` be split into smaller, more focused modules?**
-  _Cohesion score 0.07643467643467644 - nodes in this community are weakly interconnected._
+  _10 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `requireActor` be split into smaller, more focused modules?**
+  _Cohesion score 0.053094504365690805 - nodes in this community are weakly interconnected._
+- **Why does `next` connect `requireActor` to `gestion-actions.ts`, `m/actions.ts`, `current.ts`, `employees.ts`, `package.json`, `proxy.ts`, `src/app/layout.tsx`, `apple-icon.tsx`, `next.config.ts`, `qr/[id]/page.tsx`?**
+  _High betweenness centrality (0.133) - this node is a cross-community bridge._
+- **Should `requireCompanyAdmin` be split into smaller, more focused modules?**
+  _Cohesion score 0.1347517730496454 - nodes in this community are weakly interconnected._
+- **Why does `3. Sesiones y autorización` connect `Nexora: Arquitectura` to `requireActor`?**
+  _High betweenness centrality (0.091) - this node is a cross-community bridge._
+- **Should `gestion-actions.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.05228838582677165 - nodes in this community are weakly interconnected._

@@ -10,7 +10,7 @@ import {
 import { db } from "@/lib/db";
 import { audit } from "@/server/audit";
 import { requireEmployee } from "@/server/authz";
-import { findBinding } from "@/server/devices";
+import { findBinding, relinkableBinding, rotateDeviceToken } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import type { Actor } from "@/server/sessions";
 
@@ -134,4 +134,25 @@ export async function verifyPasskeyAssertion(actor: Actor, bindingId: string, re
   } catch {
     return false;
   }
+}
+
+/**
+ * Reconocer este celular con la huella: si el navegador perdió la cookie del
+ * dispositivo pero el empleado tiene una passkey en su celular activo, la
+ * firma de esa passkey prueba que es el mismo dueño y se emite un token nuevo
+ * para el MISMO vínculo (sin crear un celular pendiente de aprobación).
+ */
+export async function relinkOptions(actor: Actor, rp: RelyingParty) {
+  const { employeeId } = requireEmployee(actor);
+  const b = await relinkableBinding(actor.userId, employeeId);
+  return b ? passkeyAuthenticationOptions(actor, b.id, rp) : null;
+}
+
+export async function relinkWithPasskey(actor: Actor, response: AuthenticationResponseJSON, rp: RelyingParty) {
+  const { employeeId } = requireEmployee(actor);
+  const b = await relinkableBinding(actor.userId, employeeId);
+  if (!b || !(await verifyPasskeyAssertion(actor, b.id, response, rp))) {
+    throw new AppError("FORBIDDEN", "No pudimos confirmar tu huella. Intenta de nuevo o vincula este celular como nuevo.");
+  }
+  return rotateDeviceToken(actor, b.id);
 }

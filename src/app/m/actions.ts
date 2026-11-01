@@ -6,7 +6,7 @@ import { punch } from "@/server/attendance";
 import { getDeviceToken, getRelyingParty, getUserAgent, requireActor, setDeviceCookie } from "@/server/current";
 import { bindDevice, findBinding } from "@/server/devices";
 import { AppError } from "@/server/errors";
-import { passkeyAuthenticationOptions, passkeyRegistrationOptions, registerPasskey } from "@/server/passkeys";
+import { passkeyAuthenticationOptions, passkeyRegistrationOptions, registerPasskey, relinkOptions, relinkWithPasskey } from "@/server/passkeys";
 
 const employee = () => requireActor({ roles: ["EMPLOYEE"] });
 
@@ -16,6 +16,22 @@ export async function bindDeviceAction() {
   await setDeviceCookie(r.token);
   revalidatePath("/app");
   return { status: r.status, label: r.label };
+}
+
+/** Opciones para reconocer este celular con la huella (null si no hay un celular con huella para recuperar). */
+export async function relinkOptionsAction() {
+  return relinkOptions(await employee(), await getRelyingParty());
+}
+
+export async function relinkDeviceAction(response: AuthenticationResponseJSON) {
+  const actor = await employee();
+  try {
+    await setDeviceCookie(await relinkWithPasskey(actor, response, await getRelyingParty()));
+    revalidatePath("/app");
+    return { ok: true as const };
+  } catch (e) {
+    return { ok: false as const, message: e instanceof AppError ? e.message : "No se pudo reconocer este celular." };
+  }
 }
 
 /** Opciones de la passkey para confirmar una marcación (null si este celular no tiene). */

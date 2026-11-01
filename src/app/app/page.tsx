@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Fingerprint, QrCode, Smartphone } from "lucide-react";
+import { DeviceRelink } from "@/components/employee/device-relink";
 import { PasskeySetup } from "@/components/employee/passkey-setup";
 import { PunchCard, type PunchState } from "@/components/employee/punch-card";
 import { db } from "@/lib/db";
 import { formatMinutes, formatTime, greeting } from "@/lib/utils";
 import { employeeToday } from "@/server/attendance";
 import { getDeviceToken, requireActor } from "@/server/current";
-import { findBinding } from "@/server/devices";
+import { findBinding, relinkableBinding } from "@/server/devices";
 import { employeeHome } from "@/server/overview";
 
 export const metadata: Metadata = { title: "Inicio" };
@@ -16,6 +17,7 @@ export default async function EmployeeHomePage() {
   const now = new Date();
   const [h, today, binding] = await Promise.all([employeeHome(actor, now), employeeToday(actor, now), findBinding(actor.employeeId!, await getDeviceToken())]);
   const tz = h.timezone;
+  const canRelink = !binding && !!(await relinkableBinding(actor.userId, actor.employeeId!));
   const passkeys = binding?.status === "ACTIVE" ? await db.passkeyCredential.count({ where: { userId: actor.userId, deviceBindingId: binding.id } }) : 0;
   const schedule = h.shift ? `${formatTime(h.shift.start, tz)} – ${formatTime(h.shift.end, tz)}` : "Hoy no tienes turno programado";
 
@@ -54,6 +56,13 @@ export default async function EmployeeHomePage() {
         </p>
       )}
       <div className="mt-6 grid gap-3">
+        {canRelink && (
+          <div className="grid gap-3 rounded-2xl border border-border bg-surface p-5 shadow-card">
+            <p className="flex items-center gap-2 font-medium"><Fingerprint className="size-4 text-primary" aria-hidden /> Este navegador no recuerda tu celular</p>
+            <p className="text-sm text-fg-muted">Confírmalo con tu huella para marcar sin pedir aprobación de nuevo.</p>
+            <DeviceRelink />
+          </div>
+        )}
         {binding?.status === "ACTIVE" && passkeys === 0 && <PasskeySetup />}
         {binding?.status === "ACTIVE" && passkeys > 0 && (
           <p className="flex items-center gap-2 rounded-xl bg-success-soft px-4 py-3 text-sm text-success" role="status">

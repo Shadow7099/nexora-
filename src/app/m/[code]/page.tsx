@@ -55,6 +55,7 @@ export default async function QrPage({ params }: PageProps<"/m/[code]">) {
             requireDevice={ctx.requireDevice}
             device={ctx.device}
             passkeyRequired={ctx.passkeyRequired}
+            canRelink={ctx.canRelink}
           />
         }
       />

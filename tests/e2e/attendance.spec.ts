@@ -148,6 +148,20 @@ test("con huella activada, la marcación se confirma con passkey", async ({ page
     [`${who}@eltrigal.test`],
   );
   expect(ev!.verification).toBe("PASSKEY");
+
+  // El navegador olvida el celular (en iPhone pasa al alternar Safari y el ícono de inicio):
+  // se reconoce con la misma huella, sin crear un celular pendiente de aprobación.
+  await context.clearCookies({ name: /nexora_device/ });
+  await page.goto(`/m/${qrCentro}`);
+  await expect(page.getByText("Confirma que es tu celular")).toBeVisible();
+  await page.getByRole("button", { name: "Reconocer este celular con mi huella" }).click();
+  await expect(page.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
+  await expect(page.getByText("Te pediremos tu huella o rostro")).toBeVisible();
+  const bindings = await sql<{ status: string }>(
+    `SELECT d.status FROM device_binding d JOIN employee e ON e.id = d.employee_id JOIN app_user u ON u.id = e.user_id WHERE u.email = $1`,
+    [`${who}@eltrigal.test`],
+  );
+  expect(bindings.map((b) => b.status)).toEqual(["ACTIVE"]);
 });
 
 test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", async ({ browser, page }, info) => {

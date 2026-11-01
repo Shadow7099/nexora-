@@ -7,7 +7,7 @@ import { currentOrNextShift, localDate, shiftsOn, zonedTimeToUtc } from "@/lib/s
 import { Prisma } from "@/generated/prisma/client";
 import type { AttemptReason } from "@/generated/prisma/enums";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
-import { findBinding } from "@/server/devices";
+import { findBinding, relinkableBinding } from "@/server/devices";
 import { passkeysForBinding, verifyPasskeyAssertion, type RelyingParty } from "@/server/passkeys";
 import { holidayOn } from "@/lib/holidays";
 import { approvedNoveltiesOn, noveltyLabel } from "@/server/novelties";
@@ -86,6 +86,7 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
     db.employee.findUniqueOrThrow({ where: { id: employeeId }, select: { firstName: true, company: { select: { requireDeviceBinding: true, timezone: true } } } }),
   ]);
   const passkeys = binding?.status === "ACTIVE" ? await passkeysForBinding(actor.userId, binding.id) : [];
+  const canRelink = !binding && !!(await relinkableBinding(actor.userId, employeeId));
   const stale = open && Date.now() - open.startAt.getTime() > STALE_SESSION_HOURS * 3600_000;
   return {
     valid: true as const,
@@ -95,6 +96,7 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
     requireDevice: employee.company.requireDeviceBinding,
     device: binding ? { status: binding.status, label: binding.label } : null,
     passkeyRequired: passkeys.length > 0,
+    canRelink,
     next: open && !stale ? ("OUT" as const) : ("IN" as const),
     openSince: open && !stale ? open.startAt : null,
     openSiteName: open && !stale ? open.site.name : null,

@@ -29,6 +29,30 @@ export async function findBinding(employeeId: string, token: string | undefined 
 }
 
 /**
+ * Celular ACTIVO del empleado que tiene huella (passkey) registrada: permite
+ * reconocerlo de nuevo con la huella si el navegador perdió la cookie (p. ej.
+ * en iPhone, Safari y el ícono de la pantalla de inicio no comparten cookies).
+ */
+export async function relinkableBinding(userId: string, employeeId: string) {
+  return db.deviceBinding.findFirst({
+    where: { employeeId, status: "ACTIVE", passkeys: { some: { userId } } },
+    orderBy: { activatedAt: "desc" },
+  });
+}
+
+/** Nuevo token para un vínculo existente (después de verificar la huella). El token anterior deja de servir. */
+export async function rotateDeviceToken(actor: Actor, bindingId: string) {
+  const { companyId, employeeId } = requireEmployee(actor);
+  const token = randomBytes(32).toString("base64url");
+  await db.$transaction(async (tx) => {
+    const r = await tx.deviceBinding.updateMany({ where: { id: bindingId, employeeId, status: "ACTIVE" }, data: { tokenHash: hashDeviceToken(token), lastSeenAt: new Date() } });
+    if (r.count !== 1) throw notFound("El celular");
+    await audit({ companyId, actorUserId: actor.userId, action: "device.relink", entityType: "device", entityId: bindingId, after: { method: "passkey" } }, tx);
+  });
+  return token;
+}
+
+/**
  * Vincula el celular actual. El primer celular de un empleado queda activo de
  * inmediato; un celular adicional queda pendiente hasta que el administrador lo
  * apruebe (así, robar la contraseña no basta para marcar desde otro equipo).

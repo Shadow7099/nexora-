@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Fingerprint, Loader2, MapPin, RotateCcw, Sma
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { bindDeviceAction, punchAction, punchPasskeyOptionsAction, type PunchActionResult } from "@/app/m/actions";
+import { DeviceRelink } from "@/components/employee/device-relink";
 import { PunchButton } from "@/components/employee/punch-card";
 import { Button } from "@/components/ui/button";
 import { formatMinutes, formatTime } from "@/lib/utils";
@@ -16,6 +17,8 @@ type Props = {
   requireDevice: boolean;
   device: { status: "PENDING" | "ACTIVE" | "REVOKED"; label: string } | null;
   passkeyRequired: boolean;
+  /** Ya tiene un celular con huella: puede reconocerlo con la huella en vez de vincular uno nuevo. */
+  canRelink?: boolean;
 };
 
 type Step = "idle" | "locating" | "verifying" | "saving";
@@ -38,7 +41,7 @@ const stepText: Record<Exclude<Step, "idle">, { icon: typeof MapPin; text: strin
   saving: { icon: Loader2, text: "Registrando…" },
 };
 
-export function PunchPanel({ publicCode, next, timezone, requireDevice, device, passkeyRequired }: Props) {
+export function PunchPanel({ publicCode, next, timezone, requireDevice, device, passkeyRequired, canRelink = false }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [result, setResult] = useState<PunchActionResult | null>(null);
@@ -46,6 +49,26 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
   // Una clave por intento: si la red reintenta, el servidor no duplica la marcación.
   const keyRef = useRef<string | null>(null);
 
+  if (requireDevice && !device && canRelink) {
+    return (
+      <div className="grid gap-4 rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div className="flex items-start gap-3">
+          <Fingerprint className="mt-0.5 size-5 text-primary" aria-hidden />
+          <div>
+            <p className="font-medium">Confirma que es tu celular</p>
+            <p className="mt-1 text-sm text-fg-muted">Este navegador no recuerda tu celular. Confírmalo con la huella que ya registraste y sigue marcando normalmente.</p>
+          </div>
+        </div>
+        <DeviceRelink
+          onFallback={
+            <Button variant="ghost" loading={binding} onClick={() => startBinding(async () => { await bindDeviceAction(); router.refresh(); })}>
+              Es un celular nuevo (requiere aprobación)
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
   if (requireDevice && !device) {
     return (
       <div className="grid gap-4 rounded-2xl border border-border bg-surface p-5 shadow-card">

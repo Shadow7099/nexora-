@@ -101,6 +101,7 @@ Usuario `nexora/nexora` con CREATEDB.
 - El cliente de BD es perezoso (`src/lib/db.ts`): el build no necesita `DATABASE_URL`.
 - Grillas de dos columnas: usar `grid-cols-1` + `minmax(0,1fr)` o desbordan en celular.
 - Confirmaciones de acciones que hacen desaparecer el elemento (aprobar, rechazar): no usar `revalidatePath` en esa acción, o el mensaje se pierde.
+- iPhone: un ícono de pantalla de inicio en modo `standalone` tiene cookies separadas de Safari (donde abre el QR). Por eso el manifiesto usa `display: "browser"`. Si el navegador olvida el celular, el empleado lo recupera con su huella (`relinkWithPasskey`) sin aprobación del admin.
 - Playwright en el contenedor: usar `CHROMIUM_PATH=/opt/pw-browsers/chromium`; las pruebas de passkeys usan el autenticador virtual por CDP.
 - `seed.ts` no puede importar módulos `server-only` (corre con `tsx`).
 
