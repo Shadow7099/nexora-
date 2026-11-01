@@ -6,8 +6,8 @@ Cada fase termina con código funcionando, pruebas automáticas pasando y una fo
 |---|---|---|---|
 | **1. Arquitectura y diseño** | Proyecto, esquema de BD con migración, garantías en la BD, datos demo base, sistema de diseño, navegación, modo claro/oscuro | Migración aplica; pruebas de BD y utilidades; pruebas de navegador (escritorio y celular); build sin errores | ✅ Terminada |
 | **2. Autenticación y usuarios** | Inicio de sesión, sesiones en BD, roles verificados en servidor, bloqueo por intentos, cambio de contraseña, autorización de datos, CRUD de empleados, auditoría | Un empleado no ve datos ajenos; un admin de la empresa A no accede a B (pruebas automáticas) | ✅ Terminada |
-| **3. Empresas y sedes** | CRUD de sedes con mapa/coordenadas y radio, generación e impresión de QR, rotación de QR, plantillas de turno, patrones semanales y rotativos, festivos colombianos calculados | Se imprime un QR por sede; los turnos nocturnos y partidos se generan bien (pruebas) | ⏳ Siguiente (la resolución de turnos ya está hecha y probada) |
-| **4. Asistencia** | Página del QR, vinculación de dispositivo y recuperación, passkeys, geolocalización, entrada/salida, pausas, idempotencia, intentos rechazados, PWA, marcaciones demo | Entrada y salida desde el celular; segunda entrada bloqueada; ubicación fuera de radio rechazada | |
+| **3. Empresas y sedes** | CRUD de sedes con mapa/coordenadas y radio, generación e impresión de QR, rotación de QR, plantillas de turno, patrones semanales y rotativos, festivos colombianos calculados | Se imprime un QR por sede; los turnos nocturnos y partidos se generan bien (pruebas) | 🟡 Parcial: QR por sede, ubicación y radio editables, turnos resueltos y probados. Falta crear/editar sedes, horarios y festivos |
+| **4. Asistencia** | Página del QR, vinculación de dispositivo y recuperación, passkeys, geolocalización, entrada/salida, pausas, idempotencia, intentos rechazados, PWA, marcaciones demo | Entrada y salida desde el celular; segunda entrada bloqueada; ubicación fuera de radio rechazada | ✅ Terminada |
 | **5. Gestión laboral** | Detección de horas extra, solicitudes y aprobación, novedades (vacaciones, incapacidades, permisos), corrección de marcaciones con motivo | Rechazar una hora extra no altera el tiempo registrado | |
 | **6. Pre-nómina** | Parámetros legales verificados y versionados, clasificación de horas (diurna, nocturna, dominical, festiva), estimación por período con advertencias | Cálculos de casos conocidos coinciden; falta de parámetros produce advertencia, no un número | |
 | **7. Dashboard y reportes** | Indicadores, gráficos (asistencia, puntualidad, horas por sede, costo), filtros, exportación Excel/CSV/PDF | Totales del reporte = datos en BD (prueba) | |
@@ -42,9 +42,22 @@ Todos los módulos se pueden abrir desde el menú. Los que aún no están comple
 
 | Módulo | Ya funciona con datos reales | Falta |
 |---|---|---|
-| Sedes y QR | Sedes, dirección, coordenadas, radio, horario, QR vigente por sede | Crear/editar, mapa, imprimir y rotar QR (fase 3) |
+| Sedes y QR | Sedes, coordenadas, horario, QR vigente por sede; **ajustar ubicación y radio** | Crear sedes, editar dirección y horario, imprimir y rotar QR (fase 3) |
 | Horarios | Grilla de la semana desde los patrones (nocturnos, partidos, rotativos) y horas programadas | Editar patrones, turnos sueltos, festivos (fase 3) |
-| Asistencia | Contadores reales (en cero hasta que haya marcaciones) | Marcación con QR (fase 4) |
 | Solicitudes | Contadores reales | Aprobación de horas extra y novedades (fase 5) |
 | Pre-nómina | Contratos y salarios vigentes; advertencia de parámetros legales faltantes | Parámetros verificados y cálculo (fase 6) |
 | Reportes | Catálogo de reportes | Exportación Excel/CSV/PDF y gráficos (fase 7) |
+
+## Fase 4: qué quedó hecho
+
+- **Página del QR** (`/m/<código>`): si no hay sesión, pide ingresar y vuelve al QR (también después de la autorización de datos o del cambio de la clave temporal).
+- **Vincular celular**, **aprobar o desvincular** celulares (en Asistencia y en la ficha del empleado).
+- **Passkeys** (huella, rostro o PIN del celular) opcionales por empleado; si se activan, son obligatorias para marcar desde ese celular.
+- **Marcación** con todas las reglas de la tabla de `ARQUITECTURA.md`, hora del servidor, idempotencia y registro de intentos rechazados.
+- **Asistencia del administrador:** en jornada, tardanzas (según tolerancia), sin marcar, horas del día, jornadas para revisar, intentos rechazados de 7 días, celulares por aprobar.
+- **Empleado:** su estado del día en el inicio e **historial** de 31 días.
+- **App instalable (PWA):** manifiesto e íconos; se puede agregar a la pantalla de inicio.
+- **Datos demo:** dos semanas de marcaciones **simuladas** (origen `SYSTEM`, nunca se confunden con reales), coherentes con los horarios.
+- **Adelantado de la fase 3:** ajustar ubicación y radio de la sede (incluye "usar mi ubicación actual").
+
+Errores encontrados por las pruebas y corregidos: la confirmación de "huella activada" y de "celular aprobado" desaparecía al refrescarse la página; después de la autorización de datos el empleado perdía el QR que había escaneado.

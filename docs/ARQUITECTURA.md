@@ -128,6 +128,23 @@ Rechazar una hora extra **no** borra ni reduce el tiempo registrado: solo cambia
 5. El servidor registra la marcación con su propia hora, con una clave de idempotencia (un doble toque no crea dos registros).
 6. Todo rechazo queda en `attendance_attempt` con su motivo.
 
+### Reglas implementadas (fase 4)
+
+| Paso | Regla | Si falla |
+|---|---|---|
+| QR | Código vigente, de una sede activa y de la empresa del empleado | Rechazo `INVALID_QR` / `QR_REVOKED` / `WRONG_COMPANY` |
+| Celular | Token del celular (cookie httpOnly, 400 días) debe corresponder a una vinculación **activa** del empleado. El **primer** celular queda activo al vincularlo; uno **adicional** queda pendiente hasta que el administrador lo aprueba, y al aprobarlo el anterior se desvincula | `DEVICE_NOT_BOUND` / `DEVICE_REVOKED` |
+| Passkey | Si el empleado activó la huella en ese celular, cada marcación exige firmarla (WebAuthn, verificación de usuario obligatoria) | `PASSKEY_FAILED` |
+| Ubicación | Distancia (Haversine) ≤ radio → aceptada. Distancia ≤ radio + precisión del GPS → aceptada **para revisar**. Precisión peor que el máximo de la empresa (100 m por defecto) o sin ubicación → rechazada. Más lejos → rechazada | `OUTSIDE_RADIUS` / `LOW_ACCURACY` / `LOCATION_DENIED` |
+| Duplicado | Menos de 60 s desde la marcación anterior; además el índice único impide dos jornadas abiertas aunque lleguen en paralelo | `DUPLICATE_PUNCH` |
+| Reintento | La misma clave de idempotencia devuelve el mismo resultado sin duplicar | — |
+
+- Entrada o salida se decide en el servidor: si hay jornada abierta, es salida.
+- Salida en una sede distinta a la de entrada: se acepta y queda **para revisar**.
+- Jornada abierta más de 16 h (salida olvidada): pasa a **"por revisar" sin hora de salida** (el sistema nunca inventa una hora) y la nueva marcación abre otra jornada.
+- La ubicación se pide solo al tocar el botón (`getCurrentPosition`, sin seguimiento) y se guarda junto a la marcación con su precisión y distancia.
+- **Importante en producción:** si se define `APP_URL`, debe ser exactamente el dominio desde el que se usa la app (las passkeys verifican el origen). Si no se define, se toma del dominio de la solicitud.
+
 ### Limitaciones honestas (documentarlas ante la empresa y el profesor)
 
 - **Un QR estático se puede fotografiar.** Por eso no basta con escanear: se exige sesión, dispositivo vinculado y ubicación. Mitigación opcional: QR dinámico en una tableta de la sede (rotación cada 30 s).

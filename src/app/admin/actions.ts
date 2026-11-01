@@ -73,3 +73,35 @@ export async function updateSettingsAction(_: ActionState, fd: FormData): Promis
     return { ...toActionState(e), data: echo(fd) };
   }
 }
+
+export async function approveDeviceAction(id: string, _: ActionState): Promise<ActionState> {
+  try {
+    const { approveDevice } = await import("@/server/devices");
+    await approveDevice(await admin(), id);
+    // Sin revalidar la página: el resultado queda visible donde se hizo clic (la lista se actualiza al volver).
+    return { ok: true, message: "Celular aprobado. El anterior quedó desvinculado." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function revokeDeviceAction(id: string, _: ActionState): Promise<ActionState> {
+  try {
+    const { revokeDevice } = await import("@/server/devices");
+    await revokeDevice(await admin(), id);
+    return { ok: true, message: "Celular desvinculado." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function updateSiteLocationAction(siteId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const { updateSiteLocation } = await import("@/server/sites");
+    await updateSiteLocation(await admin(), siteId, Object.fromEntries(fd));
+    revalidatePath("/admin/sedes");
+    return { ok: true, message: "Ubicación guardada." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}

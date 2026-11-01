@@ -15,8 +15,9 @@ const items = [
   ["Tus derechos", "Conocer, actualizar, rectificar y pedir la supresión de tus datos, y revocar esta autorización, escribiendo al responsable del tratamiento (tu empleador)."],
 ] as const;
 
-export default async function ConsentPage() {
+export default async function ConsentPage({ searchParams }: PageProps<"/autorizacion">) {
   const actor = await requireActor({ allowPending: true });
+  const { next } = await searchParams;
   if (actor.hasConsent) redirect(actor.mustChangePassword ? "/cambiar-clave" : homeFor(actor.role));
   return (
     <>
@@ -32,7 +33,7 @@ export default async function ConsentPage() {
           </div>
         ))}
       </dl>
-      <ConsentForm />
+      <ConsentForm next={typeof next === "string" ? next : undefined} />
       <p className="mt-4 text-center text-xs text-fg-subtle">Versión de la política: {CONSENT_POLICY_VERSION}</p>
     </>
   );

@@ -63,3 +63,15 @@ test("una ruta inexistente muestra la página 404 en español", async ({ page })
   expect(res?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1, name: "Esta página no existe" })).toBeVisible();
 });
+
+test("la app es instalable: manifiesto e íconos", async ({ request }) => {
+  const m = await request.get("/manifest.webmanifest");
+  expect(m.status()).toBe(200);
+  const manifest = await m.json();
+  expect(manifest).toMatchObject({ short_name: "Nexora", display: "standalone", start_url: "/app" });
+  for (const icon of manifest.icons as { src: string }[]) {
+    const r = await request.get(icon.src);
+    expect(r.status(), icon.src).toBe(200);
+    expect(r.headers()["content-type"]).toContain("image/png");
+  }
+});

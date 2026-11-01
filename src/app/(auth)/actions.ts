@@ -11,6 +11,8 @@ import { authenticate, changePassword, homeFor, recordConsent, revokeSession } f
 function safeNext(next: unknown, role: Parameters<typeof homeFor>[0]) {
   const home = homeFor(role);
   if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return home;
+  // Un empleado que escaneó el QR sin sesión vuelve a la página del QR después de ingresar.
+  if (role === "EMPLOYEE" && /^\/m\/[A-Za-z0-9_-]{6,64}$/.test(next)) return next;
   return next.startsWith(home) ? next : home;
 }
 
@@ -35,7 +37,8 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
   }
 
   await setSessionCookie(result.token, result.expiresAt);
-  redirect(result.mustChangePassword ? "/cambiar-clave" : safeNext(formData.get("next"), result.role));
+  const next = safeNext(formData.get("next"), result.role);
+  redirect(result.mustChangePassword ? `/cambiar-clave?next=${encodeURIComponent(next)}` : next);
 }
 
 export async function logoutAction() {
@@ -49,7 +52,7 @@ export async function consentAction(_: ActionState, formData: FormData): Promise
   const actor = await requireActor({ allowPending: true });
   if (formData.get("accept") !== "on") return { ok: false, message: "Para continuar debes aceptar la autorización." };
   await recordConsent(actor, await getUserAgent());
-  redirect(actor.mustChangePassword ? "/cambiar-clave" : homeFor(actor.role));
+  redirect(actor.mustChangePassword ? "/cambiar-clave" : safeNext(formData.get("next"), actor.role));
 }
 
 const changeSchema = z
@@ -67,5 +70,6 @@ export async function changePasswordAction(_: ActionState, formData: FormData): 
       ? { ok: false, fieldErrors: { current: "La contraseña actual no es correcta." } }
       : { ok: false, fieldErrors: { next: "No uses tu correo dentro de la contraseña." } };
   }
-  redirect(actor.hasConsent ? homeFor(actor.role) : "/autorizacion");
+  const next = safeNext(formData.get("next"), actor.role);
+  redirect(actor.hasConsent ? next : `/autorizacion?next=${encodeURIComponent(next)}`);
 }

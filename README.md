@@ -4,7 +4,7 @@
 
 Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina estimada para pymes colombianas.
 
-> Estado: **Fase 2 de 8 terminada** (ingreso, roles, empleados y configuración). Ver [docs/PLAN.md](docs/PLAN.md).
+> Estado: **Fases 1, 2 y 4 terminadas** (ingreso, roles, empleados, marcación con QR, ubicación, celular y huella). Fase 3 parcial. Ver [docs/PLAN.md](docs/PLAN.md).
 
 ## Documentación
 
@@ -66,7 +66,8 @@ Para usar un Chromium ya instalado: `CHROMIUM_PATH=/ruta/a/chromium npm run test
 |---|---|---|
 | `/ingresar` | todos | inicio de sesión |
 | `/admin` | administrador | resumen, empleados, configuración |
-| `/app` | empleado | saludo, sede y horario de hoy |
+| `/app` | empleado | saludo, sede, horario y estado de hoy; historial |
+| `/m/<código>` | empleado | página que abre el QR de la sede: marcar entrada o salida |
 | `/plataforma` | superadministrador | empresas registradas |
 | `/sistema` | público | sistema de diseño |
 

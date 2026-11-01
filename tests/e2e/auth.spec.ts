@@ -90,7 +90,7 @@ test("ciclo completo: crear empleado → primer ingreso → nueva contraseña �
   await emp.getByLabel("Correo").fill(email);
   await emp.getByLabel("Contraseña").fill(temp);
   await emp.getByRole("button", { name: "Ingresar" }).click();
-  await expect(emp).toHaveURL(/\/cambiar-clave$/);
+  await expect(emp).toHaveURL(/\/cambiar-clave(\?|$)/);
   await emp.getByLabel("Contraseña actual").fill(temp);
   await emp.getByLabel("Nueva contraseña", { exact: true }).fill("corta");
   await emp.getByLabel("Repite la nueva contraseña").fill("corta");
@@ -100,7 +100,7 @@ test("ciclo completo: crear empleado → primer ingreso → nueva contraseña �
   await emp.getByLabel("Nueva contraseña", { exact: true }).fill("Sofia-Panaderia-2026");
   await emp.getByLabel("Repite la nueva contraseña").fill("Sofia-Panaderia-2026");
   await emp.getByRole("button", { name: "Guardar contraseña" }).click();
-  await expect(emp).toHaveURL(/\/autorizacion$/);
+  await expect(emp).toHaveURL(/\/autorizacion(\?|$)/);
   await emp.getByRole("checkbox").check();
   await emp.getByRole("button", { name: "Aceptar y continuar" }).click();
   await expect(emp).toHaveURL(/\/app$/);

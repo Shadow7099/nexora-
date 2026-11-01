@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { contractTypeLabel, payFrequencyLabel } from "@/lib/labels";
 import { formatCOP, formatDate, formatTime } from "@/lib/utils";
 import { requireActor } from "@/server/current";
+import { listDevices } from "@/server/devices";
 import { getEmployee, listSiteOptions } from "@/server/employees";
+import { DeviceActions } from "@/components/admin/device-actions";
 import { AppError } from "@/server/errors";
 import { EditEmployeeForm, NewContractForm, ResetPasswordButton, StatusButton } from "./employee-forms";
 
@@ -27,7 +29,7 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
     if (err instanceof AppError && err.code === "NOT_FOUND") notFound();
     throw err;
   }
-  const sites = await listSiteOptions(actor);
+  const [sites, devices] = await Promise.all([listSiteOptions(actor), listDevices(actor, e.id)]);
   const current = e.contracts.find((c) => !c.endDate) ?? e.contracts[0];
   const active = e.status === "ACTIVE";
 
@@ -117,6 +119,26 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
                 <p>{e.user.lastLoginAt ? `${formatDate(e.user.lastLoginAt)}, ${formatTime(e.user.lastLoginAt)}` : "Nunca ha ingresado"}</p>
               </div>
               {e.user.mustChangePassword && <Badge tone="warning">Debe cambiar la contraseña temporal</Badge>}
+              <div>
+                <p className="text-xs text-fg-subtle">Celulares vinculados</p>
+                {devices.length === 0 ? (
+                  <p>Ninguno. Se vincula al escanear el QR por primera vez.</p>
+                ) : (
+                  <ul className="mt-1 grid gap-2">
+                    {devices.map((d) => (
+                      <li key={d.id} className="rounded-lg border border-border p-2">
+                        <p className="font-medium">{d.label}</p>
+                        <p className="text-xs text-fg-subtle">
+                          {d.status === "PENDING" ? "Pendiente de aprobación" : "Activo"}
+                          {d._count.passkeys > 0 ? " · con huella" : ""}
+                          {d.lastSeenAt ? ` · última marcación ${formatTime(d.lastSeenAt)}, ${formatDate(d.lastSeenAt)}` : ""}
+                        </p>
+                        <DeviceActions id={d.id} pending={d.status === "PENDING"} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               {active && <ResetPasswordButton id={e.id} />}
               <StatusButton id={e.id} active={active} />
             </CardContent>

@@ -4,10 +4,11 @@ import { useActionState } from "react";
 import { consentAction } from "../actions";
 import { FormAlert, SubmitButton } from "@/components/ui/form";
 
-export function ConsentForm() {
+export function ConsentForm({ next }: { next?: string }) {
   const [state, action] = useActionState(consentAction, null);
   return (
     <form action={action} className="grid gap-4">
+      <input type="hidden" name="next" value={next ?? ""} />
       <FormAlert message={state?.message} />
       <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 text-sm shadow-card">
         <input type="checkbox" name="accept" required className="mt-0.5 size-4 accent-[var(--primary)]" />

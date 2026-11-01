@@ -6,7 +6,7 @@ import { FormAlert, SubmitButton } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { PASSWORD_MIN } from "@/lib/validation";
 
-export function PasswordForm() {
+export function PasswordForm({ next }: { next?: string }) {
   const [state, action] = useActionState(changePasswordAction, null);
   const err = state?.fieldErrors ?? {};
   const input = (name: string, label: string, autoComplete: string, hint?: string) => (
@@ -17,6 +17,7 @@ export function PasswordForm() {
   );
   return (
     <form action={action} className="grid gap-4" noValidate>
+      <input type="hidden" name="next" value={next ?? ""} />
       <FormAlert message={state?.message} />
       {input("current", "Contraseña actual", "current-password")}
       {input("next", "Nueva contraseña", "new-password", `Mínimo ${PASSWORD_MIN} caracteres, con letras y números.`)}

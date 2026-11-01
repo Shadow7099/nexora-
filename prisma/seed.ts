@@ -5,9 +5,8 @@
  * corresponde a personas reales. Las coordenadas son aproximadas al centro
  * de cada municipio/barrio y deben reemplazarse por las reales de cada sede.
  *
- * Fase 1: empresa, usuarios, sedes, QR, contratos y horarios.
- * Las marcaciones simuladas se agregan en las fases 4–5 (cuando existe la
- * lógica que las valida), para no sembrar datos que el sistema no sabría producir.
+ * Empresa, usuarios, sedes, QR, contratos, horarios y dos semanas de
+ * marcaciones simuladas (ver seed-attendance.ts).
  *
  * Ejecutar:  npx prisma db seed
  */
@@ -16,6 +15,7 @@ import { randomBytes } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { hashPassword } from "../src/lib/password";
+import { seedAttendance } from "./seed-attendance";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
@@ -197,6 +197,7 @@ async function main() {
   });
 
   console.log("Demo creada: 1 empresa, 4 sedes, 8 empleados.");
+  await seedAttendance(db, DEMO_SLUG);
   console.log(`Acceso demo (contraseña: ${DEMO_PASSWORD}): admin@eltrigal.test · juan@eltrigal.test · plataforma@nexora.test`);
 }
 

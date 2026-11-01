@@ -261,6 +261,9 @@ model Session {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   lastSeenAt      DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
   userAgent       String?  @map("user_agent")
+  // Desafío WebAuthn en curso (registro o verificación de passkey); de un solo uso y corta vida.
+  webauthnChallenge        String?   @map("webauthn_challenge")
+  webauthnChallengeExpires DateTime? @map("webauthn_challenge_expires") @db.Timestamptz(3)
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   deviceBinding DeviceBinding? @relation(fields: [deviceBindingId], references: [id], onDelete: SetNull)

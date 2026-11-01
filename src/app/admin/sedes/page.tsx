@@ -4,6 +4,7 @@ import { Clock, MapPin, Radius, Users } from "lucide-react";
 import QRCode from "qrcode";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { PhaseNotice } from "@/components/layout/phase-notice";
+import { SiteLocationForm } from "@/components/admin/site-location-form";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { minutesToClock } from "@/lib/utils";
@@ -37,8 +38,8 @@ export default async function SitesPage() {
     <>
       <PageHeader title="Sedes y QR" description={`${sites.filter((s) => s.active).length} sedes activas`} />
       <PhaseNotice phase={3}>
-        Ya ves tus sedes reales con su QR vigente. Falta: crear y editar sedes, ajustar el radio en un mapa, imprimir y rotar el QR. El QR
-        empieza a registrar asistencia en la fase 4.
+        Ya ves tus sedes con su QR vigente, y puedes ajustar su ubicación y radio. El QR ya registra asistencia. Falta: crear sedes, editar
+        dirección y horario, imprimir y rotar el QR.
       </PhaseNotice>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -89,6 +90,7 @@ export default async function SitesPage() {
                     <Users className="size-4 text-fg-subtle" aria-hidden /> {s._count.employeesDefault} empleados con esta sede habitual
                   </li>
                 </ul>
+                <SiteLocationForm siteId={s.id} latitude={lat} longitude={lng} radiusMeters={s.radiusMeters} />
               </div>
               {qr ? (
                 <figure className="flex shrink-0 flex-col items-center gap-2">

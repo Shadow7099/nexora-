@@ -45,3 +45,27 @@ export async function requireActor(opts: { roles?: Role[]; allowPending?: boolea
   if (opts.roles && !opts.roles.includes(actor.role)) redirect(homeFor(actor.role));
   return actor;
 }
+
+/** Cookie del dispositivo vinculado: larga duración (los navegadores limitan a ~400 días). */
+export const DEVICE_COOKIE = secure ? "__Host-nexora_device" : "nexora_device";
+
+export async function getDeviceToken() {
+  return (await cookies()).get(DEVICE_COOKIE)?.value;
+}
+
+export async function setDeviceCookie(token: string) {
+  (await cookies()).set(DEVICE_COOKIE, token, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 400 * 24 * 60 * 60 });
+}
+
+/**
+ * Identidad del sitio para passkeys (WebAuthn): el dominio desde el que se usa la app.
+ * APP_URL fija el dominio en producción; si no está, se toma de la solicitud.
+ */
+export async function getRelyingParty() {
+  const fromEnv = process.env.APP_URL ? new URL(process.env.APP_URL) : null;
+  if (fromEnv) return { rpID: fromEnv.hostname, origin: fromEnv.origin };
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return { rpID: host.split(":")[0]!, origin: `${proto}://${host}` };
+}

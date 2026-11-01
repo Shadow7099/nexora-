@@ -4,8 +4,9 @@ import { PasswordForm } from "./password-form";
 
 export const metadata: Metadata = { title: "Cambiar contraseña" };
 
-export default async function ChangePasswordPage() {
+export default async function ChangePasswordPage({ searchParams }: PageProps<"/cambiar-clave">) {
   const actor = await requireActor({ allowPending: true });
+  const { next } = await searchParams;
   return (
     <>
       <h1 className="text-2xl font-semibold tracking-tight">{actor.mustChangePassword ? "Crea tu contraseña" : "Cambiar contraseña"}</h1>
@@ -14,7 +15,7 @@ export default async function ChangePasswordPage() {
           ? "Estás usando una contraseña temporal. Crea una propia que solo tú conozcas."
           : "Al cambiarla, se cerrará la sesión en tus otros dispositivos."}
       </p>
-      <PasswordForm />
+      <PasswordForm next={typeof next === "string" ? next : undefined} />
     </>
   );
 }
