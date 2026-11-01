@@ -1,8 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { holidaysBetween } from "@/lib/holidays";
 import { localDate, shiftsOn } from "@/lib/schedule";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
-import { loadPatterns } from "@/server/schedule-data";
+import { loadOverrides, loadPatterns } from "@/server/schedule-data";
 import type { Actor } from "@/server/sessions";
 
 /** Sedes con su QR vigente y horario de apertura. */
@@ -37,28 +38,29 @@ export function mondayOf(iso: string) {
 }
 
 /** Turnos de la semana para todos los empleados activos, resueltos desde sus patrones. */
-export async function weekSchedule(actor: Actor, now = new Date()) {
+export async function weekSchedule(actor: Actor, weekOffset = 0, now = new Date()) {
   const companyId = requireCompanyAdmin(actor);
   const company = await db.company.findUniqueOrThrow({ where: { id: companyId }, select: { timezone: true } });
   const tz = company.timezone;
   const today = localDate(now, tz);
-  const monday = mondayOf(today);
+  const monday = addDays(mondayOf(today), Math.max(-52, Math.min(52, Math.trunc(weekOffset))) * 7);
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const employees = await db.employee.findMany({
     where: { companyId, status: "ACTIVE" },
     orderBy: { firstName: "asc" },
     select: { id: true, firstName: true, lastName: true, position: true },
   });
-  const patterns = await loadPatterns(companyId);
+  const [patterns, overrides] = await Promise.all([loadPatterns(companyId), loadOverrides(companyId, days[0]!, days[6]!)]);
   const templates = await db.shiftTemplate.findMany({ where: { companyId, active: true }, orderBy: { startMin: "asc" } });
   return {
     tz,
     today,
     days,
+    holidays: new Map(holidaysBetween(days[0]!, days[6]!).map((h) => [h.date, h.name])),
     templates,
     rows: employees.map((e) => {
       const p = patterns.get(e.id) ?? [];
-      const perDay = days.map((d) => shiftsOn(p, d, tz));
+      const perDay = days.map((d) => shiftsOn(p, d, tz, overrides.get(e.id) ?? []));
       const minutes = perDay.flat().reduce((acc, s) => acc + (s.endMin - s.startMin - s.breakMinutes), 0);
       return { ...e, perDay, plannedMinutes: minutes };
     }),

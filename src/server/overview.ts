@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { currentOrNextShift, localDate, shiftsOn } from "@/lib/schedule";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
-import { loadPatterns } from "@/server/schedule-data";
+import { loadOverrides, loadPatterns, shiftIsoDays } from "@/server/schedule-data";
 import type { Actor } from "@/server/sessions";
 
 /** Resumen del administrador con datos reales de su empresa. */
@@ -19,11 +19,11 @@ export async function adminOverview(actor: Actor, now = new Date()) {
     db.siteQrCode.count({ where: { companyId, revokedAt: null, site: { active: true } } }),
     db.deviceBinding.count({ where: { companyId, status: "PENDING" } }),
   ]);
-  const patterns = await loadPatterns(companyId);
   const today = localDate(now, company.timezone);
+  const [patterns, overrides] = await Promise.all([loadPatterns(companyId), loadOverrides(companyId, today, today)]);
   const roster = employees.map((e) => ({
     ...e,
-    shifts: shiftsOn(patterns.get(e.id) ?? [], today, company.timezone),
+    shifts: shiftsOn(patterns.get(e.id) ?? [], today, company.timezone, overrides.get(e.id) ?? []),
   }));
   return {
     today,
@@ -45,13 +45,15 @@ export async function employeeHome(actor: Actor, now = new Date()) {
     select: { firstName: true, defaultSite: { select: { name: true } }, company: { select: { timezone: true } } },
   });
   const tz = employee.company.timezone;
+  const today = localDate(now, tz);
   const patterns = (await loadPatterns(companyId, [employeeId])).get(employeeId) ?? [];
-  const shift = currentOrNextShift(patterns, now, tz);
+  const ov = (await loadOverrides(companyId, shiftIsoDays(today, -1), today, [employeeId])).get(employeeId) ?? [];
+  const shift = currentOrNextShift(patterns, now, tz, ov);
   return {
     firstName: employee.firstName,
     timezone: tz,
     siteName: shift?.siteName ?? employee.defaultSite?.name ?? "Sin sede asignada",
     shift,
-    todayShifts: shiftsOn(patterns, localDate(now, tz), tz),
+    todayShifts: shiftsOn(patterns, today, tz, ov),
   };
 }

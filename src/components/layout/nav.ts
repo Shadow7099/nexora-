@@ -21,15 +21,15 @@ export type NavItem = { href: string; label: string; icon: LucideIcon; phase: nu
 
 /**
  * Fase en la que cada sección queda completa; antes se muestra como vista previa honesta.
- * (Asistencia e Historial ya están completos: se adelantaron con la fase 4.)
+ * Hechas: 1 a 5. Pendientes: pre-nómina (6) y reportes (7).
  */
 export const adminNav: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard, phase: 2 },
   { href: "/admin/asistencia", label: "Asistencia", icon: ClipboardCheck, phase: 2 },
   { href: "/admin/empleados", label: "Empleados", icon: Users, phase: 2 },
-  { href: "/admin/sedes", label: "Sedes y QR", icon: Building2, phase: 3 },
-  { href: "/admin/horarios", label: "Horarios", icon: CalendarClock, phase: 3 },
-  { href: "/admin/solicitudes", label: "Solicitudes", icon: Inbox, phase: 5 },
+  { href: "/admin/sedes", label: "Sedes y QR", icon: Building2, phase: 2 },
+  { href: "/admin/horarios", label: "Horarios", icon: CalendarClock, phase: 2 },
+  { href: "/admin/solicitudes", label: "Solicitudes", icon: Inbox, phase: 2 },
   { href: "/admin/pre-nomina", label: "Pre-nómina", icon: Wallet, phase: 6 },
   { href: "/admin/reportes", label: "Reportes", icon: FileSpreadsheet, phase: 7 },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings, phase: 2 },
@@ -38,7 +38,7 @@ export const adminNav: NavItem[] = [
 export const employeeNav: NavItem[] = [
   { href: "/app", label: "Inicio", icon: Home, phase: 2 },
   { href: "/app/historial", label: "Historial", icon: BarChart3, phase: 2 },
-  { href: "/app/solicitudes", label: "Solicitudes", icon: ListChecks, phase: 5 },
+  { href: "/app/solicitudes", label: "Solicitudes", icon: ListChecks, phase: 2 },
 ];
 
 export function isActive(pathname: string, href: string, root: string) {

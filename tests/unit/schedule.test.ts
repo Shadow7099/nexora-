@@ -90,3 +90,32 @@ describe("currentOrNextShift", () => {
     expect(currentOrNextShift([night], new Date("2026-10-29T17:00:00Z"))).toBeNull();
   });
 });
+
+describe("cambios puntuales de horario", () => {
+  const base: PatternInput = {
+    cycleDays: 7, anchorDate: anchor, effectiveFrom: anchor, effectiveTo: null,
+    days: [0, 1, 2, 3, 4].map((i) => day(i, tpl("Diurno", 480, 1020, 60))),
+  };
+  const ov = (workDate: string, status: "PLANNED" | "CANCELLED", startIso: string, endIso: string) => ({
+    workDate, status, start: new Date(startIso), end: new Date(endIso), breakMinutes: 0, siteId: "Norte", siteName: "Norte", templateName: "Cambio",
+  });
+
+  it("un cambio reemplaza el turno del patrón ese día (otra hora y otra sede)", () => {
+    const r = shiftsOn([base], "2026-10-27", undefined, [ov("2026-10-27", "PLANNED", "2026-10-27T19:00:00Z", "2026-10-28T03:00:00Z")]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ siteName: "Norte", startMin: 840, endMin: 1320, override: true }); // 2 p. m. – 10 p. m.
+  });
+
+  it("un día marcado como descanso no tiene turnos", () => {
+    expect(shiftsOn([base], "2026-10-27", undefined, [ov("2026-10-27", "CANCELLED", "2026-10-27T05:00:00Z", "2026-10-27T05:01:00Z")])).toEqual([]);
+  });
+
+  it("un turno extra en día de descanso", () => {
+    const r = shiftsOn([base], "2026-10-31", undefined, [ov("2026-10-31", "PLANNED", "2026-10-31T13:00:00Z", "2026-10-31T17:00:00Z")]);
+    expect(r).toHaveLength(1);
+  });
+
+  it("los cambios de otra fecha no afectan", () => {
+    expect(shiftsOn([base], "2026-10-28", undefined, [ov("2026-10-27", "CANCELLED", "2026-10-27T05:00:00Z", "2026-10-27T05:01:00Z")])).toHaveLength(1);
+  });
+});

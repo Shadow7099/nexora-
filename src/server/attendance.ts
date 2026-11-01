@@ -9,7 +9,10 @@ import type { AttemptReason } from "@/generated/prisma/enums";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
 import { findBinding } from "@/server/devices";
 import { passkeysForBinding, verifyPasskeyAssertion, type RelyingParty } from "@/server/passkeys";
-import { loadPatterns } from "@/server/schedule-data";
+import { holidayOn } from "@/lib/holidays";
+import { approvedNoveltiesOn, noveltyLabel } from "@/server/novelties";
+import { detectOvertime } from "@/server/overtime";
+import { loadOverrides, loadPatterns, shiftIsoDays } from "@/server/schedule-data";
 import type { Actor } from "@/server/sessions";
 
 /** Una jornada abierta más de este tiempo se considera olvidada y pasa a revisión. */
@@ -210,7 +213,7 @@ export async function punch(
   };
 
   try {
-    return await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx) => {
       let open = await tx.workSession.findFirst({ where: { employeeId, status: "OPEN" } });
       let staleClosed = false;
       // Jornada olvidada: pasa a revisión sin inventar hora de salida; esta marcación abre una nueva.
@@ -236,8 +239,16 @@ export async function punch(
       await tx.workSession.update({ where: { id: open.id }, data: { outEventId: ev.id, endAt: now, status: "CLOSED" } });
       if (activeBinding) await tx.deviceBinding.update({ where: { id: activeBinding.id }, data: { lastSeenAt: now } });
       const workedMinutes = Math.round((now.getTime() - open.startAt.getTime()) / 60000);
-      return { ok: true as const, type: "OUT" as const, at: now, siteName: site.name, flagged, workedMinutes };
+      return { ok: true as const, type: "OUT" as const, at: now, siteName: site.name, flagged, workedMinutes, sessionStart: open.startAt };
     });
+    if (result.type === "OUT") {
+      // Al cerrar la jornada se detectan las horas extra del día (no bloquea la marcación si falla).
+      const { sessionStart, ...rest } = result;
+      const company = await db.company.findUniqueOrThrow({ where: { id: companyId }, select: { timezone: true } });
+      await detectOvertime(companyId, employeeId, localDate(sessionStart, company.timezone)).catch((e) => console.error("detectOvertime", e));
+      return rest;
+    }
+    return result;
   } catch (e) {
     // Dos solicitudes simultáneas: el índice único "una jornada abierta por empleado" rechaza la segunda.
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -249,7 +260,7 @@ export async function punch(
 
 // ───────────────────────────── Vistas ─────────────────────────────
 
-export type DayStatus = "working" | "done" | "late" | "absent" | "upcoming" | "rest" | "review";
+export type DayStatus = "working" | "done" | "late" | "absent" | "upcoming" | "rest" | "review" | "novelty";
 
 /** Asistencia del día para el administrador: estado, entrada, salida, horas y tardanza por empleado. */
 export async function attendanceDay(actor: Actor, now = new Date()) {
@@ -271,13 +282,16 @@ export async function attendanceDay(actor: Actor, now = new Date()) {
     db.attendanceAttempt.findMany({ where: { companyId, occurredAt: { gte: new Date(now.getTime() - 7 * 86400_000) } }, orderBy: { occurredAt: "desc" }, take: 20 }),
     db.deviceBinding.count({ where: { companyId, status: "PENDING" } }),
   ]);
-  const patterns = await loadPatterns(companyId);
+  const [patterns, overrides] = await Promise.all([loadPatterns(companyId), loadOverrides(companyId, shiftIsoDays(today, -1), today)]);
+  const novelties = await approvedNoveltiesOn(companyId, today);
+  const holiday = holidayOn(today);
   const userIds = [...new Set(attempts.map((a) => a.userId).filter(Boolean))] as string[];
   const attemptUsers = new Map((await db.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
   const siteNames = new Map((await db.site.findMany({ where: { companyId }, select: { id: true, name: true } })).map((s) => [s.id, s.name]));
 
   const rows = employees.map((e) => {
-    const shift = currentOrNextShift(patterns.get(e.id) ?? [], now, tz) ?? shiftsOn(patterns.get(e.id) ?? [], today, tz)[0] ?? null;
+    const ov = overrides.get(e.id) ?? [];
+    const shift = currentOrNextShift(patterns.get(e.id) ?? [], now, tz, ov) ?? shiftsOn(patterns.get(e.id) ?? [], today, tz, ov)[0] ?? null;
     const mine = sessions.filter((s) => s.employeeId === e.id);
     const todays = mine.filter((s) => s.startAt >= dayStart || s.status === "OPEN" || (s.endAt && s.endAt >= dayStart));
     const open = mine.find((s) => s.status === "OPEN");
@@ -293,16 +307,19 @@ export async function attendanceDay(actor: Actor, now = new Date()) {
     if (review) status = "review";
     else if (open) status = isLate ? "late" : "working";
     else if (todays.length > 0) status = isLate ? "late" : "done";
+    else if (novelties.some((n) => n.employeeId === e.id && n.hours == null)) status = "novelty";
     else if (!shift) status = "rest";
     else if (now.getTime() > shift.start.getTime() + company.lateToleranceMin * 60000) status = "absent";
     else status = "upcoming";
 
-    return { ...e, shift, status, firstIn, lastOut, working: !!open, workedMinutes: Math.round(workedMinutes), lateMinutes: isLate ? lateMinutes : 0, flagged, siteName: todays[0]?.site.name ?? shift?.siteName ?? null };
+    return { ...e, shift, status, firstIn, lastOut, working: !!open, workedMinutes: Math.round(workedMinutes), lateMinutes: isLate ? lateMinutes : 0, flagged, siteName: todays[0]?.site.name ?? shift?.siteName ?? null,
+      novelty: (() => { const n = novelties.find((x) => x.employeeId === e.id); return n ? (n.hours ? `${noveltyLabel[n.type]} (${Number(n.hours)} h)` : noveltyLabel[n.type]) : null; })() };
   });
 
   return {
     today,
     timezone: tz,
+    holiday,
     rows,
     present: rows.filter((r) => r.working).length,
     late: rows.filter((r) => r.lateMinutes > 0).length,

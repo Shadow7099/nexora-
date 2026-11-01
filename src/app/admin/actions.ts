@@ -95,13 +95,3 @@ export async function revokeDeviceAction(id: string, _: ActionState): Promise<Ac
   }
 }
 
-export async function updateSiteLocationAction(siteId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  try {
-    const { updateSiteLocation } = await import("@/server/sites");
-    await updateSiteLocation(await admin(), siteId, Object.fromEntries(fd));
-    revalidatePath("/admin/sedes");
-    return { ok: true, message: "Ubicación guardada." };
-  } catch (e) {
-    return toActionState(e);
-  }
-}

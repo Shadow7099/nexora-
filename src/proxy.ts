@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Comprobación optimista: sin cookie de sesión no tiene sentido renderizar una
 // zona privada. La verificación real (sesión en BD, rol, empresa) ocurre en el servidor.
-const PRIVATE = ["/admin", "/app", "/m", "/plataforma", "/autorizacion", "/cambiar-clave"];
+const PRIVATE = ["/admin", "/app", "/m", "/imprimir", "/plataforma", "/autorizacion", "/cambiar-clave"];
 const COOKIES = ["__Host-nexora_session", "nexora_session"];
 
 export function proxy(req: NextRequest) {

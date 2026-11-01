@@ -22,6 +22,7 @@ const statusBadge: Record<DayStatus, React.ReactNode> = {
   upcoming: <Badge>Turno más tarde</Badge>,
   rest: <Badge>Descanso</Badge>,
   review: <Badge tone="accent">Revisar: sin salida</Badge>,
+  novelty: <Badge tone="primary">Novedad</Badge>,
 };
 
 export default async function AttendancePage() {
@@ -32,7 +33,7 @@ export default async function AttendancePage() {
 
   return (
     <>
-      <PageHeader title="Asistencia" description={`Hoy, ${formatDate(new Date(`${d.today}T12:00:00Z`), "UTC")} · se actualiza al recargar`} />
+      <PageHeader title="Asistencia" description={`Hoy, ${formatDate(new Date(`${d.today}T12:00:00Z`), "UTC")}${d.holiday ? ` · Festivo: ${d.holiday.name}` : ""} · se actualiza al recargar`} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="En jornada ahora" value={`${d.present} / ${d.rows.length}`} icon={LogIn} />
@@ -93,6 +94,7 @@ export default async function AttendancePage() {
                     <div className="flex flex-wrap gap-1.5">
                       {statusBadge[r.status]}
                       {r.status === "late" && <span className="text-xs text-warning">+{r.lateMinutes} min</span>}
+                      {r.novelty && <span className="text-xs text-fg-muted">{r.novelty}</span>}
                       {r.flagged && <Badge tone="accent">Revisar ubicación</Badge>}
                     </div>
                   </td>

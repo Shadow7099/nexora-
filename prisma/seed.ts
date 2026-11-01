@@ -198,6 +198,8 @@ async function main() {
 
   console.log("Demo creada: 1 empresa, 4 sedes, 8 empleados.");
   await seedAttendance(db, DEMO_SLUG);
+  // Horas extra de las jornadas simuladas (lo mismo que hace "Revisar jornadas pasadas").
+  console.log("Para detectar las horas extra de la demo: Solicitudes → Revisar jornadas pasadas.");
   console.log(`Acceso demo (contraseña: ${DEMO_PASSWORD}): admin@eltrigal.test · juan@eltrigal.test · plataforma@nexora.test`);
 }
 

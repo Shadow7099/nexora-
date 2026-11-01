@@ -4,7 +4,7 @@
 
 Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina estimada para pymes colombianas.
 
-> Estado: **Fases 1, 2 y 4 terminadas** (ingreso, roles, empleados, marcación con QR, ubicación, celular y huella). Fase 3 parcial. Ver [docs/PLAN.md](docs/PLAN.md).
+> Estado: **Fases 1 a 5 terminadas** (ingreso, empleados, sedes y QR, horarios y festivos, marcación con ubicación y huella, horas extra, novedades y correcciones). Faltan pre-nómina (6) y reportes (7). Ver [docs/PLAN.md](docs/PLAN.md).
 
 ## Documentación
 

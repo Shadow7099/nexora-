@@ -6,9 +6,9 @@ Cada fase termina con código funcionando, pruebas automáticas pasando y una fo
 |---|---|---|---|
 | **1. Arquitectura y diseño** | Proyecto, esquema de BD con migración, garantías en la BD, datos demo base, sistema de diseño, navegación, modo claro/oscuro | Migración aplica; pruebas de BD y utilidades; pruebas de navegador (escritorio y celular); build sin errores | ✅ Terminada |
 | **2. Autenticación y usuarios** | Inicio de sesión, sesiones en BD, roles verificados en servidor, bloqueo por intentos, cambio de contraseña, autorización de datos, CRUD de empleados, auditoría | Un empleado no ve datos ajenos; un admin de la empresa A no accede a B (pruebas automáticas) | ✅ Terminada |
-| **3. Empresas y sedes** | CRUD de sedes con mapa/coordenadas y radio, generación e impresión de QR, rotación de QR, plantillas de turno, patrones semanales y rotativos, festivos colombianos calculados | Se imprime un QR por sede; los turnos nocturnos y partidos se generan bien (pruebas) | 🟡 Parcial: QR por sede, ubicación y radio editables, turnos resueltos y probados. Falta crear/editar sedes, horarios y festivos |
+| **3. Empresas y sedes** | CRUD de sedes con mapa/coordenadas y radio, generación e impresión de QR, rotación de QR, plantillas de turno, patrones semanales y rotativos, festivos colombianos calculados | Se imprime un QR por sede; los turnos nocturnos y partidos se generan bien (pruebas) | ✅ Terminada |
 | **4. Asistencia** | Página del QR, vinculación de dispositivo y recuperación, passkeys, geolocalización, entrada/salida, pausas, idempotencia, intentos rechazados, PWA, marcaciones demo | Entrada y salida desde el celular; segunda entrada bloqueada; ubicación fuera de radio rechazada | ✅ Terminada |
-| **5. Gestión laboral** | Detección de horas extra, solicitudes y aprobación, novedades (vacaciones, incapacidades, permisos), corrección de marcaciones con motivo | Rechazar una hora extra no altera el tiempo registrado | |
+| **5. Gestión laboral** | Detección de horas extra, solicitudes y aprobación, novedades (vacaciones, incapacidades, permisos), corrección de marcaciones con motivo | Rechazar una hora extra no altera el tiempo registrado | ✅ Terminada |
 | **6. Pre-nómina** | Parámetros legales verificados y versionados, clasificación de horas (diurna, nocturna, dominical, festiva), estimación por período con advertencias | Cálculos de casos conocidos coinciden; falta de parámetros produce advertencia, no un número | |
 | **7. Dashboard y reportes** | Indicadores, gráficos (asistencia, puntualidad, horas por sede, costo), filtros, exportación Excel/CSV/PDF | Totales del reporte = datos en BD (prueba) | |
 | **8. Calidad y despliegue** | Pruebas de extremo a extremo, revisión de seguridad, manuales, despliegue, resumen académico | Checklist de las 10 pruebas obligatorias | |
@@ -61,3 +61,21 @@ Todos los módulos se pueden abrir desde el menú. Los que aún no están comple
 - **Adelantado de la fase 3:** ajustar ubicación y radio de la sede (incluye "usar mi ubicación actual").
 
 Errores encontrados por las pruebas y corregidos: la confirmación de "huella activada" y de "celular aprobado" desaparecía al refrescarse la página; después de la autorización de datos el empleado perdía el QR que había escaneado.
+
+## Fases 3 y 5: qué quedó hecho
+
+**Fase 3 (sedes y horarios)**
+- Crear, editar, activar/desactivar sedes (con límite del plan), horario de funcionamiento y ubicación ("usar mi ubicación actual").
+- QR: hoja para imprimir y **rotación** (el código anterior deja de funcionar al instante).
+- Plantillas de turno (incluye las que terminan al día siguiente), con descanso pagado o no.
+- Horario por empleado: semanal o rotativo de 14 días, turnos partidos, con fecha de inicio (el pasado no cambia).
+- Cambios puntuales por fecha (otro turno, otra sede o descanso) que reemplazan el horario ese día.
+- Festivos de Colombia calculados (Ley 51 de 1983 + Ley 2578 de 2026, Virgen de Chiquinquirá, con demanda de inconstitucionalidad en curso), marcados en la grilla y en la asistencia.
+
+**Fase 5 (gestión laboral)**
+- Horas extra detectadas al cerrar cada jornada (registrado − programado del día; umbral de 15 min); botón para revisar jornadas pasadas.
+- Aprobar total o parcialmente, o rechazar con motivo; quién y cuándo decidió queda guardado. **El tiempo registrado nunca cambia.**
+- Novedades: el empleado pide vacaciones, permisos (también por horas) o reporta incapacidades; el administrador aprueba, rechaza o registra directamente. Sin solapes. Se reflejan en la asistencia del día.
+- Correcciones: salida olvidada y jornada no marcada, como marcaciones nuevas del administrador con motivo obligatorio.
+
+Fuentes de los festivos: Ministerio del Interior (sanción de la Ley 2578 de 2026) y calendarios 2026–2027 de medios nacionales; el cálculo se prueba contra esas fechas.

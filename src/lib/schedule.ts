@@ -21,6 +21,22 @@ export type PatternInput = {
   days: PatternDayInput[];
 };
 
+/**
+ * Cambio puntual del horario de un empleado en una fecha (tabla scheduled_shift).
+ * Si una fecha tiene cambios, REEMPLAZAN al patrón ese día: los PLANNED son los
+ * turnos del día; si solo hay CANCELLED, ese día es descanso.
+ */
+export type OverrideInput = {
+  workDate: string;
+  status: "PLANNED" | "CANCELLED";
+  start: Date;
+  end: Date;
+  breakMinutes: number;
+  siteId: string;
+  siteName: string;
+  templateName: string;
+};
+
 export type ResolvedShift = {
   workDate: string; // AAAA-MM-DD local
   start: Date;
@@ -31,6 +47,8 @@ export type ResolvedShift = {
   siteId: string;
   siteName: string;
   templateName: string;
+  /** true si viene de un cambio puntual y no del patrón. */
+  override?: boolean;
 };
 
 const DAY_MS = 86_400_000;
@@ -78,8 +96,27 @@ export function cycleIndex(isoDate: string, anchorDate: Date, cycleDays: number)
   return ((diff % cycleDays) + cycleDays) % cycleDays;
 }
 
-/** Turnos programados en una fecha local, ordenados por hora de inicio. */
-export function shiftsOn(patterns: PatternInput[], isoDate: string, timeZone = DEFAULT_TZ): ResolvedShift[] {
+/** Turnos programados en una fecha local, ordenados por hora de inicio. Los cambios puntuales tienen prioridad. */
+export function shiftsOn(patterns: PatternInput[], isoDate: string, timeZone = DEFAULT_TZ, overrides: OverrideInput[] = []): ResolvedShift[] {
+  const todays = overrides.filter((o) => o.workDate === isoDate);
+  if (todays.length > 0) {
+    const midnight = zonedTimeToUtc(isoDate, 0, timeZone).getTime();
+    return todays
+      .filter((o) => o.status === "PLANNED")
+      .map((o) => ({
+        workDate: isoDate,
+        start: o.start,
+        end: o.end,
+        startMin: Math.round((o.start.getTime() - midnight) / 60000),
+        endMin: Math.round((o.end.getTime() - midnight) / 60000),
+        breakMinutes: o.breakMinutes,
+        siteId: o.siteId,
+        siteName: o.siteName,
+        templateName: o.templateName,
+        override: true,
+      }))
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+  }
   const day = toDay(isoDate);
   const out: ResolvedShift[] = [];
   for (const p of patterns) {
@@ -108,10 +145,10 @@ export function shiftsOn(patterns: PatternInput[], isoDate: string, timeZone = D
  * Turno relevante "ahora": el que está en curso, o si no, el próximo de hoy, o si
  * no, el turno nocturno de ayer que aún no termina. Útil para la pantalla del empleado.
  */
-export function currentOrNextShift(patterns: PatternInput[], now: Date, timeZone = DEFAULT_TZ) {
+export function currentOrNextShift(patterns: PatternInput[], now: Date, timeZone = DEFAULT_TZ, overrides: OverrideInput[] = []) {
   const today = localDate(now, timeZone);
   const yesterday = isoOf(new Date(toDay(today) - DAY_MS));
-  const candidates = [...shiftsOn(patterns, yesterday, timeZone), ...shiftsOn(patterns, today, timeZone)];
+  const candidates = [...shiftsOn(patterns, yesterday, timeZone, overrides), ...shiftsOn(patterns, today, timeZone, overrides)];
   const t = now.getTime();
   return (
     candidates.find((s) => s.start.getTime() <= t && t < s.end.getTime()) ??
