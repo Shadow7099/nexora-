@@ -4,14 +4,22 @@
 
 Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina estimada para pymes colombianas.
 
-> Estado: **Fases 1 a 7 terminadas** (ingreso, empleados, sedes y QR, horarios y festivos, marcación con ubicación y huella, horas extra, novedades y correcciones, pre-nómina estimada con parámetros legales versionados, tablero con gráficos y reportes Excel/CSV/PDF). Falta la fase 8 (calidad, manuales, despliegue final). Ver [docs/PLAN.md](docs/PLAN.md).
+> Estado: **las 8 fases están terminadas** y la app está en producción: https://nexora-tau-liard.vercel.app. Antes del piloto con empleados reales faltan pasos externos (celular físico, contador, abogado, dominio): ver [docs/PENDIENTES.md](docs/PENDIENTES.md).
 
 ## Documentación
 
-- [Arquitectura, modelo de datos y seguridad](docs/ARQUITECTURA.md)
-- [Plan de implementación por fases](docs/PLAN.md)
-- [Información pendiente de la empresa real](docs/PENDIENTES.md)
-- [Despliegue: Supabase y Vercel](docs/DESPLIEGUE.md)
+| Entregable | Documento |
+|---|---|
+| Manual de instalación | [docs/MANUAL_INSTALACION.md](docs/MANUAL_INSTALACION.md) |
+| Manual de usuario (empleado, administrador, plataforma) | [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) |
+| Documentación técnica | [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) |
+| Pruebas y resultados (checklist de las 10 pruebas obligatorias) | [docs/PRUEBAS.md](docs/PRUEBAS.md) |
+| Instrucciones de despliegue | [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) |
+| Revisión de seguridad | [docs/SEGURIDAD.md](docs/SEGURIDAD.md) |
+| Resumen académico (economía) | [docs/RESUMEN_ACADEMICO.md](docs/RESUMEN_ACADEMICO.md) |
+| Plan por fases | [docs/PLAN.md](docs/PLAN.md) |
+| Lo que falta de la empresa real | [docs/PENDIENTES.md](docs/PENDIENTES.md) |
+| Guía para continuar en otro chat | [docs/CONTINUAR.md](docs/CONTINUAR.md) |
 
 ## Requisitos
 
@@ -24,7 +32,7 @@ Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina 
 git clone https://github.com/Shadow7099/nexora-.git nexora
 cd nexora
 npm install                      # también genera el cliente de Prisma
-cp .env.example .env             # y complete DATABASE_URL y SESSION_SECRET
+cp .env.example .env             # y complete DATABASE_URL
 npm run db:migrate               # crea las tablas
 npm run db:seed                  # empresa demo: 4 sedes, 8 empleados
 npm run dev                      # http://localhost:3000
@@ -65,10 +73,10 @@ Para usar un Chromium ya instalado: `CHROMIUM_PATH=/ruta/a/chromium npm run test
 | Ruta | Quién | Qué |
 |---|---|---|
 | `/ingresar` | todos | inicio de sesión |
-| `/admin` | administrador | resumen, empleados, configuración |
-| `/app` | empleado | saludo, sede, horario y estado de hoy; historial |
+| `/admin` | administrador | resumen, asistencia, empleados, sedes y QR, horarios, solicitudes, pre-nómina, reportes, configuración |
+| `/app` | empleado | inicio, historial, solicitudes |
 | `/m/<código>` | empleado | página que abre el QR de la sede: marcar entrada o salida |
-| `/plataforma` | superadministrador | empresas registradas |
+| `/plataforma` | superadministrador | empresas (alta, suspensión, recuperación del administrador) y parámetros laborales |
 | `/sistema` | público | sistema de diseño |
 
 ## Estructura
@@ -84,7 +92,7 @@ src/
   components/layout/     estructura del panel admin y de la app del empleado
   components/employee/   pantalla de marcación
   lib/                   BD, contraseñas, validación, turnos, formato de fechas y moneda
-  server/                lógica de negocio con autorización (sesiones, empleados, empresa)
+  server/                lógica de negocio con autorización (sesiones, asistencia, pre-nómina, reportes, plataforma…)
   proxy.ts               redirección optimista a /ingresar sin cookie
 tests/
   unit/  db/  e2e/

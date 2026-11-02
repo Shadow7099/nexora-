@@ -164,6 +164,17 @@ Por esto la recomendación es **probar 30 días con los empleados reales** y rev
 
 Cambios graduales ya identificados que el modelo versionado debe soportar, **pendientes de verificar en fuente primaria en la fase 6**: Ley 2466 de 2025 (jornada nocturna desde las 7:00 p. m., recargo dominical y festivo escalonado, reducción de la jornada máxima a 42 h en julio de 2026) y el salario mínimo 2026 (Decreto 1469 de 2025, suspendido, y reemplazado por el Decreto 0159 de 2026).
 
+## 7b. Tablero y reportes (fase 7)
+
+- `src/lib/reports.ts` (puro): asistencia día a día por empleado (asistió, tarde, ausente, novedad, descanso, por revisar), resúmenes y series para los gráficos.
+- `src/lib/report-table.ts`: formato único (columnas tipadas, filas, totales). Pantalla, Excel (`exceljs`), CSV y PDF (`jspdf`) salen de la misma tabla, así los números coinciden (prueba obligatoria 7).
+- `src/server/reports.ts`: filtros validados contra la empresa del actor; `/admin/reportes/descargar/[tipo]` verifica sesión y rol en cada descarga.
+
+## 7c. Plataforma y seguridad (fase 8)
+
+- `src/server/platform.ts`: alta de empresa con su primer administrador (contraseña temporal), suspensión (cierra sesiones) y recuperación de la cuenta del administrador. El superadministrador no ve datos de empleados.
+- Límite de intentos de ingreso por red (tabla `login_throttle`, solo hash de la IP) y Content-Security-Policy. Detalle en [SEGURIDAD.md](SEGURIDAD.md).
+
 ## 8. Datos personales (Ley 1581 de 2012)
 
 - Se registra la **autorización** de cada usuario con versión de la política (`data_consent`).

@@ -28,5 +28,13 @@ La demo usa datos ficticios. Para el piloto de 30 días se necesita:
 - **Nómina:** validar los parámetros legales cargados en la fase 6 contra la normativa vigente para el período del piloto.
 
 ## Despliegue
-- Dominio (por ejemplo `asistencia.empresa.com`) para imprimir en los QR. **Cambiar el dominio después obliga a reimprimir los QR.**
-- Proveedor de hosting y de base de datos (se puede empezar en planes gratuitos o de bajo costo).
+- Dominio (por ejemplo `asistencia.empresa.com`) para imprimir en los QR. **Cambiar el dominio después obliga a reimprimir los QR.** Pasos en [DESPLIEGUE.md](DESPLIEGUE.md#4-dominio-propio-antes-de-imprimir-los-qr-definitivos).
+- Hosting y base de datos: ya en Vercel + Supabase (planes gratuitos). Antes del piloto con datos reales, pasar a planes con respaldos (Supabase Pro).
+- Opcional: proveedor de correo (Resend, Amazon SES…) si se quiere recuperación de contraseña por correo.
+
+## Antes del piloto (checklist)
+1. Marcación real con un celular físico (iPhone y Android) en cada sede.
+2. Contador: validar la tabla de parámetros (Plataforma → Parámetros laborales) y el criterio del valor hora.
+3. Abogado: texto de autorización de datos (`/autorizacion`).
+4. Dominio propio, `APP_URL` e impresión definitiva de los QR.
+5. Cargar sedes, empleados, contratos y horarios reales (o crear la empresa real desde Plataforma → Nueva empresa).

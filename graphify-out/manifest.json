@@ -828,33 +828,33 @@
     "semantic_hash": "acb80a4a225edf170b8ceacb1ac73cf7"
   },
   "README.md": {
-    "mtime": 1793587277.639591,
-    "seen": 1793587280.7240753,
-    "ast_hash": "30d63126c64a3ff2189938f2b4c7456d",
+    "mtime": 1793625736.6133537,
+    "seen": 1793625765.3468223,
+    "ast_hash": "abd352c5633820f896dfb3c98ac3b6b0",
     "semantic_hash": ""
   },
   "docs/ARQUITECTURA.md": {
-    "mtime": 1793564290.0579417,
-    "seen": 1793567735.174322,
-    "ast_hash": "ea88a35a3535bc066a673b144cfc7265",
-    "semantic_hash": "ea88a35a3535bc066a673b144cfc7265"
+    "mtime": 1793625736.614002,
+    "seen": 1793625765.3468258,
+    "ast_hash": "a0f45809c0cbc5c5f53833ab221e4f31",
+    "semantic_hash": ""
   },
   "docs/DESPLIEGUE.md": {
-    "mtime": 1793282018.212557,
-    "seen": 1793567735.1743228,
-    "ast_hash": "a147d5a0381a04523a3da2d54ed301be",
-    "semantic_hash": "a147d5a0381a04523a3da2d54ed301be"
+    "mtime": 1793625646.8659072,
+    "seen": 1793625765.346829,
+    "ast_hash": "3445a1b744911dd28a6071eb3fd8d0cf",
+    "semantic_hash": ""
   },
   "docs/PENDIENTES.md": {
-    "mtime": 1793114220.4789147,
-    "seen": 1793567735.1743248,
-    "ast_hash": "5b0e967bea1db4ed0a57720af6abc890",
-    "semantic_hash": "5b0e967bea1db4ed0a57720af6abc890"
+    "mtime": 1793625752.6387868,
+    "seen": 1793625765.3468354,
+    "ast_hash": "a49c9fba9bb096aa481ff2971236cddf",
+    "semantic_hash": ""
   },
   "docs/PLAN.md": {
-    "mtime": 1793587277.645935,
-    "seen": 1793587280.7241313,
-    "ast_hash": "605effa955f55f1a2a53b4499e02ff1d",
+    "mtime": 1793625736.613622,
+    "seen": 1793625765.3468373,
+    "ast_hash": "49e5974560897823759245deb092201e",
     "semantic_hash": ""
   },
   ".claude/settings.json": {
@@ -978,9 +978,9 @@
     "semantic_hash": ""
   },
   "docs/CONTINUAR.md": {
-    "mtime": 1793587277.6389692,
-    "seen": 1793587280.7240946,
-    "ast_hash": "d83d46cc5de8842ca1cc18bad446e99f",
+    "mtime": 1793625752.6407015,
+    "seen": 1793625765.3468275,
+    "ast_hash": "c73554a6c589e2d586111b4fbc5ebc3c",
     "semantic_hash": ""
   },
   "src/components/employee/device-relink.tsx": {
@@ -1089,6 +1089,114 @@
     "mtime": 1793625223.708904,
     "seen": 1793625477.4792826,
     "ast_hash": "0a9661ffc936e7685d9268fceb08d712",
+    "semantic_hash": ""
+  },
+  "docs/MANUAL_INSTALACION.md": {
+    "mtime": 1793625578.9779031,
+    "seen": 1793625765.346832,
+    "ast_hash": "1c4b5a46db1477498dcd4ec2ba516313",
+    "semantic_hash": ""
+  },
+  "docs/MANUAL_USUARIO.md": {
+    "mtime": 1793625627.6311672,
+    "seen": 1793625765.3468337,
+    "ast_hash": "eb9c738e0cd4b5d0e4ecf692015bfdce",
+    "semantic_hash": ""
+  },
+  "docs/PRUEBAS.md": {
+    "mtime": 1793625555.9179018,
+    "seen": 1793625765.3468385,
+    "ast_hash": "0a848f8c24b4f56d813c0cd6004d8c47",
+    "semantic_hash": ""
+  },
+  "docs/RESUMEN_ACADEMICO.md": {
+    "mtime": 1793625715.8939114,
+    "seen": 1793625765.3468397,
+    "ast_hash": "9065d3de9a4399cacea819419ca44fe0",
+    "semantic_hash": ""
+  },
+  "docs/SEGURIDAD.md": {
+    "mtime": 1793625665.5539083,
+    "seen": 1793625765.3468406,
+    "ast_hash": "224a0978374d1e3e634e9338f19525a4",
+    "semantic_hash": ""
+  },
+  "docs/img/celular-app-oscuro.jpg": {
+    "mtime": 1793625494.1378982,
+    "seen": 1793625765.346842,
+    "ast_hash": "4eab0cc95914725238f1bb33155ca114",
+    "semantic_hash": ""
+  },
+  "docs/img/celular-ingresar.jpg": {
+    "mtime": 1793625493.8618982,
+    "seen": 1793625765.3468428,
+    "ast_hash": "6265f4dc7755baf4344b46943652e94f",
+    "semantic_hash": ""
+  },
+  "docs/img/celular-qr-antes.jpg": {
+    "mtime": 1793625493.9570315,
+    "seen": 1793625765.346844,
+    "ast_hash": "167d8d3db3e3dfc2e6f44e81c309b9ad",
+    "semantic_hash": ""
+  },
+  "docs/img/celular-qr-entrada.jpg": {
+    "mtime": 1793625494.0458982,
+    "seen": 1793625765.3468447,
+    "ast_hash": "59779265c5c58b03587909452792e22d",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-admin-asistencia.jpg": {
+    "mtime": 1793625493.1978981,
+    "seen": 1793625765.346846,
+    "ast_hash": "8e5d7342aa44b5799b13f3472e12add0",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-admin-horarios.jpg": {
+    "mtime": 1793625493.301898,
+    "seen": 1793625765.3468473,
+    "ast_hash": "d770753221c14e3c88cea13aa2a53212",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-admin-resumen.jpg": {
+    "mtime": 1793625493.1243584,
+    "seen": 1793625765.3468482,
+    "ast_hash": "92282c18566001a8fa17f28e8631e739",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-admin-sedes.jpg": {
+    "mtime": 1793625493.241898,
+    "seen": 1793625765.3468497,
+    "ast_hash": "3e63058d44775557a4ba3b99eae0cc58",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-parametros.jpg": {
+    "mtime": 1793625493.725898,
+    "seen": 1793625765.3468509,
+    "ast_hash": "8ace3d5319121875608ab76345e29134",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-plataforma-nueva.jpg": {
+    "mtime": 1793625493.7698982,
+    "seen": 1793625765.3468518,
+    "ast_hash": "b7725a19dde09049ec8c76a9ae65f668",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-pre-nomina-detalle.jpg": {
+    "mtime": 1793625493.497898,
+    "seen": 1793625765.3468525,
+    "ast_hash": "0a2798ba28db3e46f35a034fa751a55d",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-pre-nomina.jpg": {
+    "mtime": 1793625493.377898,
+    "seen": 1793625765.3468537,
+    "ast_hash": "c1670228dcc67ee71fc4caffc7a36a9d",
+    "semantic_hash": ""
+  },
+  "docs/img/escritorio-reportes.jpg": {
+    "mtime": 1793625493.597898,
+    "seen": 1793625765.3468552,
+    "ast_hash": "54a84c4b4687118736f349bf7bde6445",
     "semantic_hash": ""
   }
 }

@@ -1,7 +1,7 @@
 # Nexora: guía para continuar en un chat nuevo
 
 > Pega este archivo (o su enlace) al iniciar el chat nuevo. Resume qué está hecho, cómo está montado, las reglas del proyecto y el plan detallado de las fases que faltan.
-> Última actualización: 2 de noviembre de 2026 · fase 7 terminada.
+> Última actualización: 2 de noviembre de 2026 · las 8 fases terminadas.
 
 ---
 
@@ -11,11 +11,10 @@
 Eres el responsable técnico de Nexora (repositorio Shadow7099/nexora-, rama main).
 Lee primero docs/CONTINUAR.md, docs/ARQUITECTURA.md y docs/PLAN.md.
 Respeta las reglas de la sección 4 de CONTINUAR.md.
-Las fases 1 a 7 están hechas. Antes de la fase 8, construye la pantalla
-"Nueva empresa" en Plataforma (crear empresa + primer administrador con
-contraseña temporal, suspender/activar) y la recuperación de cuenta; luego
-sigue con la fase 8 según la sección 6. Los parámetros de la pre-nómina siguen
-pendientes de validación por un contador.
+Las 8 fases están hechas (ver docs/PRUEBAS.md y docs/PENDIENTES.md). Lo que
+sigue depende del piloto: corrige lo que aparezca con empleados reales y no
+agregues funciones grandes sin pedirme confirmación. Los parámetros de la
+pre-nómina siguen pendientes de validación por un contador.
 Trabaja por partes, prueba todo (Vitest + Playwright) y no avances con algo que no funcione.
 ```
 
@@ -32,10 +31,10 @@ Trabaja por partes, prueba todo (Vitest + Playwright) y no avances con algo que 
 | 5. Horas extra (detección/aprobación), novedades, correcciones | ✅ |
 | 6. Pre-nómina estimada (parámetros legales versionados, cálculo, detalle por empleado) | ✅ (parámetros sin validar por contador) |
 | 7. Dashboard con gráficos y reportes (Excel/CSV/PDF) | ✅ |
-| **Pantalla "Nueva empresa" y recuperación de cuenta** | ⏳ Siguiente (necesario para la segunda empresa) |
-| **8. Calidad, seguridad, manuales, despliegue final, resumen académico** | ⏳ |
+| Pantalla "Nueva empresa", suspender/activar, recuperación de cuenta | ✅ |
+| 8. Calidad, seguridad, manuales, despliegue final, resumen académico | ✅ |
 
-Pruebas al cierre de la fase 7: **156** unitarias/BD (Vitest) y **70** de navegador (Playwright, escritorio y celular). Todas en verde.
+Pruebas al cierre de la fase 8: **161** unitarias/BD (Vitest) y **74** de navegador (Playwright, escritorio y celular). Todas en verde.
 
 Pendiente del usuario: **probar una marcación real con un celular** (aún hay 0 marcaciones reales en producción; ver sección 7).
 
@@ -55,7 +54,7 @@ Pendiente del usuario: **probar una marcación real con un celular** (aún hay 0
 `admin@eltrigal.test` · `juan@`, `laura@`, `andres@`, `valentina@`, `camila@`, `santiago@`, `diego@`, `paula@eltrigal.test` · `plataforma@nexora.test` (superadmin).
 
 **Migraciones aplicadas en Supabase** (también registradas en `_prisma_migrations` con su checksum SHA-256, para que `prisma migrate deploy` las reconozca):
-`20261027150316_init`, `20261029000000_lock_data_api`, `20261029010000_fix_function_search_path`, `20261029020000_block_truncate`, `20261101195716_attendance_phase4`, `20261102000000_payroll_phase6` (columna `company.parafiscal_exempt` + 35 parámetros laborales nacionales).
+`20261027150316_init`, `20261029000000_lock_data_api`, `20261029010000_fix_function_search_path`, `20261029020000_block_truncate`, `20261101195716_attendance_phase4`, `20261102000000_payroll_phase6` (columna `company.parafiscal_exempt` + 35 parámetros laborales nacionales), `20261103000000_login_throttle`.
 Las fases 3 y 5 no necesitaron migración.
 
 Datos demo en Supabase: dos semanas de marcaciones **simuladas** (`source = SYSTEM`, 18–31 oct 2026). Para que aparezcan sus horas extra: Solicitudes → **Revisar jornadas pasadas**.
@@ -134,16 +133,12 @@ Usuario `nexora/nexora` con CREATEDB.
 - Paleta de gráficos validada (daltonismo y contraste) en `globals.css` (`--chart-1`, `--chart-2`, `--chart-grid`).
 - `npm audit`: 9 alertas moderadas en dependencias internas de `exceljs` (minimatch, uuid, archiver) en rutas que Nexora no usa con datos del usuario. Revisar en la fase 8.
 
-### Fase 8 · Calidad, despliegue y entrega
+### Fase 8 · Calidad y despliegue ✅ (hecha)
 
-- Checklist de las **10 pruebas obligatorias** del enunciado (la mayoría ya automatizadas; documentar dónde está cada una).
-- Revisión de seguridad: límite de intentos por IP para el ingreso, cabeceras CSP, revisión de dependencias, `get_advisors` de Supabase, recuperación de cuenta.
-- Manuales: instalación, usuario (administrador y empleado, con capturas), documentación técnica.
-- Dominio propio y `APP_URL`; reimprimir los QR con el dominio final.
-- Política de datos (Ley 1581) revisada por abogado; texto final en `/autorizacion`.
-- **Resumen académico** (economía): problema, solución, público objetivo, propuesta de valor, modelo de ingresos (planes de prueba: $59.900 / $99.900 / $149.900 COP, hipótesis sin validar) y viabilidad preliminar.
-
----
+- Seguridad: límite de intentos por red (`login_throttle`, hash de la IP), CSP, `npm audit` (0 altas/críticas; 24 moderadas explicadas), asesores de Supabase. Ver `docs/SEGURIDAD.md`.
+- Plataforma: `src/server/platform.ts` (nueva empresa + primer admin, suspender/activar, restablecer clave del admin), páginas `/plataforma/empresas/nueva` y `/plataforma/empresas/[id]`.
+- Documentos: `PRUEBAS.md` (checklist de las 10 pruebas), `MANUAL_INSTALACION.md`, `MANUAL_USUARIO.md` (con capturas en `docs/img`), `DESPLIEGUE.md`, `SEGURIDAD.md`, `RESUMEN_ACADEMICO.md`.
+- Pendiente fuera del código: celular físico, contador, abogado, dominio, respaldos. Ver `PENDIENTES.md`.
 
 ## 7. Antes del piloto de 30 días (depende del usuario)
 
