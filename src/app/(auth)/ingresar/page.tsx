@@ -15,7 +15,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/ingresar">
       <h1 className="text-2xl font-semibold tracking-tight">Ingresar</h1>
       <p className="mt-1 mb-8 text-sm text-fg-muted">Usa el correo y la contraseña que te dio tu empresa.</p>
       <LoginForm next={typeof next === "string" ? next : undefined} />
-      <p className="mt-8 text-center text-xs text-fg-subtle">¿Olvidaste tu contraseña? Pídele a tu administrador que la restablezca.</p>
     </>
   );
 }

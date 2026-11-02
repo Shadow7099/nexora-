@@ -10,6 +10,23 @@ export const CONSENT_POLICY_VERSION = "2026-10-v1";
 
 export const MAX_FAILED_LOGINS = 5;
 export const LOCK_MINUTES = 15;
+/** Fallos permitidos desde una misma red (IP) en la ventana, sumando todas las cuentas. */
+export const MAX_FAILED_PER_IP = 30;
+export const IP_WINDOW_MINUTES = 15;
+
+/** Hash de la IP (no se guarda la IP en claro). */
+export const hashIp = (ip: string) => createHash("sha256").update(`nexora-login:${ip}`).digest("hex");
+
+async function ipThrottled(ipHash: string, now: number) {
+  const since = new Date(now - IP_WINDOW_MINUTES * 60_000);
+  return (await db.loginThrottle.count({ where: { ipHash, occurredAt: { gte: since } } })) >= MAX_FAILED_PER_IP;
+}
+
+async function recordIpFailure(ipHash: string, now: number) {
+  await db.loginThrottle.create({ data: { ipHash } });
+  // Limpieza: los registros de más de un día ya no sirven para nada.
+  if (Math.random() < 0.05) await db.loginThrottle.deleteMany({ where: { occurredAt: { lt: new Date(now - 86_400_000) } } });
+}
 
 // Empleados: sesión larga en su celular (marcan a diario). Administradores: corta.
 const SESSION_TTL_MS: Record<Role, number> = {
@@ -109,9 +126,12 @@ const getDummyHash = () => (dummyHash ??= hashPassword(randomBytes(16).toString(
 export type LoginResult =
   | { ok: true; token: string; expiresAt: Date; role: Role; mustChangePassword: boolean }
   | { ok: false; reason: "invalid" }
-  | { ok: false; reason: "locked"; minutes: number };
+  | { ok: false; reason: "locked"; minutes: number }
+  | { ok: false; reason: "throttled"; minutes: number };
 
-export async function authenticate(email: string, password: string, userAgent?: string | null): Promise<LoginResult> {
+export async function authenticate(email: string, password: string, userAgent?: string | null, ip?: string | null): Promise<LoginResult> {
+  const ipHash = ip ? hashIp(ip) : null;
+  if (ipHash && (await ipThrottled(ipHash, Date.now()))) return { ok: false, reason: "throttled", minutes: IP_WINDOW_MINUTES };
   const user = await db.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
     include: { company: { select: { status: true } }, employee: { select: { status: true } } },
@@ -119,6 +139,7 @@ export async function authenticate(email: string, password: string, userAgent?: 
 
   if (!user) {
     await verifyPassword(await getDummyHash(), password);
+    if (ipHash) await recordIpFailure(ipHash, Date.now());
     return { ok: false, reason: "invalid" };
   }
 
@@ -132,6 +153,7 @@ export async function authenticate(email: string, password: string, userAgent?: 
     user.active && user.company?.status !== "SUSPENDED" && (user.role !== "EMPLOYEE" || user.employee?.status === "ACTIVE");
 
   if (!valid || !allowed) {
+    if (ipHash) await recordIpFailure(ipHash, now);
     const failed = valid ? user.failedLogins : user.failedLogins + 1;
     const lock = failed >= MAX_FAILED_LOGINS;
     await db.user.update({

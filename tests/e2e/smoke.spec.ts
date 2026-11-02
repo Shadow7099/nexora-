@@ -46,6 +46,8 @@ test("cabeceras de seguridad presentes", async ({ request }) => {
   expect(res.headers()["x-frame-options"]).toBe("DENY");
   expect(res.headers()["permissions-policy"]).toContain("geolocation=(self)");
   expect(res.headers()["x-powered-by"]).toBeUndefined();
+  const csp = res.headers()["content-security-policy"] ?? "";
+  for (const d of ["default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "form-action 'self'"]) expect(csp).toContain(d);
 });
 
 // Capturas para revisión visual (no son aserciones).

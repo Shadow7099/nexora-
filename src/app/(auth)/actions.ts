@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { fieldErrors, loginSchema, passwordSchema } from "@/lib/validation";
 import type { ActionState } from "@/server/errors";
-import { clearSessionCookie, getSessionToken, getUserAgent, requireActor, setSessionCookie } from "@/server/current";
+import { clearSessionCookie, getClientIp, getSessionToken, getUserAgent, requireActor, setSessionCookie } from "@/server/current";
 import { authenticate, changePassword, homeFor, recordConsent, revokeSession } from "@/server/sessions";
 
 /** Solo se acepta un destino interno (evita redirecciones abiertas a otros sitios). */
@@ -22,7 +22,7 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
 
   let result: Awaited<ReturnType<typeof authenticate>>;
   try {
-    result = await authenticate(parsed.data.email, parsed.data.password, await getUserAgent());
+    result = await authenticate(parsed.data.email, parsed.data.password, await getUserAgent(), await getClientIp());
   } catch (e) {
     // Fallo de infraestructura (p. ej. base de datos no configurada o caída): mensaje claro, sin detalles internos.
     console.error("login: error de infraestructura", e);
@@ -32,7 +32,9 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
     const message =
       result.reason === "locked"
         ? `Por seguridad bloqueamos la cuenta durante ${result.minutes} min. Intenta más tarde o pide ayuda a tu administrador.`
-        : "Correo o contraseña incorrectos.";
+        : result.reason === "throttled"
+          ? `Demasiados intentos fallidos desde esta red. Espera ${result.minutes} min e intenta de nuevo.`
+          : "Correo o contraseña incorrectos.";
     return { ok: false, message, data: { email: parsed.data.email } };
   }
 

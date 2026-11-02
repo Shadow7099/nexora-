@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Building2 } from "lucide-react";
+import Link from "next/link";
+import { Building2, Plus } from "lucide-react";
 import { logoutAction } from "@/app/(auth)/actions";
 import { AdminShell, PageHeader } from "@/components/layout/admin-shell";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listCompanies } from "@/server/company";
@@ -21,7 +23,8 @@ export default async function PlatformPage() {
   const companies = await listCompanies(actor);
   return (
     <AdminShell user={{ name: actor.name, companyName: "Nexora · Plataforma", roleLabel: "Superadministrador" }} logout={logoutAction} nav="platform">
-      <PageHeader title="Empresas" description={`${companies.length} registradas. Sin acceso a datos personales de sus empleados.`} />
+      <PageHeader title="Empresas" description={`${companies.length} registradas. Sin acceso a datos personales de sus empleados.`}
+        actions={<Link href="/plataforma/empresas/nueva" className={buttonVariants()}><Plus aria-hidden /> Nueva empresa</Link>} />
       <Card className="overflow-hidden">
         {companies.length === 0 ? (
           <EmptyState icon={Building2} title="Sin empresas registradas" />
@@ -40,7 +43,7 @@ export default async function PlatformPage() {
               <tbody>
                 {companies.map((c) => (
                   <tr key={c.id} className="border-b border-border last:border-0">
-                    <td className="px-5 py-3 font-medium">{c.name}</td>
+                    <td className="px-5 py-3 font-medium"><Link href={`/plataforma/empresas/${c.id}`} className="hover:underline">{c.name}</Link></td>
                     <td className="px-5 py-3">{statusBadge[c.status]}</td>
                     <td className="px-5 py-3 text-fg-muted">{c.planCode ?? "—"}</td>
                     <td className="tabular px-5 py-3 text-right">{c._count.employees}{c.maxEmployees ? ` / ${c.maxEmployees}` : ""}</td>

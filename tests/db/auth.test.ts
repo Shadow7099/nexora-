@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
-import { authenticate, changePassword, hashToken, LOCK_MINUTES, MAX_FAILED_LOGINS, validateSessionToken } from "@/server/sessions";
+import { authenticate, changePassword, hashIp, hashToken, LOCK_MINUTES, MAX_FAILED_LOGINS, MAX_FAILED_PER_IP, validateSessionToken } from "@/server/sessions";
 import { setEmployeeStatus } from "@/server/employees";
 import { login, makeCompany, PASSWORD } from "../support/fixtures";
 
@@ -71,5 +71,17 @@ describe("cambio de contraseña", () => {
     expect(await validateSessionToken(a.token)).not.toBeNull(); // la sesión actual sigue
     expect(await validateSessionToken(b.token)).toBeNull(); // la otra se cerró
     expect((await authenticate(f.empUser.email, "Nueva-Clave-2026")).ok).toBe(true);
+  });
+});
+
+describe("fase 8 · límite de intentos por red", () => {
+  it("después de muchos fallos desde la misma IP (con cuentas distintas) se frena, sin afectar otras redes", async () => {
+    const ip = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
+    await db.loginThrottle.createMany({ data: Array.from({ length: MAX_FAILED_PER_IP - 1 }, () => ({ ipHash: hashIp(ip) })) });
+    expect(await authenticate("nadie@test.local", "x", "vitest", ip)).toEqual({ ok: false, reason: "invalid" });
+    expect(await authenticate("otro@test.local", "x", "vitest", ip)).toMatchObject({ ok: false, reason: "throttled" });
+    expect(await authenticate("otro@test.local", "x", "vitest", "198.51.100.7")).toEqual({ ok: false, reason: "invalid" });
+    // Solo se guarda el hash, nunca la IP.
+    expect(await db.loginThrottle.count({ where: { ipHash: ip } })).toBe(0);
   });
 });

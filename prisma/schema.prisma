@@ -779,6 +779,18 @@ model PayrollEstimateLine {
   @@map("payroll_estimate_line")
 }
 
+// Intentos de ingreso fallidos por red (IP). Solo se guarda el hash de la IP,
+// nunca la IP. Complementa el bloqueo por cuenta: frena a quien prueba muchas
+// cuentas distintas desde la misma red.
+model LoginThrottle {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  ipHash     String   @map("ip_hash")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+
+  @@index([ipHash, occurredAt])
+  @@map("login_throttle")
+}
+
 // ──────────────────────────────── Auditoría ──────────────────────────────
 
 // Solo inserción (trigger en la migración).

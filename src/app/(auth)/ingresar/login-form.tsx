@@ -21,6 +21,15 @@ export function LoginForm({ next }: { next?: string }) {
           aria-invalid={!!err.password || undefined} aria-describedby={err.password ? "password-error" : undefined} />
       </Field>
       <SubmitButton size="lg" className="mt-2 w-full" pendingText="Ingresando…">Ingresar</SubmitButton>
+      <details className="text-sm text-fg-muted">
+        <summary className="cursor-pointer select-none text-center text-primary">¿Olvidaste tu contraseña?</summary>
+        <p className="mt-2">
+          <strong className="font-medium text-fg">Empleados:</strong> pide a tu administrador una contraseña temporal (Empleados → tu nombre → Restablecer contraseña).
+        </p>
+        <p className="mt-1">
+          <strong className="font-medium text-fg">Administradores:</strong> escribe al soporte de Nexora desde el correo registrado; te enviaremos una contraseña temporal.
+        </p>
+      </details>
     </form>
   );
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 /** Muestra una contraseña temporal una sola vez, con botón para copiarla. */
-export function TempPassword({ password, email }: { password: string; email?: string }) {
+export function TempPassword({ password, email, recipient = "al empleado" }: { password: string; email?: string; recipient?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div role="status" className="rounded-xl border border-success/30 bg-success-soft p-4 animate-fade-up">
@@ -30,7 +30,7 @@ export function TempPassword({ password, email }: { password: string; email?: st
         </Button>
       </div>
       <p className="mt-3 text-xs text-fg-muted">
-        Entrégasela al empleado{email ? ` (${email})` : ""} por un canal privado. No se volverá a mostrar: al ingresar, deberá crear su propia contraseña.
+        Entrégasela {recipient}{email ? ` (${email})` : ""} por un canal privado. No se volverá a mostrar: al ingresar, deberá crear su propia contraseña.
       </p>
     </div>
   );

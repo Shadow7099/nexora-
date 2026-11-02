@@ -21,6 +21,15 @@ export async function getSessionToken() {
   return (await cookies()).get(SESSION_COOKIE)?.value;
 }
 
+/**
+ * IP del cliente según el proxy de la plataforma (Vercel fija x-real-ip y
+ * x-forwarded-for). Solo se usa, en hash, para frenar intentos de ingreso.
+ */
+export async function getClientIp() {
+  const h = await headers();
+  return h.get("x-real-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+}
+
 export async function getUserAgent() {
   return (await headers()).get("user-agent");
 }
