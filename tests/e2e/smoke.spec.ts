@@ -31,12 +31,13 @@ test("el selector de tema cambia entre claro y oscuro", async ({ page }) => {
   await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
 
-test("las secciones aún no completas se marcan como 'Pronto'", async ({ page, isMobile }) => {
+test("con las fases 1 a 7 entregadas, ninguna sección se marca como 'Pronto'", async ({ page, isMobile }) => {
   await page.goto("/sistema/admin");
   if (isMobile) await page.getByRole("button", { name: "Abrir menú" }).click();
   const nav = page.getByRole("navigation", { name: "Principal" }).last();
-  await expect(nav.getByRole("link", { name: /Reportes\s*Pronto/ })).toBeVisible();
+  await expect(nav.getByRole("link", { name: /^Reportes$/ })).toBeVisible();
   await expect(nav.getByRole("link", { name: /^Pre-nómina$/ })).toBeVisible();
+  await expect(nav.getByText("Pronto")).toHaveCount(0);
   await expect(nav.getByRole("link", { name: /^Empleados$/ })).toBeVisible();
 });
 

@@ -1,7 +1,7 @@
 # Nexora: guía para continuar en un chat nuevo
 
 > Pega este archivo (o su enlace) al iniciar el chat nuevo. Resume qué está hecho, cómo está montado, las reglas del proyecto y el plan detallado de las fases que faltan.
-> Última actualización: 1 de noviembre de 2026 · fase 6 terminada.
+> Última actualización: 2 de noviembre de 2026 · fase 7 terminada.
 
 ---
 
@@ -11,9 +11,11 @@
 Eres el responsable técnico de Nexora (repositorio Shadow7099/nexora-, rama main).
 Lee primero docs/CONTINUAR.md, docs/ARQUITECTURA.md y docs/PLAN.md.
 Respeta las reglas de la sección 4 de CONTINUAR.md.
-Sigue con la fase 7 (dashboard y reportes) según la sección 6. La pre-nómina
-(fase 6) ya está hecha: sus parámetros legales siguen pendientes de validación
-por un contador (Plataforma → Parámetros laborales).
+Las fases 1 a 7 están hechas. Antes de la fase 8, construye la pantalla
+"Nueva empresa" en Plataforma (crear empresa + primer administrador con
+contraseña temporal, suspender/activar) y la recuperación de cuenta; luego
+sigue con la fase 8 según la sección 6. Los parámetros de la pre-nómina siguen
+pendientes de validación por un contador.
 Trabaja por partes, prueba todo (Vitest + Playwright) y no avances con algo que no funcione.
 ```
 
@@ -29,10 +31,11 @@ Trabaja por partes, prueba todo (Vitest + Playwright) y no avances con algo que 
 | 4. Marcación QR + ubicación + celular vinculado + passkeys, PWA | ✅ |
 | 5. Horas extra (detección/aprobación), novedades, correcciones | ✅ |
 | 6. Pre-nómina estimada (parámetros legales versionados, cálculo, detalle por empleado) | ✅ (parámetros sin validar por contador) |
-| **7. Dashboard con gráficos y reportes (Excel/CSV/PDF)** | ⏳ Siguiente |
+| 7. Dashboard con gráficos y reportes (Excel/CSV/PDF) | ✅ |
+| **Pantalla "Nueva empresa" y recuperación de cuenta** | ⏳ Siguiente (necesario para la segunda empresa) |
 | **8. Calidad, seguridad, manuales, despliegue final, resumen académico** | ⏳ |
 
-Pruebas al cierre de la fase 6: **144** unitarias/BD (Vitest) y **64** de navegador (Playwright, escritorio y celular). Todas en verde.
+Pruebas al cierre de la fase 7: **156** unitarias/BD (Vitest) y **70** de navegador (Playwright, escritorio y celular). Todas en verde.
 
 Pendiente del usuario: **probar una marcación real con un celular** (aún hay 0 marcaciones reales en producción; ver sección 7).
 
@@ -121,13 +124,15 @@ Usuario `nexora/nexora` con CREATEDB.
 - **Pendiente del usuario:** que un contador revise la tabla de parámetros y el criterio del valor hora; luego validar cada fila desde `plataforma@nexora.test`.
 - Los sitios .gov.co no eran accesibles desde el contenedor: los valores se contrastaron con varias fuentes secundarias coincidentes. Ver notas en cada parámetro (SMMLV 2026 transitorio por la demanda ante el Consejo de Estado; fecha exacta de la franja nocturna 25 o 26 dic. 2025).
 
-### Fase 7 · Dashboard y reportes
+### Fase 7 · Dashboard y reportes ✅ (hecha)
 
-- **Indicadores** del resumen con datos reales: presentes, ausentes, tardanzas, horas, horas extra, costo estimado (de la fase 6), sedes activas.
-- **Gráficos** (Recharts): asistencia semanal, puntualidad mensual, horas por sede, comparación entre períodos, evolución del costo estimado. Accesibles y en modo claro/oscuro.
-- **Filtros** por fechas, sedes y empleados.
-- **Exportación** Excel (p. ej. `exceljs`), CSV y PDF (p. ej. `@react-pdf/renderer` o impresión HTML): asistencia, horas extra (registrado / autorizado / tratamiento), novedades, pre-nómina, intentos rechazados. Cada reporte con empresa, período y fecha de generación.
-- **Prueba obligatoria 7:** los totales del reporte coinciden con la BD.
+- **Datos:** `src/lib/reports.ts` (puro: asistencia día a día con estados asistió/tarde/ausente/novedad/descanso/por revisar, resúmenes, series semanales, puntualidad mensual, horas por sede, período anterior) y `src/server/reports.ts` (`parseFilters`, `dashboard`, `buildReport` para asistencia, horas-extra, novedades, pre-nomina, intentos).
+- **Formato único:** `src/lib/report-table.ts` (columnas tipadas, filas, totales, CSV con `;` y BOM) → `src/server/export.ts` (Excel con `exceljs`, PDF con `jspdf` + `jspdf-autotable`). Pantalla, Excel, CSV y PDF usan la misma tabla: mismos números.
+- **Rutas:** `/admin/reportes` (filtros GET desde/hasta/sede/empleado, 8 indicadores con comparación contra el período anterior, 4 gráficos Recharts con tabla accesible), `/admin/reportes/[tipo]` (vista previa), `/admin/reportes/descargar/[tipo]?formato=xlsx|csv|pdf` (verifica sesión y rol; empleado = 403).
+- **Resumen** (`/admin`): asistencia real de hoy (en jornada, tarde, ausentes, horas).
+- **Prueba obligatoria 7:** `tests/db/reports.test.ts` compara totales con consultas SQL independientes y con el Excel; `tests/e2e/reports.spec.ts` compara el total del Excel descargado con la vista previa.
+- Paleta de gráficos validada (daltonismo y contraste) en `globals.css` (`--chart-1`, `--chart-2`, `--chart-grid`).
+- `npm audit`: 9 alertas moderadas en dependencias internas de `exceljs` (minimatch, uuid, archiver) en rutas que Nexora no usa con datos del usuario. Revisar en la fase 8.
 
 ### Fase 8 · Calidad, despliegue y entrega
 

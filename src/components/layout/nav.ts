@@ -16,13 +16,13 @@ import {
 } from "lucide-react";
 
 /** Última fase entregada y probada. Las secciones de fases posteriores se abren en modo vista previa. */
-export const CURRENT_PHASE = 6;
+export const CURRENT_PHASE = 7;
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; phase: number };
 
 /**
  * Fase en la que cada sección queda completa; antes se muestra como vista previa honesta.
- * Hechas: 1 a 6. Pendiente: reportes (7).
+ * Hechas: 1 a 7.
  */
 export const adminNav: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard, phase: 2 },

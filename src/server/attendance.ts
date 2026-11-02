@@ -37,7 +37,7 @@ const reasonMessage: Record<AttemptReason, string> = {
 };
 
 /** Motivo de rechazo redactado para el administrador (en tercera persona). */
-const reasonLabel: Record<AttemptReason, string> = {
+export const reasonLabel: Record<AttemptReason, string> = {
   OUTSIDE_RADIUS: "Fuera del área de la sede",
   LOW_ACCURACY: "Ubicación imprecisa (GPS)",
   LOCATION_DENIED: "No compartió la ubicación",

@@ -10,7 +10,7 @@ Cada fase termina con código funcionando, pruebas automáticas pasando y una fo
 | **4. Asistencia** | Página del QR, vinculación de dispositivo y recuperación, passkeys, geolocalización, entrada/salida, pausas, idempotencia, intentos rechazados, PWA, marcaciones demo | Entrada y salida desde el celular; segunda entrada bloqueada; ubicación fuera de radio rechazada | ✅ Terminada |
 | **5. Gestión laboral** | Detección de horas extra, solicitudes y aprobación, novedades (vacaciones, incapacidades, permisos), corrección de marcaciones con motivo | Rechazar una hora extra no altera el tiempo registrado | ✅ Terminada |
 | **6. Pre-nómina** | Parámetros legales verificados y versionados, clasificación de horas (diurna, nocturna, dominical, festiva), estimación por período con advertencias | Cálculos de casos conocidos coinciden; falta de parámetros produce advertencia, no un número | ✅ Terminada (parámetros pendientes de validar por contador) |
-| **7. Dashboard y reportes** | Indicadores, gráficos (asistencia, puntualidad, horas por sede, costo), filtros, exportación Excel/CSV/PDF | Totales del reporte = datos en BD (prueba) | |
+| **7. Dashboard y reportes** | Indicadores, gráficos (asistencia, puntualidad, horas por sede, costo), filtros, exportación Excel/CSV/PDF | Totales del reporte = datos en BD (prueba) | ✅ Terminada |
 | **8. Calidad y despliegue** | Pruebas de extremo a extremo, revisión de seguridad, manuales, despliegue, resumen académico | Checklist de las 10 pruebas obligatorias | |
 
 ## Después del software
@@ -46,7 +46,7 @@ Todos los módulos se pueden abrir desde el menú. Los que aún no están comple
 | Horarios | Grilla de la semana desde los patrones (nocturnos, partidos, rotativos) y horas programadas | Editar patrones, turnos sueltos, festivos (fase 3) |
 | Solicitudes | Contadores reales | Aprobación de horas extra y novedades (fase 5) |
 | Pre-nómina | Estimación por quincena o mes, detalle por empleado con explicación de cada línea, tabla de parámetros legales con norma y vigencia | Validación de los parámetros por un contador |
-| Reportes | Catálogo de reportes | Exportación Excel/CSV/PDF y gráficos (fase 7) |
+| Reportes | Tablero con indicadores y gráficos, filtros, 5 reportes en pantalla, Excel, CSV y PDF | — |
 
 ## Fase 4: qué quedó hecho
 
