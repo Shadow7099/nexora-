@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AlarmClock, BarChart3, Building2, CalendarClock, CalendarX2, Clock, QrCode, UserCheck, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { Avatar } from "@/components/ui/avatar";
@@ -12,12 +13,15 @@ import { formatDate, formatMinutes, formatTime } from "@/lib/utils";
 import { attendanceDay } from "@/server/attendance";
 import { recentAudit } from "@/server/company";
 import { requireActor } from "@/server/current";
+import { needsOnboarding } from "@/server/onboarding";
 import { adminOverview } from "@/server/overview";
 
 export const metadata: Metadata = { title: "Resumen" };
 
 export default async function AdminHome() {
   const actor = await requireActor({ roles: ["COMPANY_ADMIN"] });
+  // Empresa recién creada: primero la configuración inicial (sede, turnos, empleados, horarios).
+  if (await needsOnboarding(actor)) redirect("/admin/bienvenida");
   const [o, activity, day] = await Promise.all([adminOverview(actor), recentAudit(actor, 8), attendanceDay(actor)]);
   const today = new Date(`${o.today}T12:00:00Z`);
 

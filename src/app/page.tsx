@@ -34,8 +34,11 @@ export default function Home() {
           Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina estimada para pymes colombianas.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/sistema" className={buttonVariants({ size: "lg" })}>
-            Ver sistema de diseño <ArrowRight />
+          <Link href="/registro" className={buttonVariants({ size: "lg" })}>
+            Crear cuenta gratis <ArrowRight />
+          </Link>
+          <Link href="/ingresar" className={buttonVariants({ size: "lg", variant: "secondary" })}>
+            Ingresar
           </Link>
         </div>
 

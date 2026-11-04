@@ -39,9 +39,9 @@ export function NewCompanyForm() {
           {field("name", "Nombre comercial")}
           {field("legalName", "Razón social (opcional)")}
           {field("nit", "NIT (opcional)", { inputMode: "numeric" })}
-          {field("planCode", "Plan (opcional)", {}, "Ej.: piloto, básico. Aún sin cobro.")}
+          {field("planCode", "Plan (opcional)", {}, "basico (5 empleados), empresarial (10) o crecimiento (20). Prueba gratis de 1 mes.")}
           {field("maxSites", "Límite de sedes (opcional)", { inputMode: "numeric" })}
-          {field("maxEmployees", "Límite de empleados (opcional)", { inputMode: "numeric" })}
+          {field("maxEmployees", "Límite de empleados (opcional)", { inputMode: "numeric" }, "Vacío: el del plan. Más alto: personal adicional.")}
         </div>
       </fieldset>
       <fieldset className="grid gap-4">

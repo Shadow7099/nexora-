@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,11 @@ export default async function SettingsPage() {
   const [s, activity] = await Promise.all([getCompanySettings(actor), recentAudit(actor, 30)]);
   return (
     <>
-      <PageHeader title="Configuración" description={s.legalName ?? s.name} />
+      <PageHeader
+        title="Configuración"
+        description={s.legalName ?? s.name}
+        actions={<Link href="/admin/bienvenida" className={buttonVariants({ variant: "secondary" })}><Sparkles /> Asistente de configuración inicial</Link>}
+      />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="grid min-w-0 grid-cols-1 content-start gap-6">
           <Card>

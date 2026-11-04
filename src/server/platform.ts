@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import * as z from "zod";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { findPlan, trialEndDate } from "@/lib/plans";
 import { fieldErrors } from "@/lib/validation";
 import { audit } from "@/server/audit";
 import { requireSuperadmin } from "@/server/authz";
@@ -40,6 +41,11 @@ export async function createCompany(actor: Actor, input: unknown) {
   const parsed = newCompanySchema.safeParse(input);
   if (!parsed.success) throw new AppError("VALIDATION", "Revisa los campos marcados.", fieldErrors(parsed.error));
   const v = parsed.data;
+  // Un plan del catálogo trae su límite de empleados; un límite escrito a mano lo reemplaza (personal adicional).
+  const plan = findPlan(v.planCode?.toLowerCase());
+  const planCode = plan?.code ?? v.planCode ?? null;
+  const maxEmployees = v.maxEmployees ?? plan?.maxEmployees ?? null;
+  const maxSites = v.maxSites ?? plan?.maxSites ?? null;
   if (await db.user.findFirst({ where: { email: { equals: v.adminEmail, mode: "insensitive" } } })) {
     throw new AppError("CONFLICT", "Ese correo ya tiene una cuenta en Nexora.", { adminEmail: "Ese correo ya está registrado." });
   }
@@ -49,11 +55,11 @@ export async function createCompany(actor: Actor, input: unknown) {
     const c = await tx.company.create({
       data: {
         name: v.name, legalName: v.legalName ?? null, nit: v.nit ?? null, slug: `${slugify(v.name)}-${randomBytes(3).toString("hex")}`,
-        status: "TRIAL", planCode: v.planCode ?? null, maxEmployees: v.maxEmployees ?? null, maxSites: v.maxSites ?? null,
+        status: "TRIAL", planCode, maxEmployees, maxSites, trialEndsAt: trialEndDate(new Date()),
       },
     });
     const admin = await tx.user.create({ data: { companyId: c.id, email: v.adminEmail, name: v.adminName, passwordHash, role: "COMPANY_ADMIN", mustChangePassword: true } });
-    await audit({ companyId: c.id, actorUserId: actor.userId, action: "company.create", entityType: "company", entityId: c.id, after: { name: v.name, plan: v.planCode ?? null, admin: admin.email } }, tx);
+    await audit({ companyId: c.id, actorUserId: actor.userId, action: "company.create", entityType: "company", entityId: c.id, after: { name: v.name, plan: planCode, admin: admin.email } }, tx);
     return c;
   });
   return { companyId: company.id, adminEmail: v.adminEmail, temporaryPassword: password };
@@ -66,7 +72,7 @@ export async function getCompanyForPlatform(actor: Actor, id: string) {
   const c = await db.company.findUnique({
     where: { id },
     select: {
-      id: true, name: true, legalName: true, nit: true, slug: true, status: true, planCode: true, maxEmployees: true, maxSites: true, createdAt: true,
+      id: true, name: true, legalName: true, nit: true, slug: true, status: true, planCode: true, maxEmployees: true, maxSites: true, trialEndsAt: true, createdAt: true,
       users: { where: { role: "COMPANY_ADMIN" }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, email: true, active: true, lastLoginAt: true, lockedUntil: true, mustChangePassword: true } },
       _count: { select: { employees: { where: { status: "ACTIVE" } }, sites: { where: { active: true } } } },
     },

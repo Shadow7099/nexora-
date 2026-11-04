@@ -191,12 +191,18 @@ model Company {
   planCode             String?       @map("plan_code")
   maxEmployees         Int?          @map("max_employees")
   maxSites             Int?          @map("max_sites")
+  // Fin de la prueba gratuita (1 mes desde el alta). Solo aplica con estado TRIAL.
+  trialEndsAt          DateTime?     @map("trial_ends_at") @db.Timestamptz(3)
   // Reglas operativas de la empresa
   lateToleranceMin     Int           @default(5) @map("late_tolerance_min")
   geoMaxAccuracyM      Int           @default(100) @map("geo_max_accuracy_m")
   requireDeviceBinding Boolean       @default(true) @map("require_device_binding")
   // Exoneración de salud del empleador, SENA e ICBF (art. 114-1 E.T.).
   parafiscalExempt     Boolean       @default(false) @map("parafiscal_exempt")
+  // Autoregistro: la empresa se creó sola desde /registro (no la dio de alta Nexora).
+  selfSignup           Boolean       @default(false) @map("self_signup")
+  // Configuración inicial (sede, turnos, empleados y horarios) terminada u omitida.
+  onboardingCompletedAt DateTime?    @map("onboarding_completed_at") @db.Timestamptz(3)
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 

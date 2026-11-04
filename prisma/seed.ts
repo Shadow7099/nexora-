@@ -51,6 +51,7 @@ async function main() {
         planCode: "piloto",
         maxEmployees: 15,
         maxSites: 4,
+        onboardingCompletedAt: new Date(),
       },
     });
     const companyId = company.id;
