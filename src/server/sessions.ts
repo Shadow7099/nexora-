@@ -28,6 +28,20 @@ async function recordIpFailure(ipHash: string, now: number) {
   if (Math.random() < 0.05) await db.loginThrottle.deleteMany({ where: { occurredAt: { lt: new Date(now - 86_400_000) } } });
 }
 
+/**
+ * Límite genérico por red para acciones públicas (p. ej. registrar empresas).
+ * Reusa la tabla de intentos con un hash distinto por propósito.
+ * Devuelve true si ya se alcanzó el máximo; si no, cuenta este intento.
+ */
+export async function hitPublicLimit(purpose: string, ip: string | null, max: number, windowMinutes: number) {
+  if (!ip) return false;
+  const ipHash = createHash("sha256").update(`nexora-${purpose}:${ip}`).digest("hex");
+  const since = new Date(Date.now() - windowMinutes * 60_000);
+  if ((await db.loginThrottle.count({ where: { ipHash, occurredAt: { gte: since } } })) >= max) return true;
+  await db.loginThrottle.create({ data: { ipHash } });
+  return false;
+}
+
 // Empleados: sesión larga en su celular (marcan a diario). Administradores: corta.
 const SESSION_TTL_MS: Record<Role, number> = {
   EMPLOYEE: 60 * 24 * 60 * 60 * 1000,

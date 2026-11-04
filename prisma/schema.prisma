@@ -197,6 +197,10 @@ model Company {
   requireDeviceBinding Boolean       @default(true) @map("require_device_binding")
   // Exoneración de salud del empleador, SENA e ICBF (art. 114-1 E.T.).
   parafiscalExempt     Boolean       @default(false) @map("parafiscal_exempt")
+  // Autoregistro: la empresa se creó sola desde /registro (no la dio de alta Nexora).
+  selfSignup           Boolean       @default(false) @map("self_signup")
+  // Configuración inicial (sede, turnos, empleados y horarios) terminada u omitida.
+  onboardingCompletedAt DateTime?    @map("onboarding_completed_at") @db.Timestamptz(3)
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 

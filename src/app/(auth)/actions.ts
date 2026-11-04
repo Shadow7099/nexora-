@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import * as z from "zod";
 import { fieldErrors, loginSchema, passwordSchema } from "@/lib/validation";
-import type { ActionState } from "@/server/errors";
+import { toActionState, type ActionState } from "@/server/errors";
+import { registerCompany } from "@/server/onboarding";
 import { clearSessionCookie, getClientIp, getSessionToken, getUserAgent, requireActor, setSessionCookie } from "@/server/current";
 import { authenticate, changePassword, homeFor, recordConsent, revokeSession } from "@/server/sessions";
 
@@ -74,4 +75,18 @@ export async function changePasswordAction(_: ActionState, formData: FormData): 
   }
   const next = safeNext(formData.get("next"), actor.role);
   redirect(actor.hasConsent ? next : `/autorizacion?next=${encodeURIComponent(next)}`);
+}
+
+/** Autoregistro: crea la empresa y su administrador, inicia sesión y abre el asistente. */
+export async function signupAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const input = Object.fromEntries([...formData.entries()].filter(([k]) => !k.startsWith("$")).map(([k, v]) => [k, String(v)]));
+  const keep = { companyName: input.companyName ?? "", nit: input.nit ?? "", legalName: input.legalName ?? "", adminName: input.adminName ?? "", adminEmail: input.adminEmail ?? "" };
+  let r: Awaited<ReturnType<typeof registerCompany>>;
+  try {
+    r = await registerCompany(input, { ip: await getClientIp(), userAgent: await getUserAgent() });
+  } catch (e) {
+    return { ...toActionState(e), data: keep };
+  }
+  await setSessionCookie(r.token, r.expiresAt);
+  redirect("/admin/bienvenida");
 }

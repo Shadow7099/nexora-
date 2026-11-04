@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentActor } from "@/server/current";
 import { homeFor } from "@/server/sessions";
@@ -15,6 +16,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/ingresar">
       <h1 className="text-2xl font-semibold tracking-tight">Ingresar</h1>
       <p className="mt-1 mb-8 text-sm text-fg-muted">Usa el correo y la contraseña que te dio tu empresa.</p>
       <LoginForm next={typeof next === "string" ? next : undefined} />
+      <p className="mt-6 text-center text-sm text-fg-muted">
+        ¿Tu empresa aún no usa Nexora? <Link href="/registro" className="text-primary hover:underline">Crea una cuenta</Link>
+      </p>
     </>
   );
 }

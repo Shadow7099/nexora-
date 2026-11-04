@@ -20,7 +20,7 @@ export async function login(email: string, password = PASSWORD) {
 export async function makeCompany(tag: string, opts: { maxEmployees?: number } = {}) {
   const u = randomUUID().slice(0, 8);
   const passwordHash = await pwHash();
-  const company = await db.company.create({ data: { name: `Empresa ${tag}`, slug: `${tag}-${u}`, maxEmployees: opts.maxEmployees } });
+  const company = await db.company.create({ data: { name: `Empresa ${tag}`, slug: `${tag}-${u}`, maxEmployees: opts.maxEmployees, onboardingCompletedAt: new Date() } });
   const admin = await db.user.create({
     data: { companyId: company.id, email: `admin-${tag}-${u}@test.local`, name: `Admin ${tag}`, passwordHash, role: "COMPANY_ADMIN" },
   });
