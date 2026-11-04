@@ -1,7 +1,7 @@
-# Graph Report - nexora-  (2026-11-02)
+# Graph Report - nexora  (2026-11-04)
 
 ## Corpus Check
-- 189 files · ~111,996 words
+- 189 files · ~93,239 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: .example 1, (none) 1, .toml 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `93d400c1`
+- Built from commit: `8300644d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -84,16 +84,16 @@
 10. `cn()` - 44 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `3. Sesiones y autorización` --references--> `requireActor()`  [INFERRED]
-  docs/ARQUITECTURA.md → src/server/current.ts
 - `5. Guía técnica rápida` --references--> `relinkWithPasskey()`  [INFERRED]
   docs/CONTINUAR.md → src/server/passkeys.ts
-- `Controles implementados` --references--> `safeNext()`  [INFERRED]
-  docs/SEGURIDAD.md → src/app/(auth)/actions.ts
+- `3. Sesiones y autorización` --references--> `requireActor()`  [INFERRED]
+  docs/ARQUITECTURA.md → src/server/current.ts
 - `4. Reglas del proyecto (no negociables)` --references--> `requireCompanyAdmin()`  [INFERRED]
   docs/CONTINUAR.md → src/server/authz.ts
-- `4. Reglas del proyecto (no negociables)` --references--> `requireEmployee()`  [INFERRED]
-  docs/CONTINUAR.md → src/server/authz.ts
+- `Fase 6 · Pre-nómina estimada ✅ (hecha)` --references--> `addLaborParameterVersion()`  [INFERRED]
+  docs/CONTINUAR.md → src/server/payroll.ts
+- `Controles implementados` --references--> `authenticate()`  [INFERRED]
+  docs/SEGURIDAD.md → src/server/sessions.ts
 
 ## Import Cycles
 - None detected.
@@ -305,24 +305,24 @@ Cohesion: 0.60
 Nodes (5): addParameterVersionAction(), echo(), superadmin(), verifyParameterAction(), verifyLaborParameter()
 
 ## Knowledge Gaps
-- **10 isolated node(s):** `@prisma/client`, `@tailwindcss/turbopack`, `@types/node`, `@types/pg`, `@types/qrcode` (+5 more)
+- **10 isolated node(s):** `@prisma/client`, `tailwindcss`, `@tailwindcss/turbopack`, `tsx`, `@types/node` (+5 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 370 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `requireActor()` connect `requireActor` to `lucide-react`, `gestion-actions.ts`, `attendance.ts`, `next`, `server/payroll.ts`, `platform.ts`, `CardHeader`, `utils.ts`, `(auth)/actions.ts`, `Nexora: Arquitectura`, `pre-nomina/page.tsx`, `cn`, `novelties.ts`, `server/reports.ts`, `plataforma/actions.ts`, `Card`, `PageHeader`?**
-  _High betweenness centrality (0.139) - this node is a cross-community bridge._
-- **What connects `@prisma/client`, `@tailwindcss/turbopack`, `@types/node` to the rest of the system?**
+- **Why does `next` connect `next` to `lucide-react`, `gestion-actions.ts`, `attendance.ts`, `server/payroll.ts`, `package.json`, `cn`, `proxy.ts`, `novelties.ts`, `server/reports.ts`, `src/app/layout.tsx`, `apple-icon.tsx`, `Card`, `next.config.ts`, `PageHeader`, `requireActor`, `platform.ts`, `CardHeader`, `utils.ts`, `(auth)/actions.ts`, `pre-nomina/page.tsx`, `plataforma/actions.ts`?**
+  _High betweenness centrality (0.138) - this node is a cross-community bridge._
+- **What connects `@prisma/client`, `tailwindcss`, `@tailwindcss/turbopack` to the rest of the system?**
   _10 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `AppError` be split into smaller, more focused modules?**
   _Cohesion score 0.13742071881606766 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `lucide-react`, `gestion-actions.ts`, `attendance.ts`, `server/payroll.ts`, `package.json`, `cn`, `proxy.ts`, `novelties.ts`, `server/reports.ts`, `src/app/layout.tsx`, `apple-icon.tsx`, `Card`, `next.config.ts`, `PageHeader`, `requireActor`, `platform.ts`, `CardHeader`, `utils.ts`, `(auth)/actions.ts`, `pre-nomina/page.tsx`, `plataforma/actions.ts`?**
-  _High betweenness centrality (0.118) - this node is a cross-community bridge._
+- **Why does `requireActor()` connect `requireActor` to `lucide-react`, `gestion-actions.ts`, `attendance.ts`, `next`, `server/payroll.ts`, `platform.ts`, `CardHeader`, `utils.ts`, `(auth)/actions.ts`, `Nexora: Arquitectura`, `pre-nomina/page.tsx`, `cn`, `novelties.ts`, `server/reports.ts`, `plataforma/actions.ts`, `Card`, `PageHeader`?**
+  _High betweenness centrality (0.136) - this node is a cross-community bridge._
 - **Should `gestion-actions.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.05088331746535491 - nodes in this community are weakly interconnected._
 - **Why does `Nexora: Arquitectura` connect `Nexora: Arquitectura` to `README.md`?**
-  _High betweenness centrality (0.093) - this node is a cross-community bridge._
+  _High betweenness centrality (0.088) - this node is a cross-community bridge._
 - **Should `attendance.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.06859806859806859 - nodes in this community are weakly interconnected._
