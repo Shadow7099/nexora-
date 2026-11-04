@@ -11,6 +11,7 @@ import { formatDateTime } from "@/lib/report-table";
 import { requireActor } from "@/server/current";
 import { AppError } from "@/server/errors";
 import { getCompanyForPlatform } from "@/server/platform";
+import { planLabel, trialDaysLeft } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Empresa" };
 
@@ -43,7 +44,10 @@ export default async function PlatformCompanyPage({ params }: PageProps<"/plataf
             {statusBadge[c.status]}
           </div>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div><dt className="text-xs text-fg-subtle">Plan</dt><dd>{c.planCode ?? "—"}</dd></div>
+            <div><dt className="text-xs text-fg-subtle">Plan</dt><dd>{planLabel(c.planCode)}</dd></div>
+            {c.status === "TRIAL" && c.trialEndsAt && (
+              <div><dt className="text-xs text-fg-subtle">Fin de la prueba</dt><dd className="tabular">{c.trialEndsAt.toLocaleDateString("es-CO", { timeZone: "America/Bogota" })}{trialDaysLeft(c.trialEndsAt) === 0 ? " (vencida)" : ""}</dd></div>
+            )}
             <div><dt className="text-xs text-fg-subtle">Empleados activos</dt><dd className="tabular">{c._count.employees}{c.maxEmployees ? ` / ${c.maxEmployees}` : ""}</dd></div>
             <div><dt className="text-xs text-fg-subtle">Sedes activas</dt><dd className="tabular">{c._count.sites}{c.maxSites ? ` / ${c.maxSites}` : ""}</dd></div>
           </dl>

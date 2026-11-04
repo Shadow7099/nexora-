@@ -191,6 +191,8 @@ model Company {
   planCode             String?       @map("plan_code")
   maxEmployees         Int?          @map("max_employees")
   maxSites             Int?          @map("max_sites")
+  // Fin de la prueba gratuita (1 mes desde el alta). Solo aplica con estado TRIAL.
+  trialEndsAt          DateTime?     @map("trial_ends_at") @db.Timestamptz(3)
   // Reglas operativas de la empresa
   lateToleranceMin     Int           @default(5) @map("late_tolerance_min")
   geoMaxAccuracyM      Int           @default(100) @map("geo_max_accuracy_m")

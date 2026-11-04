@@ -39,6 +39,16 @@ describe("fase 8 · plataforma", () => {
     await expect(createCompany(sa, { name: "X", adminName: "Ab", adminEmail: "no", nit: "abc" })).rejects.toMatchObject({ code: "VALIDATION", fieldErrors: { name: expect.any(String), adminEmail: expect.any(String), nit: expect.any(String) } });
   });
 
+  it("un plan del catálogo trae su límite de empleados y la prueba dura un mes; un límite escrito lo amplía", async () => {
+    const sa = await superadmin("p8p");
+    const a = await createCompany(sa, { name: "Panadería Sol", planCode: "Empresarial", adminName: "Luis Pérez", adminEmail: `admin-p8p-${Date.now()}@test.local` });
+    const ca = await getCompanyForPlatform(sa, a.companyId);
+    expect(ca).toMatchObject({ planCode: "empresarial", maxEmployees: 10, maxSites: null });
+    expect(ca.trialEndsAt).toBeInstanceOf(Date);
+    const b = await createCompany(sa, { name: "Panadería Luna", planCode: "basico", maxEmployees: "7", adminName: "Ana Ruiz", adminEmail: `admin-p8q-${Date.now()}@test.local` });
+    expect(await getCompanyForPlatform(sa, b.companyId)).toMatchObject({ planCode: "basico", maxEmployees: 7 });
+  });
+
   it("suspender cierra las sesiones y bloquea el ingreso; reactivar lo permite de nuevo", async () => {
     const sa = await superadmin("p8b");
     const f = await makeCompany("p8b");

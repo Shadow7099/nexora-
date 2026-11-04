@@ -72,7 +72,7 @@ Para usar un Chromium ya instalado: `CHROMIUM_PATH=/ruta/a/chromium npm run test
 
 | Ruta | Quién | Qué |
 |---|---|---|
-| `/registro` | público | autoregistro: una empresa nueva crea su cuenta (prueba gratis) |
+| `/registro` | público | autoregistro: una empresa nueva crea su cuenta y elige plan (Básico 5, Empresarial 10 o Crecimiento 20 empleados) con 1 mes de prueba gratis; catálogo en `src/lib/plans.ts` |
 | `/ingresar` | todos | inicio de sesión |
 | `/admin/bienvenida` | administrador | asistente de configuración inicial: sede → turnos → empleados (en lote) → horarios → QR |
 | `/admin` | administrador | resumen, asistencia, empleados, sedes y QR, horarios, solicitudes, pre-nómina, reportes, configuración |

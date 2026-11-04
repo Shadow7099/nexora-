@@ -5,6 +5,8 @@ import { signupAction } from "../actions";
 import { FormAlert, SubmitButton } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { CONSENT_ITEMS } from "@/lib/consent-text";
+import { DEFAULT_PLAN, PLANS } from "@/lib/plans";
+import { formatCOP } from "@/lib/utils";
 import { PASSWORD_MIN } from "@/lib/validation";
 
 export function SignupForm() {
@@ -24,6 +26,21 @@ export function SignupForm() {
         <legend className="mb-1 text-sm font-medium text-fg-muted">Tu empresa</legend>
         {F("companyName", "Nombre comercial", { required: true, autoComplete: "organization", autoFocus: true })}
         {F("nit", "NIT (opcional)", { inputMode: "numeric" }, "Lo puedes agregar después.")}
+      </fieldset>
+      <fieldset className="mt-2 grid gap-2">
+        <legend className="mb-1 text-sm font-medium text-fg-muted">Tu plan · el primer mes es gratis</legend>
+        {PLANS.map((p) => (
+          <label key={p.code} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-surface p-3 text-sm shadow-card has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+            <input type="radio" name="plan" value={p.code} defaultChecked={(v.plan || DEFAULT_PLAN) === p.code} className="size-4 accent-[var(--primary)]" />
+            <span className="flex-1">
+              <span className="font-medium">{p.name}</span>
+              <span className="block text-xs text-fg-muted">Hasta {p.maxEmployees} empleados</span>
+            </span>
+            <span className="tabular text-right font-medium">{formatCOP(p.monthlyPriceCop)}<span className="text-xs font-normal text-fg-muted">/mes</span></span>
+          </label>
+        ))}
+        {err.plan && <p className="text-xs text-danger" role="alert">{err.plan}</p>}
+        <p className="text-xs text-fg-muted">No pedimos tarjeta. ¿Más empleados? Agrega personal adicional con tarifa por empleado.</p>
       </fieldset>
       <fieldset className="mt-2 grid gap-4">
         <legend className="mb-1 text-sm font-medium text-fg-muted">Tu cuenta de administrador</legend>

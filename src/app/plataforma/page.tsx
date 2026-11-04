@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listCompanies } from "@/server/company";
 import { requireActor } from "@/server/current";
+import { planLabel } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Plataforma" };
 
@@ -45,7 +46,7 @@ export default async function PlatformPage() {
                   <tr key={c.id} className="border-b border-border last:border-0">
                     <td className="px-5 py-3 font-medium"><Link href={`/plataforma/empresas/${c.id}`} className="hover:underline">{c.name}</Link></td>
                     <td className="px-5 py-3">{statusBadge[c.status]}</td>
-                    <td className="px-5 py-3 text-fg-muted">{c.planCode ?? "—"}</td>
+                    <td className="px-5 py-3 text-fg-muted">{planLabel(c.planCode)}</td>
                     <td className="tabular px-5 py-3 text-right">{c._count.employees}{c.maxEmployees ? ` / ${c.maxEmployees}` : ""}</td>
                     <td className="tabular px-5 py-3 text-right">{c._count.sites}{c.maxSites ? ` / ${c.maxSites}` : ""}</td>
                   </tr>

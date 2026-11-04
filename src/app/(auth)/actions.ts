@@ -80,7 +80,7 @@ export async function changePasswordAction(_: ActionState, formData: FormData): 
 /** Autoregistro: crea la empresa y su administrador, inicia sesión y abre el asistente. */
 export async function signupAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const input = Object.fromEntries([...formData.entries()].filter(([k]) => !k.startsWith("$")).map(([k, v]) => [k, String(v)]));
-  const keep = { companyName: input.companyName ?? "", nit: input.nit ?? "", legalName: input.legalName ?? "", adminName: input.adminName ?? "", adminEmail: input.adminEmail ?? "" };
+  const keep = { companyName: input.companyName ?? "", nit: input.nit ?? "", legalName: input.legalName ?? "", adminName: input.adminName ?? "", adminEmail: input.adminEmail ?? "", plan: input.plan ?? "" };
   let r: Awaited<ReturnType<typeof registerCompany>>;
   try {
     r = await registerCompany(input, { ip: await getClientIp(), userAgent: await getUserAgent() });

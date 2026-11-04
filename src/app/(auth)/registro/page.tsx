@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentActor } from "@/server/current";
-import { SELF_SIGNUP_LIMITS } from "@/server/onboarding";
+import { TRIAL_MONTHS } from "@/lib/plans";
 import { homeFor } from "@/server/sessions";
 import { SignupForm } from "./signup-form";
 
@@ -15,7 +15,7 @@ export default async function SignupPage() {
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Crea la cuenta de tu empresa</h1>
       <p className="mt-1 mb-8 text-sm text-fg-muted">
-        Prueba gratis hasta {SELF_SIGNUP_LIMITS.maxEmployees} empleados y {SELF_SIGNUP_LIMITS.maxSites} sedes. En minutos dejas lista tu sede, turnos, empleados y horarios.
+        Prueba gratis {TRIAL_MONTHS === 1 ? "1 mes" : `${TRIAL_MONTHS} meses`} con el plan que elijas. En minutos dejas lista tu sede, turnos, empleados y horarios.
       </p>
       <SignupForm />
       <p className="mt-6 text-center text-sm text-fg-muted">

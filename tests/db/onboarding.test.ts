@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
+import { findPlan, trialDaysLeft } from "@/lib/plans";
 import { shiftsOn } from "@/lib/schedule";
 import { AppError } from "@/server/errors";
 import { getEmployeeSchedule } from "@/server/schedules";
@@ -14,7 +15,6 @@ import {
   needsOnboarding,
   parseEmployeeLines,
   registerCompany,
-  SELF_SIGNUP_LIMITS,
   SIGNUP_PER_IP_PER_HOUR,
 } from "@/server/onboarding";
 import { createSite } from "@/server/sites";
@@ -61,10 +61,20 @@ describe("autoregistro", () => {
     expect(actor.hasConsent).toBe(true);
 
     const c = await db.company.findUniqueOrThrow({ where: { id: r.companyId } });
-    expect(c).toMatchObject({ status: "TRIAL", selfSignup: true, onboardingCompletedAt: null, maxEmployees: SELF_SIGNUP_LIMITS.maxEmployees, maxSites: SELF_SIGNUP_LIMITS.maxSites });
+    // Sin plan elegido: Básico (5 empleados, sedes sin límite) y 1 mes de prueba.
+    expect(c).toMatchObject({ status: "TRIAL", selfSignup: true, onboardingCompletedAt: null, planCode: "basico", maxEmployees: 5, maxSites: null });
+    expect(trialDaysLeft(c.trialEndsAt!)).toBeGreaterThanOrEqual(28);
+    expect(trialDaysLeft(c.trialEndsAt!)).toBeLessThanOrEqual(31);
     expect((await authenticate(input.adminEmail, PW)).ok).toBe(true);
     expect(await db.auditLog.count({ where: { companyId: r.companyId, action: "company.self_signup" } })).toBe(1);
     expect(await needsOnboarding(actor)).toBe(true);
+  });
+
+  it("aplica el límite de empleados del plan elegido y rechaza planes inexistentes", async () => {
+    const r = await registerCompany(signup({ plan: "crecimiento" }), { ip: ip(), userAgent: "vitest" });
+    const c = await db.company.findUniqueOrThrow({ where: { id: r.companyId } });
+    expect(c).toMatchObject({ planCode: "crecimiento", maxEmployees: findPlan("crecimiento")!.maxEmployees });
+    expect(await code(registerCompany(signup({ plan: "oro" }), { ip: ip() }))).toBe("VALIDATION");
   });
 
   it("rechaza correo repetido, contraseñas distintas y registro sin autorización", async () => {

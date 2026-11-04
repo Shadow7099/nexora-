@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import * as z from "zod";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { DEFAULT_PLAN, findPlan, PLAN_CODES, trialEndDate } from "@/lib/plans";
 import { localDate } from "@/lib/schedule";
 import { fieldErrors, passwordSchema } from "@/lib/validation";
 import { audit } from "@/server/audit";
@@ -21,8 +22,6 @@ import { CONSENT_POLICY_VERSION, createSession, hitPublicLimit, type Actor } fro
  * que las pantallas normales del panel.
  */
 
-/** Límites de la prueba gratuita para empresas que se registran solas. */
-export const SELF_SIGNUP_LIMITS = { planCode: "prueba", maxEmployees: 25, maxSites: 3 } as const;
 /** Registros permitidos desde una misma red por hora (frena el abuso del formulario público). */
 export const SIGNUP_PER_IP_PER_HOUR = 5;
 
@@ -33,6 +32,7 @@ export const signupSchema = z
     companyName: z.string().trim().min(2, { error: "Escribe el nombre de la empresa." }).max(120),
     nit: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().trim().regex(/^[0-9.\-\s]{5,20}$/, { error: "NIT inválido (solo números, puntos y guion)." }).optional()),
     legalName: optionalText(160),
+    plan: z.preprocess((v) => (v === "" || v == null ? DEFAULT_PLAN : v), z.enum(PLAN_CODES, { error: "Elige un plan." })),
     adminName: z.string().trim().min(3, { error: "Escribe tu nombre completo." }).max(120),
     adminEmail: z.email({ error: "Correo inválido." }).trim().toLowerCase().max(160),
     password: passwordSchema,
@@ -46,7 +46,7 @@ const slugify = (s: string) =>
   s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "empresa";
 
 /**
- * Crea la empresa (en prueba), su administrador con la contraseña que eligió y
+ * Crea la empresa en prueba gratuita (1 mes) con los límites del plan elegido, su administrador con la contraseña que eligió y
  * su autorización de datos, e inicia sesión. Devuelve el token de la sesión.
  */
 export async function registerCompany(input: unknown, ctx: { ip?: string | null; userAgent?: string | null } = {}) {
@@ -61,6 +61,7 @@ export async function registerCompany(input: unknown, ctx: { ip?: string | null;
     throw new AppError("CONFLICT", "Ese correo ya tiene una cuenta en Nexora.", { adminEmail: "Ese correo ya está registrado. Ingresa con él o usa otro." });
   }
 
+  const plan = findPlan(v.plan)!;
   const passwordHash = await hashPassword(v.password);
   const { company, admin } = await db.$transaction(async (tx) => {
     const company = await tx.company.create({
@@ -71,7 +72,10 @@ export async function registerCompany(input: unknown, ctx: { ip?: string | null;
         slug: `${slugify(v.companyName)}-${randomBytes(3).toString("hex")}`,
         status: "TRIAL",
         selfSignup: true,
-        ...SELF_SIGNUP_LIMITS,
+        planCode: plan.code,
+        maxEmployees: plan.maxEmployees,
+        maxSites: plan.maxSites,
+        trialEndsAt: trialEndDate(new Date()),
       },
     });
     const admin = await tx.user.create({
@@ -79,7 +83,7 @@ export async function registerCompany(input: unknown, ctx: { ip?: string | null;
     });
     await tx.dataConsent.create({ data: { userId: admin.id, policyVersion: CONSENT_POLICY_VERSION, userAgent: ctx.userAgent?.slice(0, 300) } });
     await audit(
-      { companyId: company.id, actorUserId: admin.id, action: "company.self_signup", entityType: "company", entityId: company.id, after: { name: v.companyName, admin: v.adminEmail, plan: SELF_SIGNUP_LIMITS.planCode }, userAgent: ctx.userAgent },
+      { companyId: company.id, actorUserId: admin.id, action: "company.self_signup", entityType: "company", entityId: company.id, after: { name: v.companyName, admin: v.adminEmail, plan: plan.code }, userAgent: ctx.userAgent },
       tx,
     );
     return { company, admin };
@@ -292,4 +296,14 @@ export async function assignWeeklySchedule(actor: Actor, input: unknown, now = n
     await setPattern(actor, e.id, { cycleDays: 7, effectiveFrom: from, days: indexes.map((dayIndex) => ({ dayIndex, templateId: v.templateId, siteId })) });
   }
   return { assigned: employees.length, from };
+}
+
+// ─────────────────────────── Plan y prueba gratuita ───────────────────────────
+
+/** Plan y prueba de la empresa del administrador, para el aviso del panel. Null si no está en prueba. */
+export async function getTrialStatus(actor: Actor) {
+  const companyId = requireCompanyAdmin(actor);
+  const c = await db.company.findUniqueOrThrow({ where: { id: companyId }, select: { status: true, planCode: true, maxEmployees: true, trialEndsAt: true } });
+  if (c.status !== "TRIAL" || !c.trialEndsAt) return null;
+  return { planCode: c.planCode, maxEmployees: c.maxEmployees, endsAt: c.trialEndsAt, expired: c.trialEndsAt.getTime() <= Date.now() };
 }
