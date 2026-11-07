@@ -19,6 +19,7 @@ Asistencia con QR por sede, horarios, horas extra con aprobación y pre-nómina 
 | Resumen académico (economía) | [docs/RESUMEN_ACADEMICO.md](docs/RESUMEN_ACADEMICO.md) |
 | Plan por fases | [docs/PLAN.md](docs/PLAN.md) |
 | Lo que falta de la empresa real | [docs/PENDIENTES.md](docs/PENDIENTES.md) |
+| Cuestionario para el empresario + plantilla de Excel | [docs/CUESTIONARIO_EMPRESA.md](docs/CUESTIONARIO_EMPRESA.md) · [docs/plantilla-datos-empresa.xlsx](docs/plantilla-datos-empresa.xlsx) |
 | Guía para continuar en otro chat | [docs/CONTINUAR.md](docs/CONTINUAR.md) |
 
 ## Requisitos
