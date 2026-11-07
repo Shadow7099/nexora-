@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireActor } from "@/server/current";
 import { toActionState, type ActionState } from "@/server/errors";
+import { publicBaseUrl } from "@/lib/qr";
 import { createCompany, resetCompanyAdminPassword, setCompanyStatus } from "@/server/platform";
+import { createInvitation, revokeInvitation } from "@/server/registration";
 
 /** Acciones del superadministrador sobre empresas. Cada una vuelve a verificar sesión y rol. */
 const superadmin = () => requireActor({ roles: ["SUPERADMIN"] });
@@ -34,6 +36,26 @@ export async function resetAdminPasswordAction(companyId: string, userId: string
   try {
     const r = await resetCompanyAdminPassword(await superadmin(), companyId, userId);
     return { ok: true, data: { email: r.email, password: r.temporaryPassword } };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function createInvitationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await createInvitation(await superadmin(), echo(fd));
+    revalidatePath("/plataforma/invitaciones");
+    return { ok: true, data: { url: `${await publicBaseUrl()}/registro/${r.token}`, expiresAt: r.expiresAt.toISOString() } };
+  } catch (e) {
+    return { ...toActionState(e), data: echo(fd) };
+  }
+}
+
+export async function revokeInvitationAction(id: string, _: ActionState): Promise<ActionState> {
+  try {
+    await revokeInvitation(await superadmin(), id);
+    revalidatePath("/plataforma/invitaciones");
+    return { ok: true, message: "Anulada." };
   } catch (e) {
     return toActionState(e);
   }

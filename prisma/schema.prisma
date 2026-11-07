@@ -219,6 +219,7 @@ model Company {
   auditLogs          AuditLog[]
   qrCodes            SiteQrCode[]
   contracts          EmployeeContract[]
+  invitation         CompanyInvitation?
 
   @@map("company")
 }
@@ -777,6 +778,29 @@ model PayrollEstimateLine {
 
   @@index([estimateId])
   @@map("payroll_estimate_line")
+}
+
+// Invitación para que el dueño de un negocio registre su empresa él mismo.
+// Solo se guarda el hash del token; el link se muestra una vez a quien la crea.
+// Un solo uso y con vencimiento.
+model CompanyInvitation {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  label        String // a quién se envió, p. ej. "Panadería de Rosa"
+  planCode     String?   @map("plan_code")
+  maxEmployees Int?      @map("max_employees")
+  maxSites     Int?      @map("max_sites")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt       DateTime? @map("used_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  companyId    String?   @unique @map("company_id") @db.Uuid
+  createdById  String?   @map("created_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("company_invitation")
 }
 
 // Intentos de ingreso fallidos por red (IP). Solo se guarda el hash de la IP,

@@ -31,7 +31,7 @@ test("el selector de tema cambia entre claro y oscuro", async ({ page }) => {
   await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
 
-test("con las fases 1 a 7 entregadas, ninguna sección se marca como 'Pronto'", async ({ page, isMobile }) => {
+test("con las 8 fases entregadas, ninguna sección se marca como 'Pronto'", async ({ page, isMobile }) => {
   await page.goto("/sistema/admin");
   if (isMobile) await page.getByRole("button", { name: "Abrir menú" }).click();
   const nav = page.getByRole("navigation", { name: "Principal" }).last();

@@ -8,7 +8,9 @@ import {
   Inbox,
   LayoutDashboard,
   ListChecks,
+  Rocket,
   Scale,
+  Send,
   Settings,
   Users,
   Wallet,
@@ -16,16 +18,17 @@ import {
 } from "lucide-react";
 
 /** Última fase entregada y probada. Las secciones de fases posteriores se abren en modo vista previa. */
-export const CURRENT_PHASE = 7;
+export const CURRENT_PHASE = 8;
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; phase: number };
 
 /**
  * Fase en la que cada sección queda completa; antes se muestra como vista previa honesta.
- * Hechas: 1 a 7.
+ * Hechas: 1 a 8.
  */
 export const adminNav: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard, phase: 2 },
+  { href: "/admin/primeros-pasos", label: "Primeros pasos", icon: Rocket, phase: 8 },
   { href: "/admin/asistencia", label: "Asistencia", icon: ClipboardCheck, phase: 2 },
   { href: "/admin/empleados", label: "Empleados", icon: Users, phase: 2 },
   { href: "/admin/sedes", label: "Sedes y QR", icon: Building2, phase: 2 },
@@ -48,5 +51,6 @@ export function isActive(pathname: string, href: string, root: string) {
 
 export const platformNav: NavItem[] = [
   { href: "/plataforma", label: "Empresas", icon: Building2, phase: 2 },
+  { href: "/plataforma/invitaciones", label: "Invitaciones", icon: Send, phase: 8 },
   { href: "/plataforma/parametros", label: "Parámetros laborales", icon: Scale, phase: 6 },
 ];

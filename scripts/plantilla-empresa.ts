@@ -209,6 +209,6 @@ sheet(
 );
 
 // Impresión: horizontal y a una página de ancho.
-for (const ws of wb.worksheets) ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 1 };
+for (const ws of wb.worksheets) ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 1 as ExcelJS.PaperSize };
 
 wb.xlsx.writeFile("docs/plantilla-datos-empresa.xlsx").then(() => console.log("docs/plantilla-datos-empresa.xlsx"));

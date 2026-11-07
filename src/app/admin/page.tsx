@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlarmClock, BarChart3, Building2, CalendarClock, CalendarX2, Clock, QrCode, UserCheck, Users } from "lucide-react";
+import { AlarmClock, BarChart3, Building2, CalendarClock, CalendarX2, Clock, QrCode, Rocket, UserCheck, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { auditActionLabel } from "@/lib/labels";
 import { formatDate, formatMinutes, formatTime } from "@/lib/utils";
 import { attendanceDay } from "@/server/attendance";
+import { setupProgress } from "@/server/onboarding";
 import { recentAudit } from "@/server/company";
 import { requireActor } from "@/server/current";
 import { adminOverview } from "@/server/overview";
@@ -18,12 +19,22 @@ export const metadata: Metadata = { title: "Resumen" };
 
 export default async function AdminHome() {
   const actor = await requireActor({ roles: ["COMPANY_ADMIN"] });
-  const [o, activity, day] = await Promise.all([adminOverview(actor), recentAudit(actor, 8), attendanceDay(actor)]);
+  const [o, activity, day, setup] = await Promise.all([adminOverview(actor), recentAudit(actor, 8), attendanceDay(actor), setupProgress(actor)]);
   const today = new Date(`${o.today}T12:00:00Z`);
 
   return (
     <>
       <PageHeader title="Resumen" description={`Hoy, ${formatDate(today, "UTC")}`} />
+
+      {!setup.complete && (
+        <Link href="/admin/primeros-pasos" className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary-soft px-4 py-3 text-sm hover:border-primary/60">
+          <span>
+            <span className="block font-medium text-fg">Termina de configurar tu negocio</span>
+            <span className="text-fg-muted">{setup.done} de {setup.total} pasos listos. Siguiente: {setup.steps.find((s) => !s.done)?.title.toLowerCase()}.</span>
+          </span>
+          <Rocket className="size-5 shrink-0 text-primary" aria-hidden />
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Empleados activos" value={String(o.activeEmployees)} icon={Users} />

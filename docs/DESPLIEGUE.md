@@ -32,6 +32,7 @@ Aplicadas en producción (y registradas en `_prisma_migrations` con su checksum,
 | `20261101195716_attendance_phase4` | Desafío WebAuthn en la sesión; jornada "por revisar" sin salida |
 | `20261102000000_payroll_phase6` | Exoneración 114-1 y 35 parámetros laborales nacionales |
 | `20261103000000_login_throttle` | Intentos de ingreso fallidos por red (hash de la IP) |
+| `20261107000000_company_invitation` | Links de invitación para que el dueño registre su empresa |
 
 **Para aplicar una migración nueva**, cualquiera de las dos:
 
