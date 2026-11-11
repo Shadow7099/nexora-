@@ -7,7 +7,7 @@ import { fieldErrors, passwordSchema } from "@/lib/validation";
 import { audit } from "@/server/audit";
 import { requireSuperadmin } from "@/server/authz";
 import { AppError, notFound } from "@/server/errors";
-import { createSession, type Actor } from "@/server/sessions";
+import { createSession, hashIp, type Actor } from "@/server/sessions";
 
 /**
  * Autogestión: el dueño de un negocio recibe un link de invitación, registra su
@@ -129,4 +129,48 @@ export async function registerWithInvitation(token: string, input: unknown, user
   });
   const session = await createSession(user.id, "COMPANY_ADMIN", userAgent);
   return { companyId: company.id, ...session };
+}
+
+/** Registros abiertos permitidos por red (IP) en 24 horas. */
+export const MAX_SIGNUPS_PER_IP_PER_DAY = 3;
+
+const emailTaken = () => new AppError("CONFLICT", "Ese correo ya tiene una cuenta en Nexora.", { email: "Ese correo ya está registrado. Ingresa con él o usa otro." });
+const isUniqueViolation = (e: unknown) => typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
+
+/**
+ * Registro abierto desde la página de inicio (sin invitación). La empresa queda
+ * en prueba y sin límites de plan; el superadministrador puede suspenderla.
+ * Protecciones: campo trampa para robots, límite de registros por red (el hash
+ * de la IP queda en la auditoría) y correo único.
+ */
+export async function registerOpen(input: Record<string, unknown>, userAgent?: string | null, ip?: string | null, now = new Date()) {
+  if (typeof input.website === "string" && input.website.trim() !== "") throw new AppError("VALIDATION", "No pudimos procesar el registro.");
+  const parsed = registrationSchema.safeParse(input);
+  if (!parsed.success) throw new AppError("VALIDATION", "Revisa los campos marcados.", fieldErrors(parsed.error));
+  const v = parsed.data;
+  const ipHash = ip ? hashIp(ip) : null;
+  if (ipHash) {
+    const recent = await db.auditLog.count({
+      where: { action: "company.self_register", occurredAt: { gte: new Date(now.getTime() - 86_400_000) }, after: { path: ["ipHash"], equals: ipHash } },
+    });
+    if (recent >= MAX_SIGNUPS_PER_IP_PER_DAY) throw new AppError("LIMIT", "Se registraron varias empresas desde tu red hoy. Intenta mañana o escríbenos.");
+  }
+  if (await db.user.findFirst({ where: { email: { equals: v.email, mode: "insensitive" } } })) throw emailTaken();
+  const passwordHash = await hashPassword(v.password);
+  let created: { companyId: string; userId: string };
+  try {
+    created = await db.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data: { name: v.companyName, legalName: v.legalName ?? null, nit: v.nit ?? null, slug: `${slugify(v.companyName)}-${randomBytes(3).toString("hex")}`, status: "TRIAL", planCode: "prueba" },
+      });
+      const user = await tx.user.create({ data: { companyId: company.id, email: v.email, name: v.adminName, passwordHash, role: "COMPANY_ADMIN", lastLoginAt: now } });
+      await audit({ companyId: company.id, actorUserId: user.id, action: "company.self_register", entityType: "company", entityId: company.id, after: { name: v.companyName, source: "landing", ipHash }, userAgent }, tx);
+      return { companyId: company.id, userId: user.id };
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) throw emailTaken(); // dos registros simultáneos con el mismo correo
+    throw e;
+  }
+  const session = await createSession(created.userId, "COMPANY_ADMIN", userAgent);
+  return { companyId: created.companyId, ...session };
 }

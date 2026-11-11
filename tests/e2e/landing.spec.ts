@@ -12,7 +12,7 @@ test("la landing muestra todas las secciones en claro y oscuro", async ({ page }
     await page.emulateMedia({ colorScheme: theme });
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1, name: /Sabe quién trabajó/ })).toBeVisible();
-    for (const h of ["Tres pasos y tu negocio queda andando", "Control serio, sin complicaciones", "Lo mejor del reloj biométrico, sin el reloj", "Un precio fijo según tu tamaño", "Solicita tu invitación"]) {
+    for (const h of ["Tres pasos y tu negocio queda andando", "Control serio, sin complicaciones", "Lo mejor del reloj biométrico, sin el reloj", "Un precio fijo según tu tamaño", "Empieza hoy. Tu negocio, configurado en 20 minutos.", "¿Prefieres que te ayudemos?"]) {
       await expect(page.getByRole("heading", { level: 2, name: h })).toBeVisible();
     }
     await expect(page.getByText("$99.900")).toBeVisible();
@@ -27,10 +27,10 @@ test("la landing muestra todas las secciones en claro y oscuro", async ({ page }
   await expect(page).toHaveURL(/\/ingresar/);
 });
 
-test("el formulario de invitación valida, se envía y llega a Plataforma → Solicitudes", async ({ page, browser }, info) => {
+test("el formulario de contacto valida, se envía y llega a Plataforma → Solicitudes", async ({ page, browser }, info) => {
   const business = `Panadería Prueba ${info.project.name} ${Date.now()}`;
   await page.goto("/#solicitar");
-  await page.getByRole("button", { name: "Solicitar mi invitación" }).click();
+  await page.getByRole("button", { name: "Quiero que me contacten" }).click();
   await expect(page.getByText("Escribe el nombre del negocio.")).toBeVisible();
   await page.getByLabel("Nombre del negocio").fill(business);
   await page.getByLabel("Tu nombre").fill("Rosa Díaz");
@@ -39,8 +39,8 @@ test("el formulario de invitación valida, se envía y llega a Plataforma → So
   await page.getByLabel("¿Cuántos empleados?").selectOption("6-15");
   await page.getByLabel("¿Cuántas sedes? (opcional)").fill("3");
   await page.getByLabel(/Autorizo a Nexora/).check();
-  await page.getByRole("button", { name: "Solicitar mi invitación" }).click();
-  await expect(page.getByText(/Recibimos tu solicitud/)).toBeVisible();
+  await page.getByRole("button", { name: "Quiero que me contacten" }).click();
+  await expect(page.getByText(/Recibimos tus datos/)).toBeVisible();
 
   const ctx = await browser.newContext();
   const sa = await ctx.newPage();
@@ -63,4 +63,27 @@ test("el formulario de invitación valida, se envía y llega a Plataforma → So
   await expect(card.getByText("Contactada")).toBeVisible();
   await noOverflow(sa);
   await ctx.close();
+});
+
+test("desde la landing, el dueño crea su cuenta y entra a Primeros pasos", async ({ page }, info) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Crear mi cuenta" }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Crea tu cuenta" })).toBeVisible();
+  await noOverflow(page);
+  await page.getByLabel("Nombre del negocio").fill(`Ferretería ${info.project.name}`);
+  await page.getByLabel("Tu nombre completo").fill("Carlos Ruiz");
+  await page.getByLabel("Correo").fill(`carlos-${info.project.name}-${Date.now()}@ferreteria.test`);
+  await page.getByLabel("Contraseña", { exact: true }).fill("Carlos-Ferreteria-2026");
+  await page.getByLabel("Repite la contraseña").fill("Carlos-Ferreteria-2026");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Crear mi empresa" }).click();
+  await expect(page).toHaveURL(/\/autorizacion/);
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Aceptar y continuar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Primeros pasos" })).toBeVisible();
+  await expect(page.getByText("0 de 6 pasos completos")).toBeVisible();
+  // El ingreso ofrece crear cuenta.
+  await page.context().clearCookies();
+  await page.goto("/ingresar");
+  await expect(page.getByRole("link", { name: "Crea tu cuenta" })).toBeVisible();
 });

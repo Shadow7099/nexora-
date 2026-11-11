@@ -7,7 +7,7 @@ import { FormAlert, SubmitButton } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
-/** «Solicita tu invitación»: los datos llegan a Plataforma → Solicitudes. */
+/** «Prefiero que me contacten»: los datos llegan a Plataforma → Solicitudes. */
 export function LeadForm() {
   const [state, action] = useActionState(submitLeadAction, null);
   if (state?.ok) {
@@ -67,7 +67,7 @@ export function LeadForm() {
           {err.consent && <span className="mt-1 block text-xs text-danger" role="alert">{err.consent}</span>}
         </span>
       </label>
-      <SubmitButton size="lg" className="w-full sm:w-auto sm:justify-self-start" pendingText="Enviando…">Solicitar mi invitación</SubmitButton>
+      <SubmitButton size="lg" className="w-full sm:w-auto sm:justify-self-start" pendingText="Enviando…">Quiero que me contacten</SubmitButton>
     </form>
   );
 }

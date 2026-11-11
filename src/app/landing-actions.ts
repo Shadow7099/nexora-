@@ -9,7 +9,7 @@ export async function submitLeadAction(_: ActionState, fd: FormData): Promise<Ac
   const data = Object.fromEntries([...fd.entries()].filter(([k]) => !k.startsWith("$")).map(([k, v]) => [k, String(v)]));
   try {
     await submitLead({ ...data, consent: fd.get("consent") === "on" }, await getClientIp());
-    return { ok: true, message: "¡Listo! Recibimos tu solicitud. Te contactaremos para enviarte tu link de registro." };
+    return { ok: true, message: "¡Listo! Recibimos tus datos. Te contactaremos muy pronto." };
   } catch (e) {
     return { ...toActionState(e), data };
   }

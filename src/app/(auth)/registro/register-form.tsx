@@ -5,7 +5,7 @@ import { registerAction } from "@/app/(auth)/registro/actions";
 import { FormAlert, SubmitButton } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 
-export function RegisterForm({ token }: { token: string }) {
+export function RegisterForm({ token = null }: { token?: string | null }) {
   const [state, action] = useActionState(registerAction.bind(null, token), null);
   const err = state?.fieldErrors ?? {};
   const v = state?.data ?? {};
@@ -30,6 +30,11 @@ export function RegisterForm({ token }: { token: string }) {
         {field("password", "Contraseña", { type: "password", autoComplete: "new-password" }, "Mínimo 10 caracteres, con letras.")}
         {field("confirm", "Repite la contraseña", { type: "password", autoComplete: "new-password" })}
       </fieldset>
+      {/* Campo trampa para robots: oculto para las personas. */}
+      <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="reg-website">No llenar</label>
+        <input id="reg-website" name="website" tabIndex={-1} autoComplete="off" />
+      </div>
       <label className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm">
         <input type="checkbox" name="terms" className="mt-0.5 size-4 accent-[var(--primary)]" aria-invalid={!!err.terms || undefined} />
         <span className="text-fg-muted">

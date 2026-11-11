@@ -99,7 +99,7 @@ const faqs = [
   ["¿Pueden marcar desde la casa?", "No. Nexora compara la ubicación del celular con el área de la sede al momento de marcar. Si está lejos, la marcación se rechaza y tú ves el intento."],
   ["¿Reemplaza la nómina electrónica o a mi contador?", "No. Nexora estima la nómina con las reglas vigentes y te entrega el detalle explicado para que tu contador liquide. No hace la nómina electrónica ante la DIAN."],
   ["¿Qué pasa con los datos de mis empleados?", "Cada empleado autoriza el tratamiento de sus datos al primer ingreso. La ubicación solo se toma al marcar y la huella nunca sale de su celular. Cada empresa ve únicamente sus datos."],
-  ["¿Cómo empiezo?", "Solicita tu invitación con el formulario de abajo. Te enviamos un link para registrar tu negocio y una guía de primeros pasos te lleva por la configuración: sedes, turnos, empleados y horarios."],
+  ["¿Cómo empiezo?", "Crea tu cuenta con el botón «Crear mi cuenta»: registras tu negocio en un minuto y una guía de primeros pasos te lleva por la configuración (sedes, turnos, empleados y horarios). Si prefieres que te ayudemos, déjanos tus datos en el formulario."],
 ] as const;
 
 function Mark({ value }: { value: Cell }) {
@@ -170,7 +170,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link href="/ingresar" className={buttonVariants({ variant: "ghost", size: "sm" })}>Ingresar</Link>
-            <a href="#solicitar" className={cn(buttonVariants({ size: "sm" }), "hidden sm:inline-flex")}>Solicitar invitación</a>
+            <Link href="/registro" className={cn(buttonVariants({ size: "sm" }), "hidden sm:inline-flex")}>Crear cuenta</Link>
           </div>
         </div>
       </header>
@@ -191,7 +191,7 @@ export default function Home() {
               apruebas las horas extra y obtienes la pre-nómina con las reglas laborales colombianas.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#solicitar" className={buttonVariants({ size: "lg" })}>Solicitar invitación <ArrowRight /></a>
+              <Link href="/registro" className={buttonVariants({ size: "lg" })}>Crear mi cuenta <ArrowRight /></Link>
               <a href="#como-funciona" className={buttonVariants({ variant: "secondary", size: "lg" })}>Ver cómo funciona</a>
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-fg-muted">
@@ -322,11 +322,11 @@ export default function Home() {
                 <ul className="mt-5 grid flex-1 gap-2 text-sm text-fg-muted">
                   {planIncludes.map((i) => <li key={i} className="flex items-center gap-2"><Check className="size-4 text-success" aria-hidden />{i}</li>)}
                 </ul>
-                <a href="#solicitar" className={cn(buttonVariants({ variant: p.featured ? "primary" : "secondary" }), "mt-6")}>Empezar</a>
+                <Link href="/registro" className={cn(buttonVariants({ variant: p.featured ? "primary" : "secondary" }), "mt-6")}>Empezar</Link>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-sm text-fg-subtle">Precios de lanzamiento en pesos colombianos. ¿Más de 30 empleados? Escríbenos en el formulario.</p>
+          <p className="mt-4 text-sm text-fg-subtle">Precios de lanzamiento en pesos colombianos. Empiezas en modo prueba. ¿Más de 30 empleados? Escríbenos en el formulario de abajo.</p>
         </section>
 
         {/* Preguntas */}
@@ -348,16 +348,28 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Solicitar */}
+        {/* Crear cuenta */}
+        <section id="empezar" className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-24 sm:px-6">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-accent px-6 py-14 text-center text-white shadow-md sm:px-10">
+            <h2 className="text-3xl font-semibold tracking-tight text-balance">Empieza hoy. Tu negocio, configurado en 20 minutos.</h2>
+            <p className="mx-auto mt-3 max-w-xl text-white/85">Crea tu cuenta, registra tus sedes e imprime el QR. Una guía de primeros pasos te acompaña en cada paso.</p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link href="/registro" className={cn(buttonVariants({ size: "lg" }), "bg-white text-primary hover:bg-white/90")}>Crear mi cuenta <ArrowRight /></Link>
+              <a href="#solicitar" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "text-white hover:bg-white/10 hover:text-white")}>Prefiero que me contacten</a>
+            </div>
+          </div>
+        </section>
+
+        {/* Contacto */}
         <section id="solicitar" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6">
           <div className="grid gap-10 rounded-3xl border border-border bg-surface p-6 shadow-md sm:p-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div>
-              <h2 className="text-3xl font-semibold tracking-tight text-balance">Solicita tu invitación</h2>
+              <h2 className="text-3xl font-semibold tracking-tight text-balance">¿Prefieres que te ayudemos?</h2>
               <p className="mt-3 text-fg-muted">
-                Déjanos tus datos y te enviamos el link para registrar tu negocio. Una guía de primeros pasos te acompaña: sedes, turnos, empleados y QR.
+                Déjanos tus datos y te contactamos para resolver tus dudas o acompañarte en la configuración.
               </p>
               <ul className="mt-6 grid gap-3 text-sm">
-                {["Configuración guiada en unos 20 minutos", "Acompañamiento durante el piloto", "Tus datos y los de tus empleados, protegidos"].map((t) => (
+                {["Te explicamos cómo encaja en tu negocio", "Te acompañamos durante el piloto", "Tus datos y los de tus empleados, protegidos"].map((t) => (
                   <li key={t} className="flex items-center gap-2"><CheckCircle2 className="size-4 text-success" aria-hidden />{t}</li>
                 ))}
               </ul>

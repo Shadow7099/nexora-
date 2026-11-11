@@ -100,3 +100,38 @@ describe("autogestión · primeros pasos", () => {
     expect(p.steps.filter((s) => !s.done).map((s) => s.key)).toEqual(["settings", "qr"]);
   });
 });
+
+describe("registro abierto desde la página de inicio", () => {
+  it("crea la empresa en prueba con su administrador, sin invitación", async () => {
+    const { registerOpen } = await import("@/server/registration");
+    const f = form({ companyName: "Tienda Abierta" });
+    const r = await registerOpen(f, "vitest", "198.51.100.20");
+    const actor = await validateSessionToken(r.token);
+    expect(actor).toMatchObject({ role: "COMPANY_ADMIN", companyId: r.companyId });
+    expect(await db.company.findUniqueOrThrow({ where: { id: r.companyId } })).toMatchObject({ status: "TRIAL", planCode: "prueba", maxEmployees: null });
+    const log = await db.auditLog.findFirstOrThrow({ where: { companyId: r.companyId, action: "company.self_register" } });
+    expect(log.after).toMatchObject({ source: "landing", ipHash: expect.any(String) });
+    expect(JSON.stringify(log.after)).not.toContain("198.51.100.20");
+    expect(await code(registerOpen(form({ email: f.email.toUpperCase() })))).toBe("CONFLICT");
+  });
+
+  it("limita los registros por red, rechaza robots y valida", async () => {
+    const { registerOpen, MAX_SIGNUPS_PER_IP_PER_DAY } = await import("@/server/registration");
+    const ip = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
+    for (let i = 0; i < MAX_SIGNUPS_PER_IP_PER_DAY; i++) await registerOpen(form({ companyName: `Red ${i}` }), "vitest", ip);
+    expect(await code(registerOpen(form(), "vitest", ip))).toBe("LIMIT");
+    expect(await code(registerOpen(form(), "vitest", "198.51.100.77"))).toBe("OK");
+    const before = await db.company.count();
+    expect(await code(registerOpen(form({ website: "http://spam" }), "vitest", "198.51.100.78"))).toBe("VALIDATION");
+    expect(await db.company.count()).toBe(before);
+    await expect(registerOpen(form({ terms: false, password: "x" }))).rejects.toMatchObject({ code: "VALIDATION", fieldErrors: { terms: expect.any(String), password: expect.any(String) } });
+  });
+
+  it("dos registros simultáneos con el mismo correo crean una sola cuenta", async () => {
+    const { registerOpen } = await import("@/server/registration");
+    const f = form();
+    const results = await Promise.allSettled([registerOpen(f), registerOpen({ ...f, companyName: "Otra" })]);
+    expect(results.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    expect(await db.user.count({ where: { email: f.email } })).toBe(1);
+  });
+});

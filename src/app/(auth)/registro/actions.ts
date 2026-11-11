@@ -1,16 +1,21 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getUserAgent, setSessionCookie } from "@/server/current";
+import { getClientIp, getUserAgent, setSessionCookie } from "@/server/current";
 import { toActionState, type ActionState } from "@/server/errors";
-import { registerWithInvitation } from "@/server/registration";
+import { registerOpen, registerWithInvitation } from "@/server/registration";
 
-/** Registro con invitación: crea la empresa y la cuenta, inicia sesión y lleva a «Primeros pasos». */
-export async function registerAction(token: string, _: ActionState, fd: FormData): Promise<ActionState> {
+/**
+ * Registro de una empresa: con link de invitación (token) o abierto desde la
+ * página de inicio (token null). Crea la empresa y la cuenta, inicia sesión y
+ * lleva a «Primeros pasos».
+ */
+export async function registerAction(token: string | null, _: ActionState, fd: FormData): Promise<ActionState> {
   const data = Object.fromEntries([...fd.entries()].filter(([k]) => !k.startsWith("$")).map(([k, v]) => [k, String(v)]));
   let session: Awaited<ReturnType<typeof registerWithInvitation>>;
   try {
-    session = await registerWithInvitation(token, { ...data, terms: fd.get("terms") === "on" }, await getUserAgent());
+    const input = { ...data, terms: fd.get("terms") === "on" };
+    session = token ? await registerWithInvitation(token, input, await getUserAgent()) : await registerOpen(input, await getUserAgent(), await getClientIp());
   } catch (e) {
     const { password: _p, confirm: _c, ...echo } = data;
     return { ...toActionState(e), data: echo };

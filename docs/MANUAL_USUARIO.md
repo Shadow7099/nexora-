@@ -10,6 +10,10 @@ Funciona en el navegador del celular o del computador, sin instalar nada. Modo c
 
 ---
 
+## 0. Registrar un negocio nuevo
+
+En la página de inicio, **Crear mi cuenta**: nombre del negocio, tu nombre, correo y contraseña. La empresa queda en modo prueba y entras directo a **Primeros pasos**. También se puede registrar con un link de invitación de Nexora.
+
 ## 1. Primer ingreso (todas las cuentas)
 
 1. Abra la dirección de Nexora y escriba su **correo** y la **contraseña temporal** que le entregaron.

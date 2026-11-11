@@ -15,6 +15,7 @@ Fecha: 2 de noviembre de 2026.
 | Marcación | QR rotables, celular vinculado (cookie `httpOnly` con hash en BD), passkey opcional (WebAuthn), ubicación con radio e incertidumbre del GPS, hora del servidor, clave de idempotencia, intentos rechazados registrados | `src/server/attendance.ts` |
 | API pública de Supabase | RLS en todas las tablas sin políticas y sin permisos para `anon`/`authenticated` (verificado: tabla nueva `login_throttle` incluida) | `lock_data_api` |
 | Cabeceras HTTP | `Content-Security-Policy` (solo el propio origen, sin iframes, plugins ni formularios a otros sitios), `X-Frame-Options: DENY`, `nosniff`, HSTS, `Referrer-Policy`, `Permissions-Policy` (ubicación y cámara solo en el propio origen); sin `X-Powered-By` | `next.config.ts` |
+| Registro abierto | Desde la página de inicio: campo trampa para robots, máximo 3 empresas por red al día (hash de la IP en la auditoría), correo único; la empresa queda en prueba y el superadministrador puede suspenderla | `registerOpen()` |
 | Redirecciones | Solo destinos internos tras ingresar (sin redirecciones abiertas) | `safeNext()` |
 | Datos personales | Autorización explícita (Ley 1581) antes de usar la app; ubicación solo en el momento de marcar; el superadministrador no ve datos de empleados | `/autorizacion`, `platform.ts` |
 | Auditoría | Ingresos, cambios de configuración, decisiones, correcciones, cálculos de pre-nómina, altas y suspensiones de empresas | `audit_log` |

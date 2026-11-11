@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LinkIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { checkInvitation } from "@/server/registration";
-import { RegisterForm } from "./register-form";
+import { RegisterForm } from "../register-form";
 
 export const metadata: Metadata = { title: "Registra tu empresa", robots: { index: false } };
 
