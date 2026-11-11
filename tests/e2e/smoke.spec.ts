@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const pages = [
-  { path: "/", heading: /Control inteligente/ },
+  { path: "/", heading: /Sabe quién trabajó/ },
   { path: "/sistema", heading: "Sistema de diseño" },
   { path: "/sistema/admin", heading: "Resumen" },
   { path: "/sistema/empleado", heading: "Hola, Juan." },

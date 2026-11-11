@@ -803,6 +803,34 @@ model CompanyInvitation {
   @@map("company_invitation")
 }
 
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INVITED
+  DISCARDED
+}
+
+// Solicitud de un negocio interesado, enviada desde la página pública.
+// Solo se guarda el hash de la IP (para frenar envíos repetidos).
+model Lead {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  businessName String     @map("business_name")
+  contactName  String     @map("contact_name")
+  email        String
+  phone        String
+  city         String?
+  employees    String // rango: 1-5, 6-15, 16-30, 31+
+  sites        Int?
+  message      String?
+  status       LeadStatus @default(NEW)
+  ipHash       String?    @map("ip_hash")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([ipHash, createdAt])
+  @@map("lead")
+}
+
 // Intentos de ingreso fallidos por red (IP). Solo se guarda el hash de la IP,
 // nunca la IP. Complementa el bloqueo por cuenta: frena a quien prueba muchas
 // cuentas distintas desde la misma red.

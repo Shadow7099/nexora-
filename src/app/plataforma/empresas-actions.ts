@@ -5,6 +5,7 @@ import { requireActor } from "@/server/current";
 import { toActionState, type ActionState } from "@/server/errors";
 import { publicBaseUrl } from "@/lib/qr";
 import { createCompany, resetCompanyAdminPassword, setCompanyStatus } from "@/server/platform";
+import { setLeadStatus } from "@/server/leads";
 import { createInvitation, revokeInvitation } from "@/server/registration";
 
 /** Acciones del superadministrador sobre empresas. Cada una vuelve a verificar sesión y rol. */
@@ -56,6 +57,16 @@ export async function revokeInvitationAction(id: string, _: ActionState): Promis
     await revokeInvitation(await superadmin(), id);
     revalidatePath("/plataforma/invitaciones");
     return { ok: true, message: "Anulada." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function setLeadStatusAction(id: string, status: string, _: ActionState): Promise<ActionState> {
+  try {
+    await setLeadStatus(await superadmin(), id, status);
+    revalidatePath("/plataforma/solicitudes");
+    return { ok: true };
   } catch (e) {
     return toActionState(e);
   }

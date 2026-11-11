@@ -122,6 +122,8 @@ Si se registró con un link de invitación, **Primeros pasos** (en el menú) mue
 
 ## 4. Superadministrador (Nexora)
 
+- **Solicitudes:** los negocios que llenan «Solicita tu invitación» en la página de inicio. Contáctalos, genera su link en **Invitaciones** y márcalos como contactados, invitados o descartados.
+
 - **Invitaciones → Generar link:** el dueño de un negocio abre el link, crea su empresa y su cuenta, y Nexora lo guía en **Primeros pasos** (reglas, sedes, turnos, empleados, horarios, QR y marcación de prueba). El link sirve una sola vez y vence; se puede anular.
 
 - **Empresas → Nueva empresa:** nombre, NIT, plan y límites de sedes y empleados, y el primer administrador. Nexora muestra su contraseña temporal una sola vez.

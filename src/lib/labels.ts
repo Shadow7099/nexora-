@@ -17,6 +17,7 @@ export const auditActionLabel: Record<string, string> = {
   "employee.reactivate": "Reactivó un empleado",
   "employee.password_reset": "Restableció una contraseña",
   "company.create": "Nexora creó la empresa",
+  "company.self_register": "El dueño registró la empresa con su invitación",
   "company.status": "Nexora cambió el estado de la empresa",
   "company.admin_password_reset": "Nexora restableció la contraseña de un administrador",
   "company.settings_update": "Cambió la configuración",

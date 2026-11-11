@@ -33,6 +33,7 @@ Aplicadas en producción (y registradas en `_prisma_migrations` con su checksum,
 | `20261102000000_payroll_phase6` | Exoneración 114-1 y 35 parámetros laborales nacionales |
 | `20261103000000_login_throttle` | Intentos de ingreso fallidos por red (hash de la IP) |
 | `20261107000000_company_invitation` | Links de invitación para que el dueño registre su empresa |
+| `20261111000000_lead` | Solicitudes de invitación desde la página de inicio |
 
 **Para aplicar una migración nueva**, cualquiera de las dos:
 

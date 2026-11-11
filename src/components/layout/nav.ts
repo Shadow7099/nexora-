@@ -51,6 +51,7 @@ export function isActive(pathname: string, href: string, root: string) {
 
 export const platformNav: NavItem[] = [
   { href: "/plataforma", label: "Empresas", icon: Building2, phase: 2 },
+  { href: "/plataforma/solicitudes", label: "Solicitudes", icon: Inbox, phase: 8 },
   { href: "/plataforma/invitaciones", label: "Invitaciones", icon: Send, phase: 8 },
   { href: "/plataforma/parametros", label: "Parámetros laborales", icon: Scale, phase: 6 },
 ];
