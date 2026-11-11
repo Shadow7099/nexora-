@@ -87,3 +87,31 @@ test("desde la landing, el dueño crea su cuenta y entra a Primeros pasos", asyn
   await page.goto("/ingresar");
   await expect(page.getByRole("link", { name: "Crea tu cuenta" })).toBeVisible();
 });
+
+test("el asistente de la landing responde, sugiere preguntas y lleva al registro", async ({ page }, info) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Abrir el asistente de Nexora" }).click();
+  const chat = page.getByRole("dialog", { name: "Asistente de Nexora" });
+  await expect(chat).toBeVisible();
+  await expect(chat.getByText(/Soy el asistente de Nexora/)).toBeVisible();
+  await noOverflow(page);
+
+  // Sugerencia rápida.
+  await chat.getByRole("button", { name: "¿Cuánto cuesta?" }).click();
+  await expect(chat.getByText(/\$99\.900/)).toBeVisible();
+
+  // Pregunta escrita.
+  await chat.getByLabel("Escribe tu pregunta").fill("¿pueden marcar desde la casa?");
+  await chat.getByLabel("Escribe tu pregunta").press("Enter");
+  await expect(chat.getByText(/la marcación se rechaza/)).toBeVisible();
+  await page.screenshot({ path: `test-results/shots/${info.project.name}-chat.png` });
+
+  // Escape cierra; el enlace lleva al registro.
+  await page.keyboard.press("Escape");
+  await expect(chat).toBeHidden();
+  await page.getByRole("button", { name: "Abrir el asistente de Nexora" }).click();
+  await chat.getByLabel("Escribe tu pregunta").fill("quiero registrarme");
+  await chat.getByRole("button", { name: "Enviar" }).click();
+  await chat.getByRole("link", { name: "Crear mi cuenta" }).last().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Crea tu cuenta" })).toBeVisible();
+});

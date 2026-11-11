@@ -21,6 +21,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { ChatWidget } from "@/components/landing/chat-widget";
 import { LeadForm } from "@/components/landing/lead-form";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -380,8 +381,10 @@ export default function Home() {
         </section>
       </main>
 
+      <ChatWidget />
+
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-fg-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-10 pb-24 text-sm text-fg-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pb-20">
           <div>
             <Logo />
             <p className="mt-2">Control inteligente. Empresas eficientes.</p>
