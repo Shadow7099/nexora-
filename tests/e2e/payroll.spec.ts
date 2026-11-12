@@ -28,7 +28,7 @@ test("el administrador calcula la pre-nómina de la quincena y revisa el detalle
   await page.getByRole("button", { name: /Calcular estimación|Recalcular/ }).click();
   await expect(page.getByRole("status")).toContainText("Estimación calculada para 8 empleado(s)");
   await expect(page.getByText("Costo total para la empresa")).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(8);
+  await expect(page.getByRole("table").first().locator("tbody tr")).toHaveCount(8);
   await noOverflow(page);
   await page.screenshot({ path: `test-results/shots/${info.project.name}-pre-nomina.png`, fullPage: true });
 
@@ -46,6 +46,45 @@ test("el administrador calcula la pre-nómina de la quincena y revisa el detalle
   await expect(page.getByRole("button", { name: /Validar/ })).toHaveCount(0); // solo lectura
   await noOverflow(page);
   await page.screenshot({ path: `test-results/shots/${info.project.name}-parametros.png`, fullPage: true });
+});
+
+test("liquidación: revisar, cerrar el período y descargar los comprobantes de pago", async ({ page }, info) => {
+  await login(page, "admin@eltrigal.test");
+  // Cada proyecto usa su propia quincena: la base es compartida y un período cerrado no se recalcula.
+  const [start, end] = info.project.name === "escritorio" ? ["2026-09-01", "2026-09-15"] : ["2026-09-16", "2026-09-30"];
+  await page.goto(`/admin/pre-nomina?inicio=${start}&fin=${end}`);
+  await page.getByRole("button", { name: "Calcular estimación" }).click();
+  await expect(page.getByRole("status").first()).toContainText("Estimación calculada");
+  await expect(page.getByText("Liquidación del período")).toBeVisible();
+  await expect(page.getByText("Planilla de seguridad social")).toBeVisible();
+
+  // Comprobantes en borrador: PDF descargable.
+  const [draft] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: /Comprobantes de pago \(PDF\) · borrador/ }).click()]);
+  expect(draft.suggestedFilename()).toBe(`nexora-comprobantes-${start}_${end}.pdf`);
+
+  await page.getByRole("button", { name: "Marcar como revisada" }).click();
+  await expect(page.getByText("Período marcado como revisado.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Recalcular" })).toHaveCount(0);
+
+  // Cerrar exige confirmar.
+  await page.getByRole("button", { name: "Cerrar período" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Marca la casilla" })).toBeVisible();
+  await page.getByRole("checkbox", { name: /Confirmo que el contador/ }).check();
+  await page.getByRole("button", { name: "Cerrar período" }).click();
+  await expect(page.getByText(/Período cerrado el .* por /)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Recalcular|Cerrar período|Marcar como revisada/ })).toHaveCount(0);
+  await expect(page.getByText("Historial de este período")).toBeVisible();
+  await noOverflow(page);
+  await page.screenshot({ path: `test-results/shots/${info.project.name}-liquidacion.png`, fullPage: true });
+
+  const [final] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Comprobantes de pago (PDF)", exact: true }).click()]);
+  expect(final.suggestedFilename()).toBe(`nexora-comprobantes-${start}_${end}.pdf`);
+
+  // Comprobante de un solo empleado desde su detalle.
+  await page.locator("tbody").getByRole("link", { name: /Juan/ }).first().click();
+  await expect(page.getByText(/cerrada · estimación/)).toBeVisible();
+  const [one] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Comprobante de pago (PDF)" }).click()]);
+  expect(one.suggestedFilename()).toMatch(/^nexora-comprobantes-.*-juan-.*\.pdf$/);
 });
 
 test("un período inválido en la URL vuelve a la quincena por defecto", async ({ page }) => {

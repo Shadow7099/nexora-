@@ -17,9 +17,10 @@ Fecha: 2 de noviembre de 2026.
 | Cabeceras HTTP | `Content-Security-Policy` (solo el propio origen, sin iframes, plugins ni formularios a otros sitios), `X-Frame-Options: DENY`, `nosniff`, HSTS, `Referrer-Policy`, `Permissions-Policy` (ubicación y cámara solo en el propio origen); sin `X-Powered-By` | `next.config.ts` |
 | Registro abierto | Desde la página de inicio: campo trampa para robots, máximo 3 empresas por red al día (hash de la IP en la auditoría), correo único; la empresa queda en prueba y el superadministrador puede suspenderla | `registerOpen()` |
 | Asistente de la página de inicio | Responde desde una base de conocimiento fija; no lee la base de datos ni datos de empresas. Máx. 500 caracteres por mensaje, 12 turnos y 20 mensajes por red cada 10 min (hash de la IP, en memoria). Con `ANTHROPIC_API_KEY` usa Claude limitado a esa base; si falla, vuelve a las respuestas fijas | `src/server/chat.ts` |
+| Cierre de nómina | Borrador → Revisada → Cerrada con cambio condicional al estado actual (dos clics no lo aplican dos veces); cerrar exige confirmación; un período revisado o cerrado no se recalcula; cada paso queda en la auditoría con totales. Comprobantes en PDF solo para el administrador de la empresa | `setPayrollStatus()`, `/admin/pre-nomina/comprobantes` |
 | Redirecciones | Solo destinos internos tras ingresar (sin redirecciones abiertas) | `safeNext()` |
 | Datos personales | Autorización explícita (Ley 1581) antes de usar la app; ubicación solo en el momento de marcar; el superadministrador no ve datos de empleados | `/autorizacion`, `platform.ts` |
-| Auditoría | Ingresos, cambios de configuración, decisiones, correcciones, cálculos de pre-nómina, altas y suspensiones de empresas | `audit_log` |
+| Auditoría | Ingresos, cambios de configuración, decisiones, correcciones, cálculos, revisión y cierre de pre-nómina, altas y suspensiones de empresas | `audit_log` |
 
 ## Límites conocidos y decisiones
 

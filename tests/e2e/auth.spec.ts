@@ -95,7 +95,8 @@ test("ciclo completo: crear empleado → primer ingreso → nueva contraseña �
   await emp.getByLabel("Nueva contraseña", { exact: true }).fill("corta");
   await emp.getByLabel("Repite la nueva contraseña").fill("corta");
   await emp.getByRole("button", { name: "Guardar contraseña" }).click();
-  await expect(emp.getByText(/Mínimo 10 caracteres/).first()).toBeVisible();
+  // El error (no la ayuda fija «Mínimo 10 caracteres, con letras…»): así el formulario ya se reinició antes de volver a llenarlo.
+  await expect(emp.getByText("Mínimo 10 caracteres.", { exact: true }).first()).toBeVisible();
   await emp.getByLabel("Contraseña actual").fill(temp);
   await emp.getByLabel("Nueva contraseña", { exact: true }).fill("Sofia-Panaderia-2026");
   await emp.getByLabel("Repite la nueva contraseña").fill("Sofia-Panaderia-2026");

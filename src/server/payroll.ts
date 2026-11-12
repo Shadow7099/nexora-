@@ -124,7 +124,7 @@ export async function payrollOverview(actor: Actor, input: unknown) {
         },
       },
     }),
-    db.payrollPeriod.findMany({ where: { companyId }, orderBy: { startDate: "desc" }, take: 12, select: { id: true, startDate: true, endDate: true, _count: { select: { estimates: true } } } }),
+    db.payrollPeriod.findMany({ where: { companyId }, orderBy: { startDate: "desc" }, take: 12, select: { id: true, startDate: true, endDate: true, status: true, frequency: true, _count: { select: { estimates: true } } } }),
     db.company.findUniqueOrThrow({ where: { id: companyId }, select: { parafiscalExempt: true } }),
   ]);
   const estimates = (period?.estimates ?? []).map((e) => {
@@ -265,7 +265,7 @@ export async function getPayrollEstimate(actor: Actor, id: string) {
     include: {
       lines: { orderBy: { id: "asc" } },
       employee: { select: { firstName: true, lastName: true, position: true, documentNumber: true } },
-      period: { select: { startDate: true, endDate: true, frequency: true, status: true } },
+      period: { select: { id: true, startDate: true, endDate: true, frequency: true, status: true } },
     },
   });
   if (!e) throw notFound("La estimación");
@@ -280,3 +280,120 @@ export async function getPayrollEstimate(actor: Actor, id: string) {
     snapshot: snap,
   };
 }
+
+// ─────────────────────── Cierre del período (liquidación) ───────────────────────
+
+export const STATUS_LABEL = { DRAFT: "Borrador", REVIEWED: "Revisada", CLOSED: "Cerrada" } as const;
+export type PayrollAction = "review" | "reopen" | "close";
+
+const TRANSITIONS: Record<PayrollAction, { from: "DRAFT" | "REVIEWED"; to: "DRAFT" | "REVIEWED" | "CLOSED"; audit: string }> = {
+  review: { from: "DRAFT", to: "REVIEWED", audit: "payroll.review" },
+  reopen: { from: "REVIEWED", to: "DRAFT", audit: "payroll.reopen" },
+  close: { from: "REVIEWED", to: "CLOSED", audit: "payroll.close" },
+};
+
+/**
+ * Avanza el período: Borrador → Revisada → Cerrada (o Revisada → Borrador para
+ * corregir). Solo se revisa un período calculado sin empleados bloqueados; uno
+ * cerrado ya no se recalcula ni se reabre. El cambio es condicional al estado
+ * actual, así dos clics simultáneos no lo aplican dos veces.
+ */
+export async function setPayrollStatus(actor: Actor, periodId: string, action: PayrollAction) {
+  const companyId = requireCompanyAdmin(actor);
+  const t = TRANSITIONS[action];
+  if (!t) throw new AppError("VALIDATION", "Acción no válida.");
+  if (!z.uuid().safeParse(periodId).success) throw notFound("El período");
+  return db.$transaction(async (tx) => {
+    const period = await tx.payrollPeriod.findFirst({ where: { id: periodId, companyId }, include: { estimates: { select: { warnings: true, netEstimate: true, employerCost: true } } } });
+    if (!period) throw notFound("El período");
+    if (period.status !== t.from) {
+      const msg = period.status === "CLOSED" ? "Este período ya está cerrado." : `El período está en «${STATUS_LABEL[period.status]}»: no se puede ${action === "review" ? "marcar como revisado" : action === "close" ? "cerrar" : "reabrir"}.`;
+      throw new AppError("CONFLICT", msg);
+    }
+    const blocked = period.estimates.filter((e) => (e.warnings as Warning[]).some((w) => w.severity === "block")).length;
+    if (action !== "reopen") {
+      if (period.estimates.length === 0) throw new AppError("CONFLICT", "Primero calcula la estimación del período.");
+      if (blocked > 0) throw new AppError("CONFLICT", `${blocked} empleado(s) sin calcular: completa sus datos y recalcula antes de continuar.`);
+    }
+    const r = await tx.payrollPeriod.updateMany({ where: { id: periodId, companyId, status: t.from }, data: { status: t.to } });
+    if (r.count !== 1) throw new AppError("CONFLICT", "El período cambió mientras tanto. Recarga la página.");
+    await audit({
+      companyId, actorUserId: actor.userId, action: t.audit, entityType: "payroll_period", entityId: periodId,
+      before: { status: t.from },
+      after: {
+        status: t.to, start: iso(period.startDate), end: iso(period.endDate), employees: period.estimates.length,
+        net: period.estimates.reduce((a, e) => a + Number(e.netEstimate), 0), employerCost: period.estimates.reduce((a, e) => a + Number(e.employerCost), 0),
+      },
+    }, tx);
+    return { status: t.to };
+  });
+}
+
+/** Quién y cuándo calculó, revisó, reabrió o cerró el período (desde la auditoría). */
+export async function payrollTimeline(actor: Actor, periodId: string) {
+  const companyId = requireCompanyAdmin(actor);
+  const rows = await db.auditLog.findMany({
+    where: { companyId, entityType: "payroll_period", entityId: periodId, action: { in: ["payroll.compute", "payroll.review", "payroll.reopen", "payroll.close"] } },
+    orderBy: { occurredAt: "desc" },
+    take: 10,
+    include: { actor: { select: { name: true } } },
+  });
+  const label: Record<string, string> = { "payroll.compute": "Calculada", "payroll.review": "Marcada como revisada", "payroll.reopen": "Devuelta a borrador", "payroll.close": "Cerrada" };
+  return rows.map((r) => ({ id: r.id, action: r.action, label: label[r.action] ?? r.action, at: r.occurredAt, by: r.actor?.name ?? "—" }));
+}
+
+/** Totales del período por concepto (para saber cuánto pagar a quién). */
+export async function payrollConceptTotals(actor: Actor, periodId: string) {
+  const companyId = requireCompanyAdmin(actor);
+  const groups = await db.payrollEstimateLine.groupBy({ by: ["concept", "kind"], where: { estimate: { periodId, companyId } }, _sum: { amount: true } });
+  const rows = groups
+    .map((g) => ({ concept: g.concept, kind: g.kind, label: CONCEPT_LABEL[g.concept] ?? g.concept, amount: Number(g._sum.amount ?? 0) }))
+    .filter((r) => r.amount !== 0 || r.kind !== "APORTE_EMPLEADOR")
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || CONCEPT_ORDER.indexOf(a.concept) - CONCEPT_ORDER.indexOf(b.concept));
+  const sum = (k: string) => rows.filter((r) => r.kind === k).reduce((a, r) => a + r.amount, 0);
+  return {
+    rows,
+    /** Lo que sale de la cuenta en el período: neto a empleados + planilla de seguridad social (PILA). */
+    payNet: sum("DEVENGADO") - sum("DEDUCCION"),
+    paySocialSecurity: sum("DEDUCCION") + sum("APORTE_EMPLEADOR"),
+    provisions: sum("PROVISION"),
+  };
+}
+
+/** Datos de los comprobantes de pago (desprendibles) de un período: uno o todos los empleados calculados. */
+export async function payslips(actor: Actor, periodId: string, estimateId?: string | null) {
+  const companyId = requireCompanyAdmin(actor);
+  if (!z.uuid().safeParse(periodId).success || (estimateId && !z.uuid().safeParse(estimateId).success)) throw notFound("El período");
+  const period = await db.payrollPeriod.findFirst({
+    where: { id: periodId, companyId },
+    include: {
+      company: { select: { name: true, legalName: true, nit: true, timezone: true } },
+      estimates: {
+        where: estimateId ? { id: estimateId } : {},
+        include: {
+          lines: { where: { kind: { in: ["DEVENGADO", "DEDUCCION"] } } },
+          employee: { select: { firstName: true, lastName: true, position: true, documentType: true, documentNumber: true } },
+        },
+        orderBy: { employee: { firstName: "asc" } },
+      },
+    },
+  });
+  if (!period || (estimateId && period.estimates.length === 0)) throw notFound(estimateId ? "La estimación" : "El período");
+  const slips = period.estimates
+    .filter((e) => !(e.warnings as Warning[]).some((w) => w.severity === "block"))
+    .map((e) => ({
+      employee: e.employee,
+      paidDays: (e.parameterSnapshot as { paidDays?: number }).paidDays ?? null,
+      lines: e.lines
+        .map((l) => ({ concept: l.concept, kind: l.kind, label: CONCEPT_LABEL[l.concept] ?? l.concept, quantity: Number(l.quantity), amount: Number(l.amount) }))
+        .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || CONCEPT_ORDER.indexOf(a.concept) - CONCEPT_ORDER.indexOf(b.concept)),
+      gross: Number(e.grossEstimate), deductions: Number(e.deductions), net: Number(e.netEstimate),
+    }));
+  if (estimateId && slips.length === 0) throw new AppError("CONFLICT", "Este empleado quedó sin calcular: no hay comprobante.");
+  return {
+    company: { name: period.company.legalName ?? period.company.name, nit: period.company.nit, timeZone: period.company.timezone },
+    period: { id: period.id, start: iso(period.startDate), end: iso(period.endDate), frequency: period.frequency, status: period.status },
+    slips,
+  };
+}
+export type Payslips = Awaited<ReturnType<typeof payslips>>;

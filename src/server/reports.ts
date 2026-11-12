@@ -275,7 +275,7 @@ export async function buildReport(actor: Actor, key: ReportKey, input: Record<st
     case "pre-nomina": {
       const list = await db.payrollEstimate.findMany({
         where: { companyId, period: { startDate: { lte: day(f.to) }, endDate: { gte: day(f.from) } }, ...(empIds ? { employeeId: { in: empIds } } : {}) },
-        include: { period: { select: { startDate: true, endDate: true } } },
+        include: { period: { select: { startDate: true, endDate: true, status: true } } },
         orderBy: [{ period: { startDate: "asc" } }],
       });
       const rows = list
@@ -285,7 +285,7 @@ export async function buildReport(actor: Actor, key: ReportKey, input: Record<st
           return {
             period: `${iso(e.period.startDate)} a ${iso(e.period.endDate)}`, employee: names.get(e.employeeId) ?? "—",
             gross: blocked ? null : Number(e.grossEstimate), deductions: blocked ? null : Number(e.deductions), net: blocked ? null : Number(e.netEstimate),
-            employerCost: blocked ? null : Number(e.employerCost), state: blocked ? "Sin calcular (faltan datos)" : "Estimado",
+            employerCost: blocked ? null : Number(e.employerCost), state: blocked ? "Sin calcular (faltan datos)" : ({ DRAFT: "Borrador", REVIEWED: "Revisada", CLOSED: "Cerrada" } as const)[e.period.status],
             warnings: warnings.filter((w) => w.severity !== "info").map((w) => w.message).join(" | ") || null, computedAt: dt(e.computedAt),
           };
         })

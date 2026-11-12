@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Info, OctagonAlert, TriangleAlert } from "lucide-react";
+import { ArrowLeft, FileDown, Info, OctagonAlert, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { formatParamValue, parameterLabel } from "@/lib/labor-parameter-info";
 import { cn, formatCOP, formatMinutes } from "@/lib/utils";
 import { requireActor } from "@/server/current";
 import { AppError } from "@/server/errors";
-import { getPayrollEstimate } from "@/server/payroll";
+import { getPayrollEstimate, STATUS_LABEL } from "@/server/payroll";
 
 export const metadata: Metadata = { title: "Detalle de pre-nómina" };
 
@@ -44,7 +44,14 @@ export default async function EstimatePage({ params }: PageProps<"/admin/pre-nom
       <Link href={back} className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg"><ArrowLeft className="size-4" aria-hidden /> Volver a la pre-nómina</Link>
       <PageHeader
         title={`${e.employee.firstName} ${e.employee.lastName}`}
-        description={`${e.employee.position} · período del ${d(e.period.start)} al ${d(e.period.end)} · estimación, no liquidación legal`}
+        description={`${e.employee.position} · período del ${d(e.period.start)} al ${d(e.period.end)} · ${STATUS_LABEL[e.period.status].toLowerCase()} · estimación, no liquidación legal`}
+        actions={
+          !blocked ? (
+            <a href={`/admin/pre-nomina/comprobantes/${e.period.id}?estimacion=${e.id}`} className={buttonVariants({ variant: "secondary" })} download>
+              <FileDown aria-hidden /> Comprobante de pago (PDF)
+            </a>
+          ) : undefined
+        }
       />
 
       {e.warnings.length > 0 && (

@@ -112,6 +112,16 @@ Si se registró con un link de invitación, **Primeros pasos** (en el menú) mue
 3. Si falta un parámetro legal o un dato del contrato, ese empleado queda **Sin calcular** y no se muestra ningún valor.
 4. **Parámetros laborales:** la tabla de valores legales (salario mínimo, recargos, aportes) con norma y vigencia, para revisarla con su contador.
 
+**Liquidar el período (Calcular → Revisar → Cerrar):**
+
+1. **Calcular:** mientras está en *Borrador* puede recalcular las veces que quiera (por ejemplo, después de aprobar horas extra o corregir una jornada).
+2. **Marcar como revisada:** cuando todos los empleados quedaron calculados. Ya no se recalcula; si encuentra un error, **Volver a borrador para corregir**.
+3. **Cerrar período:** marque la casilla de confirmación (el contador revisó los valores) y toque **Cerrar período**. Un período cerrado queda fijo: no se recalcula ni se reabre.
+
+En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los empleados, planilla de seguridad social (PILA) y provisiones para reservar (cesantías, intereses, prima y vacaciones), más el total por concepto. Los tres suman el costo total para la empresa.
+
+**Descargas:** **Comprobantes de pago (PDF)** (una página por empleado, con firma del empleador y «recibí conforme»; dice *BORRADOR* hasta cerrar el período), el comprobante de un solo empleado desde su detalle, y **Resumen para el contador (Excel)**. **Períodos calculados** muestra el estado de cada quincena o mes y el **Historial** quién calculó, revisó y cerró, y cuándo.
+
 ![Pre-nómina de la quincena](img/escritorio-pre-nomina.jpg)
 
 ![Detalle por empleado](img/escritorio-pre-nomina-detalle.jpg)

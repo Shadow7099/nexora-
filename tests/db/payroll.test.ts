@@ -8,7 +8,8 @@ import { db } from "@/lib/db";
 import { addManualSession } from "@/server/corrections";
 import { AppError } from "@/server/errors";
 import { decideOvertime } from "@/server/overtime";
-import { addLaborParameterVersion, computePayroll, getPayrollEstimate, listLaborParameters, payrollOverview, verifyLaborParameter } from "@/server/payroll";
+import { addLaborParameterVersion, computePayroll, getPayrollEstimate, listLaborParameters, payrollConceptTotals, payrollOverview, payrollTimeline, payslips, setPayrollStatus, verifyLaborParameter } from "@/server/payroll";
+import { toPayslipPdf } from "@/server/export";
 import { login, makeCompany } from "../support/fixtures";
 
 const code = async (p: Promise<unknown>) => {
@@ -144,5 +145,83 @@ describe("fase 6 · parámetros legales", () => {
     expect(prev.validTo?.toISOString().slice(0, 10)).toBe("2030-12-31");
     expect(await code(addLaborParameterVersion(sa.actor, input))).toBe("CONFLICT");
     expect(await db.auditLog.count({ where: { action: { in: ["labor_parameter.verify", "labor_parameter.create"] }, actorUserId: sa.actor.userId } })).toBe(2);
+  });
+});
+
+describe("liquidación del período: revisar, cerrar y comprobantes", () => {
+  it("borrador → revisada → cerrada; cerrada no se recalcula ni se reabre; todo queda auditado", async () => {
+    const s = await setup("liq1");
+    await addManualSession(s.admin.actor, s.employee.id, { date: "2026-10-13", startTime: "08:00", endTime: "17:00", siteId: s.site.id, reason });
+    const { periodId } = await computePayroll(s.admin.actor, P1);
+
+    // No se puede cerrar sin revisar ni reabrir un borrador.
+    expect(await code(setPayrollStatus(s.admin.actor, periodId, "close"))).toBe("CONFLICT");
+    expect(await code(setPayrollStatus(s.admin.actor, periodId, "reopen"))).toBe("CONFLICT");
+
+    await setPayrollStatus(s.admin.actor, periodId, "review");
+    expect(await code(computePayroll(s.admin.actor, P1))).toBe("CONFLICT"); // revisada: no se recalcula
+    await setPayrollStatus(s.admin.actor, periodId, "reopen");
+    expect(await code(computePayroll(s.admin.actor, P1))).toBe("OK"); // de vuelta en borrador
+    await setPayrollStatus(s.admin.actor, periodId, "review");
+    // Dos cierres simultáneos: solo uno se aplica.
+    const both = await Promise.all([code(setPayrollStatus(s.admin.actor, periodId, "close")), code(setPayrollStatus(s.admin.actor, periodId, "close"))]);
+    expect(both.sort()).toEqual(["CONFLICT", "OK"]);
+
+    expect((await payrollOverview(s.admin.actor, P1)).period?.status).toBe("CLOSED");
+    expect(await code(computePayroll(s.admin.actor, P1))).toBe("CONFLICT");
+    expect(await code(setPayrollStatus(s.admin.actor, periodId, "reopen"))).toBe("CONFLICT");
+
+    const t = await payrollTimeline(s.admin.actor, periodId);
+    expect(t.map((x) => x.action)).toEqual(["payroll.close", "payroll.review", "payroll.compute", "payroll.reopen", "payroll.review", "payroll.compute"]);
+    expect(t[0]!.by).toBe(`Admin liq1`);
+    const closeLog = await db.auditLog.findFirstOrThrow({ where: { companyId: s.company.id, action: "payroll.close" } });
+    expect(closeLog.before).toEqual({ status: "REVIEWED" });
+    expect(closeLog.after).toMatchObject({ status: "CLOSED", start: P1.start, end: P1.end, employees: 1 });
+  });
+
+  it("no deja revisar un período con empleados sin calcular ni uno sin calcular", async () => {
+    const s = await setup("liq2");
+    // Sin empleados con contrato en el período: no hay nada que revisar.
+    const empty = await computePayroll(s.admin.actor, { start: "2024-03-01", end: "2024-03-15" });
+    await expect(setPayrollStatus(s.admin.actor, empty.periodId, "review")).rejects.toMatchObject({ code: "CONFLICT", message: expect.stringContaining("Primero calcula") });
+    // Salario integral: la estimación queda bloqueada.
+    await db.employeeContract.updateMany({ where: { employeeId: s.employee.id }, data: { salaryType: "INTEGRAL" } });
+    const { periodId } = await computePayroll(s.admin.actor, P1);
+    await expect(setPayrollStatus(s.admin.actor, periodId, "review")).rejects.toMatchObject({ code: "CONFLICT", message: expect.stringContaining("sin calcular") });
+    expect((await payslips(s.admin.actor, periodId)).slips).toHaveLength(0);
+    expect(await code(setPayrollStatus(s.admin.actor, "no-es-uuid", "review"))).toBe("NOT_FOUND");
+  });
+
+  it("totales por concepto cuadran con la pre-nómina y los comprobantes salen en PDF", async () => {
+    const s = await setup("liq3");
+    await addManualSession(s.admin.actor, s.employee.id, { date: "2026-10-13", startTime: "08:00", endTime: "17:00", siteId: s.site.id, reason });
+    const { periodId } = await computePayroll(s.admin.actor, P1);
+    const o = await payrollOverview(s.admin.actor, P1);
+    const c = await payrollConceptTotals(s.admin.actor, periodId);
+    expect(c.payNet).toBeCloseTo(o.totals.net, 2);
+    const e = await getPayrollEstimate(s.admin.actor, o.estimates[0]!.id);
+    const sumKind = (k: string) => e.lines.filter((l) => l.kind === k).reduce((a, l) => a + l.amount, 0);
+    expect(c.paySocialSecurity).toBeCloseTo(sumKind("DEDUCCION") + sumKind("APORTE_EMPLEADOR"), 2);
+    expect(c.provisions).toBeCloseTo(sumKind("PROVISION"), 2);
+    expect(c.payNet + c.paySocialSecurity + c.provisions).toBeCloseTo(o.totals.employerCost, 2);
+
+    const all = await payslips(s.admin.actor, periodId);
+    expect(all.slips).toHaveLength(1);
+    expect(all.slips[0]!.lines.every((l) => l.kind === "DEVENGADO" || l.kind === "DEDUCCION")).toBe(true);
+    expect(all.slips[0]!.net).toBe(o.totals.net);
+    expect(all.period.status).toBe("DRAFT");
+    const one = await payslips(s.admin.actor, periodId, o.estimates[0]!.id);
+    expect(one.slips[0]!.employee.documentNumber).toBe(s.employee.documentNumber);
+    const pdf = toPayslipPdf(all, new Date("2026-10-16T15:00:00Z"));
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+
+    // Aislamiento: otra empresa y un empleado no obtienen los comprobantes ni cambian el estado.
+    const other = await setup("liq4");
+    expect(await code(payslips(other.admin.actor, periodId))).toBe("NOT_FOUND");
+    expect(await code(setPayrollStatus(other.admin.actor, periodId, "review"))).toBe("NOT_FOUND");
+    expect((await payrollConceptTotals(other.admin.actor, periodId)).rows).toEqual([]);
+    const emp = await login(s.empUser.email);
+    expect(await code(payslips(emp.actor, periodId))).toBe("FORBIDDEN");
+    expect(await code(setPayrollStatus(emp.actor, periodId, "review"))).toBe("FORBIDDEN");
   });
 });
