@@ -87,6 +87,8 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
   ]);
   const passkeys = binding?.status === "ACTIVE" ? await passkeysForBinding(actor.userId, binding.id) : [];
   const canRelink = !binding && !!(await relinkableBinding(actor.userId, employeeId));
+  // Ya tiene un celular activo pero este navegador no lo recuerda (p. ej. la ventana que abre la cámara del iPhone).
+  const hasOtherDevice = !binding && (await db.deviceBinding.count({ where: { employeeId, status: "ACTIVE" } })) > 0;
   const stale = open && Date.now() - open.startAt.getTime() > STALE_SESSION_HOURS * 3600_000;
   return {
     valid: true as const,
@@ -97,6 +99,7 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
     device: binding ? { status: binding.status, label: binding.label } : null,
     passkeyRequired: passkeys.length > 0,
     canRelink,
+    hasOtherDevice,
     next: open && !stale ? ("OUT" as const) : ("IN" as const),
     openSince: open && !stale ? open.startAt : null,
     openSiteName: open && !stale ? open.site.name : null,

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Fingerprint, QrCode, Smartphone } from "lucide-react";
+import { Fingerprint, Smartphone } from "lucide-react";
 import { DeviceRelink } from "@/components/employee/device-relink";
 import { PasskeySetup } from "@/components/employee/passkey-setup";
 import { PunchCard, type PunchState } from "@/components/employee/punch-card";
+import { QrScanButton } from "@/components/employee/qr-scanner";
 import { db } from "@/lib/db";
 import { formatMinutes, formatTime, greeting } from "@/lib/utils";
 import { employeeToday } from "@/server/attendance";
@@ -40,15 +41,7 @@ export default async function EmployeeHomePage() {
         siteName={h.siteName}
         schedule={schedule}
         state={state}
-        action={
-          <div className="flex items-center gap-4 rounded-2xl border border-dashed border-border-strong bg-surface p-5">
-            <QrCode className="size-10 shrink-0 text-primary" aria-hidden />
-            <div>
-              <p className="font-medium">{today.open ? "Para salir, escanea el QR de la sede" : "Para entrar, escanea el QR de tu sede"}</p>
-              <p className="mt-0.5 text-sm text-fg-muted">Abre la cámara del celular y apunta al código pegado en la entrada.</p>
-            </div>
-          </div>
-        }
+        action={<QrScanButton working={!!today.open} />}
       />
       {h.todayShifts.length > 1 && (
         <p className="mt-3 text-sm text-fg-muted">

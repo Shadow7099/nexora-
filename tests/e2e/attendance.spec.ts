@@ -176,7 +176,9 @@ test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", a
   const p2 = await phone2.newPage();
   await login(p2, who);
   await p2.goto(`/m/${qrCentro}`);
-  await p2.getByRole("button", { name: "Vincular este celular" }).click();
+  // Explica que puede ser la ventana de la cámara y ofrece vincularlo como celular nuevo.
+  await expect(p2.getByText("Esta ventana no reconoce tu celular")).toBeVisible();
+  await p2.getByRole("button", { name: "Vincular como celular nuevo" }).click();
   await expect(p2.getByText("Celular pendiente de aprobación")).toBeVisible();
 
   const adminCtx = await browser.newContext();
@@ -193,4 +195,39 @@ test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", a
   await expect(page.getByText("Este celular fue desvinculado")).toBeVisible();
   await phone2.close();
   await adminCtx.close();
+});
+
+test("desde el inicio del empleado, «Marcar entrada» abre la cámara, lee el QR de la sede y lleva a la marcación", async ({ playwright }, info) => {
+  test.skip(info.project.name !== "escritorio", "Usa su propio navegador con cámara simulada");
+  // Video falso de la cámara: el QR real de la sede (como el impreso en la entrada).
+  // Ruta sin tildes ni espacios: Chromium no abre el video falso si la ruta los tiene.
+  const { mkdtempSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(`${tmpdir()}/nexora-camara-`);
+  const { execFileSync } = await import("node:child_process");
+  const QRCode = (await import("qrcode")).default;
+  await QRCode.toFile(`${dir}/qr.png`, `https://asistencia.ejemplo.co/m/${qrCentro}`, { width: 480, margin: 4 });
+  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-loop", "1", "-i", `${dir}/qr.png`, "-vf", "pad=640:480:(ow-iw)/2:(oh-ih)/2:white,format=yuv420p", "-t", "2", "-r", "10", `${dir}/qr.y4m`]);
+
+  const browser = await playwright.chromium.launch({
+    ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
+    args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", `--use-file-for-fake-video-capture=${dir}/qr.y4m`],
+  });
+  const context = await browser.newContext({ baseURL: test.info().project.use.baseURL, geolocation: CENTRO, permissions: ["geolocation", "camera"] });
+  const page = await context.newPage();
+  try {
+    await login(page, "laura");
+    await page.goto("/app");
+    await page.getByRole("button", { name: /Marcar (entrada|salida)/ }).click();
+    await expect(page.getByRole("dialog", { name: /escanear el QR de la sede/ })).toBeVisible();
+    // Lee el QR y abre la marcación en ESTE sitio (aunque el QR traiga otro dominio).
+    await page.waitForURL(new RegExp(`/m/${qrCentro}$`), { timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Vincular (este celular|como celular nuevo)|Registrar (entrada|salida)/ })).toBeVisible();
+  } catch (e) {
+    await page.screenshot({ path: test.info().outputPath("camara.png") }).catch(() => {});
+    throw e;
+  } finally {
+    await browser.close();
+  }
 });

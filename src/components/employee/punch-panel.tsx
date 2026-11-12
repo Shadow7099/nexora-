@@ -19,6 +19,8 @@ type Props = {
   passkeyRequired: boolean;
   /** Ya tiene un celular con huella: puede reconocerlo con la huella en vez de vincular uno nuevo. */
   canRelink?: boolean;
+  /** Ya hay un celular activo que este navegador no recuerda. */
+  hasOtherDevice?: boolean;
 };
 
 type Step = "idle" | "locating" | "verifying" | "saving";
@@ -41,7 +43,7 @@ const stepText: Record<Exclude<Step, "idle">, { icon: typeof MapPin; text: strin
   saving: { icon: Loader2, text: "Registrando…" },
 };
 
-export function PunchPanel({ publicCode, next, timezone, requireDevice, device, passkeyRequired, canRelink = false }: Props) {
+export function PunchPanel({ publicCode, next, timezone, requireDevice, device, passkeyRequired, canRelink = false, hasOtherDevice = false }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [result, setResult] = useState<PunchActionResult | null>(null);
@@ -75,12 +77,25 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
         <div className="flex items-start gap-3">
           <Smartphone className="mt-0.5 size-5 text-primary" aria-hidden />
           <div>
-            <p className="font-medium">Vincula este celular</p>
-            <p className="mt-1 text-sm text-fg-muted">Solo podrás marcar desde tu propio celular. Si es tu primer celular, queda listo de inmediato.</p>
+            {hasOtherDevice ? (
+              <>
+                <p className="font-medium">Esta ventana no reconoce tu celular</p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  Si abriste el QR con la cámara del celular, se abrió una ventana aparte que no recuerda tu celular ya vinculado. Abre Nexora en tu
+                  navegador (Safari o Chrome), donde ya ingresaste, y toca <strong className="font-medium text-fg">Marcar entrada</strong>: la cámara se abre ahí mismo.
+                </p>
+                <p className="mt-2 text-sm text-fg-muted">¿Cambiaste de celular? Vincúlalo aquí y tu administrador lo aprueba.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium">Vincula este celular</p>
+                <p className="mt-1 text-sm text-fg-muted">Solo podrás marcar desde tu propio celular. Si es tu primer celular, queda listo de inmediato.</p>
+              </>
+            )}
           </div>
         </div>
-        <Button size="lg" loading={binding} onClick={() => startBinding(async () => { await bindDeviceAction(); router.refresh(); })}>
-          Vincular este celular
+        <Button size="lg" variant={hasOtherDevice ? "secondary" : "primary"} loading={binding} onClick={() => startBinding(async () => { await bindDeviceAction(); router.refresh(); })}>
+          {hasOtherDevice ? "Vincular como celular nuevo" : "Vincular este celular"}
         </Button>
       </div>
     );
