@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { formatMinutes, formatTime } from "@/lib/utils";
 
 type Props = {
-  publicCode: string;
+  /** QR escaneado. Sin él (inicio de la app) se marca en la sede más cercana. */
+  publicCode?: string;
   next: "IN" | "OUT";
   timezone: string;
   requireDevice: boolean;

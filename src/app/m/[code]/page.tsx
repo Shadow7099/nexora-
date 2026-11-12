@@ -61,6 +61,10 @@ export default async function QrPage({ params }: PageProps<"/m/[code]">) {
           />
         }
       />
+      <p className="mt-4 rounded-xl bg-bg-subtle px-4 py-3 text-center text-sm text-fg-muted">
+        No necesitas escanear el QR cada vez: la próxima, abre Nexora y marca desde{" "}
+        <Link href="/app" className="font-medium text-primary underline-offset-2 hover:underline">Inicio</Link>. Tu sesión queda guardada en este celular.
+      </p>
       {ctx.openSiteName && ctx.openSiteName !== ctx.siteName && (
         <p className="mt-3 text-center text-xs text-warning">Tu entrada fue en {ctx.openSiteName}. La salida en otra sede queda para revisión.</p>
       )}

@@ -2,7 +2,7 @@ import "server-only";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import * as z from "zod";
 import { db } from "@/lib/db";
-import { evaluateLocation, type GeoInput } from "@/lib/geo";
+import { distanceMeters, evaluateLocation, type GeoInput } from "@/lib/geo";
 import { currentOrNextShift, localDate, shiftsOn, zonedTimeToUtc } from "@/lib/schedule";
 import { Prisma } from "@/generated/prisma/client";
 import type { AttemptReason } from "@/generated/prisma/enums";
@@ -77,11 +77,13 @@ async function openSession(employeeId: string) {
   return db.workSession.findFirst({ where: { employeeId, status: "OPEN" }, include: { site: { select: { name: true } } } });
 }
 
-/** Información para la página del QR (sin registrar nada). */
-export async function qrContext(actor: Actor, publicCode: string, deviceToken: string | undefined) {
-  const { companyId, employeeId } = requireEmployee(actor);
-  const r = await resolveQr(publicCode, companyId);
-  if (r.error) return { valid: false as const, message: reasonMessage[r.error] };
+/**
+ * Estado del celular y de la jornada del empleado (sin registrar nada): si este
+ * navegador está vinculado, si debe activar huella o Face ID, si puede
+ * reconocerse con ella, y si lo siguiente es entrada o salida.
+ */
+export async function employeeDeviceContext(actor: Actor, deviceToken: string | undefined) {
+  const { employeeId } = requireEmployee(actor);
   const [binding, open, employee] = await Promise.all([
     findBinding(employeeId, deviceToken),
     openSession(employeeId),
@@ -89,14 +91,12 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
   ]);
   const passkeys = binding?.status === "ACTIVE" ? await passkeysForBinding(actor.userId, binding.id) : [];
   const canRelink = !binding && !!(await relinkableBinding(actor.userId, employeeId));
-  // Ya tiene un celular activo pero este navegador no lo recuerda (p. ej. la ventana que abre la cámara del iPhone).
   const passkeyExempt = binding?.status === "ACTIVE" && isPasskeyExempt(binding.label);
   const needsPasskeySetup = employee.company.requireDeviceBinding && binding?.status === "ACTIVE" && passkeys.length === 0 && !passkeyExempt;
+  // Ya tiene un celular activo pero este navegador no lo recuerda (p. ej. la ventana que abre la cámara del iPhone).
   const hasOtherDevice = !binding && (await db.deviceBinding.count({ where: { employeeId, status: "ACTIVE" } })) > 0;
   const stale = open && Date.now() - open.startAt.getTime() > STALE_SESSION_HOURS * 3600_000;
   return {
-    valid: true as const,
-    siteName: r.site.name,
     firstName: employee.firstName,
     timezone: employee.company.timezone,
     requireDevice: employee.company.requireDeviceBinding,
@@ -109,6 +109,14 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
     openSince: open && !stale ? open.startAt : null,
     openSiteName: open && !stale ? open.site.name : null,
   };
+}
+
+/** Información para la página del QR (sin registrar nada). */
+export async function qrContext(actor: Actor, publicCode: string, deviceToken: string | undefined) {
+  const { companyId } = requireEmployee(actor);
+  const r = await resolveQr(publicCode, companyId);
+  if (r.error) return { valid: false as const, message: reasonMessage[r.error] };
+  return { valid: true as const, siteName: r.site.name, ...(await employeeDeviceContext(actor, deviceToken)) };
 }
 
 async function logAttempt(
@@ -129,6 +137,50 @@ async function logAttempt(
     },
   });
   return { ok: false, reason, message: reasonMessage[reason], distance: (detail.distance as number | null | undefined) ?? undefined };
+}
+
+class ConcurrentPunch extends Error {}
+
+export const appPunchSchema = z.object({
+  idempotencyKey: z.uuid(),
+  position: z.object({ lat: z.number(), lng: z.number(), accuracy: z.number().min(0) }).nullable(),
+});
+
+/**
+ * Marcar desde la app, sin escanear el QR: el QR solo hace falta la primera vez
+ * para entrar. Se usa la sede activa más cercana a la ubicación del celular (o
+ * la sede habitual si no hay ubicación) y su QR vigente, y se aplican las mismas
+ * validaciones que al escanear: celular vinculado, huella o Face ID, ubicación
+ * dentro del radio de esa sede, duplicados y hora del servidor.
+ */
+export async function punchFromApp(
+  actor: Actor,
+  rawInput: unknown,
+  ctx: { deviceToken?: string; passkeyResponse?: AuthenticationResponseJSON; rp: RelyingParty; userAgent?: string | null; now?: Date },
+): Promise<PunchResult> {
+  const { companyId, employeeId } = requireEmployee(actor);
+  const parsed = appPunchSchema.safeParse(rawInput);
+  if (!parsed.success) return logAttempt(actor, "OTHER", null, { invalidInput: true }, ctx.userAgent);
+  const { position } = parsed.data;
+  const [sites, employee] = await Promise.all([
+    db.site.findMany({
+      where: { companyId, active: true },
+      select: { id: true, latitude: true, longitude: true, qrCodes: { where: { revokedAt: null }, orderBy: { version: "desc" }, take: 1, select: { publicCode: true } } },
+    }),
+    db.employee.findUniqueOrThrow({ where: { id: employeeId }, select: { defaultSiteId: true } }),
+  ]);
+  const withQr = sites.filter((x) => x.qrCodes[0]);
+  if (withQr.length === 0) {
+    await logAttempt(actor, "OTHER", null, { noActiveSite: true }, ctx.userAgent);
+    return { ok: false, reason: "OTHER", message: "Tu empresa aún no tiene una sede activa con QR. Avísale a tu administrador." };
+  }
+  const site = position
+    ? withQr.reduce((best, x) => {
+        const d = (y: typeof x) => distanceMeters(position, { lat: Number(y.latitude), lng: Number(y.longitude) });
+        return d(x) < d(best) ? x : best;
+      })
+    : (withQr.find((x) => x.id === employee.defaultSiteId) ?? withQr[0]!);
+  return punch(actor, { publicCode: site.qrCodes[0]!.publicCode, idempotencyKey: parsed.data.idempotencyKey, position }, ctx);
 }
 
 export const punchSchema = z.object({
@@ -231,6 +283,11 @@ export async function punch(
 
   try {
     const result = await db.$transaction(async (tx) => {
+      // Una marcación a la vez por empleado: dos toques simultáneos se ordenan y el
+      // segundo ve al primero (si no, uno registraba la entrada y el otro la salida).
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${employeeId}))`;
+      const lastInTx = await tx.attendanceEvent.findFirst({ where: { employeeId }, orderBy: { occurredAt: "desc" }, select: { occurredAt: true } });
+      if (lastInTx && now.getTime() - lastInTx.occurredAt.getTime() < MIN_SECONDS_BETWEEN_PUNCHES * 1000) throw new ConcurrentPunch();
       let open = await tx.workSession.findFirst({ where: { employeeId, status: "OPEN" } });
       let staleClosed = false;
       // Jornada olvidada: pasa a revisión sin inventar hora de salida; esta marcación abre una nueva.
@@ -267,8 +324,8 @@ export async function punch(
     }
     return result;
   } catch (e) {
-    // Dos solicitudes simultáneas: el índice único "una jornada abierta por empleado" rechaza la segunda.
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    // Dos solicitudes simultáneas: el bloqueo o el índice único "una jornada abierta por empleado" rechaza la segunda.
+    if (e instanceof ConcurrentPunch || (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) {
       return logAttempt(actor, "DUPLICATE_PUNCH", site.id, { concurrent: true }, ctx.userAgent);
     }
     throw e;

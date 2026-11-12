@@ -128,6 +128,19 @@ test("fuera del área de la sede: rechazada y visible para el administrador", as
   await page.getByRole("button", { name: /Registrar (entrada|salida)/ }).click();
   await expect(page.getByRole("alert").filter({ hasText: "fuera del área" })).toBeVisible();
 
+  // Escaneó el QR una vez: desde ahora marca desde Inicio, sin QR ni credenciales.
+  // La dirección principal lo lleva directo a su inicio.
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/app$/);
+  await page.getByRole("button", { name: "Registrar entrada" }).click(); // lejos: rechazada igual que con QR
+  await expect(page.getByRole("alert").filter({ hasText: "fuera del área" })).toBeVisible();
+  await context.setGeolocation(CENTRO);
+  await page.getByRole("button", { name: "Registrar entrada" }).click();
+  await expect(page.getByText("Entrada registrada")).toBeVisible();
+  await expect(page.getByText("Villavicencio Centro").first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/En jornada desde/)).toBeVisible();
+
   const adminCtx = await browser.newContext();
   const admin = await adminCtx.newPage();
   await login(admin, "admin");
@@ -221,7 +234,7 @@ test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", a
   await adminCtx.close();
 });
 
-test("desde el inicio del empleado, «Marcar entrada» abre la cámara, lee el QR de la sede y lleva a la marcación", async ({ playwright }, info) => {
+test("desde el inicio del empleado, «Escanea el QR de la sede» abre la cámara, lee el QR y lleva a la marcación", async ({ playwright }, info) => {
   test.skip(info.project.name !== "escritorio", "Usa su propio navegador con cámara simulada");
   // Video falso de la cámara: el QR real de la sede (como el impreso en la entrada).
   // Ruta sin tildes ni espacios: Chromium no abre el video falso si la ruta los tiene.
@@ -242,7 +255,7 @@ test("desde el inicio del empleado, «Marcar entrada» abre la cámara, lee el Q
   try {
     await login(page, "laura");
     await page.goto("/app");
-    await page.getByRole("button", { name: /Marcar (entrada|salida)/ }).click();
+    await page.getByRole("button", { name: /Escanea el QR de la sede/ }).click();
     await expect(page.getByRole("dialog", { name: /escanear el QR de la sede/ })).toBeVisible();
     // Lee el QR y abre la marcación en ESTE sitio (aunque el QR traiga otro dominio).
     await page.waitForURL(new RegExp(`/m/${qrCentro}$`), { timeout: 15_000 });

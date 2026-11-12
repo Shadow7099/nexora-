@@ -6,7 +6,7 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
-import { attendanceDay, employeeHistory, PASSKEY_MISSING_MESSAGE, punch, qrContext, STALE_SESSION_HOURS } from "@/server/attendance";
+import { attendanceDay, employeeDeviceContext, employeeHistory, PASSKEY_MISSING_MESSAGE, punch, punchFromApp, qrContext, STALE_SESSION_HOURS } from "@/server/attendance";
 import { addRelinkedWindow, approveDevice, bindDevice, findBinding, listDevices, MAX_RELINKED_WINDOWS, revokeDevice, setPasskeyExemption } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import { login, makeCompany } from "../support/fixtures";
@@ -296,5 +296,48 @@ describe("ubicación de la sede", () => {
     expect(await code(updateSiteLocation(b.admin.actor, a.site.id, { latitude: 0, longitude: 0, radiusMeters: 50 }))).toBe("NOT_FOUND");
     expect(await code(updateSiteLocation(a.emp.actor, a.site.id, { latitude: 0, longitude: 0, radiusMeters: 50 }))).toBe("FORBIDDEN");
     expect(await code(updateSiteLocation(a.admin.actor, a.site.id, { latitude: 4, longitude: -73, radiusMeters: 5 }))).toBe("VALIDATION");
+  });
+});
+
+describe("marcar desde la app, sin escanear el QR", () => {
+  it("usa la sede más cercana con las mismas validaciones (ubicación, celular, huella)", async () => {
+    const s = await setup("app1");
+    // Segunda sede a ~5 km: la cercana es la del fixture.
+    const far = await db.site.create({ data: { companyId: s.company.id, name: "Sede lejana", address: "Dir", city: "Ciudad", latitude: 4.185, longitude: -73.62 } });
+    await db.siteQrCode.create({ data: { companyId: s.company.id, siteId: far.id, publicCode: `qr${randomUUID().replace(/-/g, "").slice(0, 16)}`, version: 1 } });
+    const fromApp = (o: { meters?: number; now?: Date; token?: string; position?: null } = {}) =>
+      punchFromApp(
+        s.emp.actor,
+        { idempotencyKey: randomUUID(), position: o.position === null ? null : at(o.meters ?? 10) },
+        { deviceToken: o.token ?? s.device.token, rp, now: o.now ?? t0 },
+      );
+
+    expect(await fromApp()).toMatchObject({ ok: true, type: "IN", siteName: s.site.name });
+    // Cerca de la sede lejana: marca la salida allí (queda para revisión por ser otra sede).
+    const out = await punchFromApp(s.emp.actor, { idempotencyKey: randomUUID(), position: { lat: 4.185, lng: -73.62, accuracy: 10 } }, { deviceToken: s.device.token, rp, now: plus(8 * 60) });
+    expect(out).toMatchObject({ ok: true, type: "OUT", siteName: "Sede lejana" });
+
+    // Lejos de todas: rechazada por estar fuera del área (de la sede más cercana).
+    expect(await fromApp({ meters: 1500, now: plus(9 * 60) })).toMatchObject({ ok: false, reason: "OUTSIDE_RADIUS" });
+    // Sin ubicación: rechazada, registrada en su sede habitual.
+    expect(await fromApp({ position: null, now: plus(10 * 60) })).toMatchObject({ ok: false, reason: "LOCATION_DENIED" });
+    const denied = await db.attendanceAttempt.findFirstOrThrow({ where: { userId: s.empUser.id, reason: "LOCATION_DENIED" } });
+    expect(denied.siteId).toBe(s.site.id);
+    // Sin celular vinculado tampoco se marca desde la app.
+    expect(await fromApp({ token: "otro-navegador", now: plus(11 * 60) })).toMatchObject({ ok: false, reason: "DEVICE_NOT_BOUND" });
+  });
+
+  it("exige huella o Face ID igual que el QR, y avisa si la empresa no tiene sedes con QR", async () => {
+    const s = await setup("app2", { passkeyExempt: false });
+    expect(await punchFromApp(s.emp.actor, { idempotencyKey: randomUUID(), position: at(10) }, { deviceToken: s.device.token, rp, now: t0 })).toMatchObject({
+      ok: false, reason: "PASSKEY_FAILED", message: PASSKEY_MISSING_MESSAGE,
+    });
+    const ctx = await employeeDeviceContext(s.emp.actor, s.device.token);
+    expect(ctx).toMatchObject({ needsPasskeySetup: true, next: "IN", device: { status: "ACTIVE" } });
+
+    await db.siteQrCode.updateMany({ where: { companyId: s.company.id }, data: { revokedAt: new Date() } });
+    const r = await punchFromApp(s.emp.actor, { idempotencyKey: randomUUID(), position: at(10) }, { deviceToken: s.device.token, rp, now: t0 });
+    expect(r).toMatchObject({ ok: false, reason: "OTHER", message: expect.stringContaining("sede activa") });
+    expect(await code(punchFromApp(s.admin.actor, {}, { rp }))).toBe("FORBIDDEN");
   });
 });

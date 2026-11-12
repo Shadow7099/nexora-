@@ -36,10 +36,11 @@ Después de 5 intentos fallidos la cuenta se bloquea 15 minutos. Si hay muchos i
 
 ### Marcar entrada y salida
 
-1. En la entrada de la sede, abra Nexora y toque **Marcar entrada** (o **Marcar salida**): se abre la cámara dentro de Nexora; apunte al QR pegado en la entrada y se lee solo. También puede escanear el QR con la cámara del celular (si no tiene sesión, ingrese y volverá al QR).
-   - **En iPhone:** es mejor el botón **Marcar entrada**. La ventana que abre la cámara del iPhone no recuerda el celular: la primera vez pide **Confirmar con huella o Face ID** en esa ventana.
+1. **Solo la primera vez**, escanee el QR de la entrada de la sede e ingrese con su correo y contraseña. La sesión queda guardada en el celular (no se vuelve a pedir mientras la use).
+   - **Las siguientes veces no hace falta escanear:** abra Nexora (la dirección principal lleva directo a su Inicio) y toque **Registrar entrada** o **Registrar salida**. Nexora usa la sede más cercana a su ubicación. Si el celular no lo ubica, use **¿No te ubica? Escanea el QR de la sede**.
+   - **En iPhone:** si escanea con la cámara, se abre una ventana aparte; la primera vez pide **Confirmar con huella o Face ID** en esa ventana.
 2. **La primera vez:** toque **Vincular este celular** y luego **Activar huella o Face ID** (obligatorio). Solo podrá marcar desde ese celular. Si ya tenía otro vinculado, el nuevo queda pendiente hasta que el administrador lo apruebe y después también activa su huella o Face ID.
-3. Toque **Registrar entrada** (o **Registrar salida**). El celular pide permiso de **ubicación**: debe estar dentro del área de la sede.
+3. Toque **Registrar entrada** (o **Registrar salida**), en Inicio o en la pantalla del QR. El celular pide permiso de **ubicación**: debe estar dentro del área de la sede.
 4. El celular le pide su **huella o Face ID** (en algunos celulares, el PIN del celular).
 5. Verá la confirmación con la hora. **La hora la pone el servidor**, no el celular.
 

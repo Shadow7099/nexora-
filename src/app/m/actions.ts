@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
-import { punch } from "@/server/attendance";
+import { punch, punchFromApp } from "@/server/attendance";
 import { getDeviceToken, getRelyingParty, getUserAgent, requireActor, setDeviceCookie } from "@/server/current";
 import { bindDevice, findBinding } from "@/server/devices";
 import { AppError } from "@/server/errors";
@@ -46,12 +46,13 @@ export type PunchActionResult =
   | { ok: true; type: "IN" | "OUT"; at: string; siteName: string; flagged: boolean; workedMinutes?: number; staleClosed?: boolean }
   | { ok: false; message: string };
 
+/** Marca. Con `publicCode` (escaneó el QR) usa esa sede; sin él (botón de la app), la sede más cercana. */
 export async function punchAction(
-  input: { publicCode: string; idempotencyKey: string; position: { lat: number; lng: number; accuracy: number } | null },
+  input: { publicCode?: string; idempotencyKey: string; position: { lat: number; lng: number; accuracy: number } | null },
   passkeyResponse?: AuthenticationResponseJSON,
 ): Promise<PunchActionResult> {
   const actor = await employee();
-  const r = await punch(actor, input, {
+  const r = await (input.publicCode ? punch : punchFromApp)(actor, input, {
     deviceToken: await getDeviceToken(),
     passkeyResponse,
     rp: await getRelyingParty(),

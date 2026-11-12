@@ -1,25 +1,24 @@
 import type { Metadata } from "next";
-import { Fingerprint, Smartphone } from "lucide-react";
-import { DeviceRelink } from "@/components/employee/device-relink";
-import { PasskeySetup } from "@/components/employee/passkey-setup";
+import { Fingerprint } from "lucide-react";
 import { PunchCard, type PunchState } from "@/components/employee/punch-card";
+import { PunchPanel } from "@/components/employee/punch-panel";
 import { QrScanButton } from "@/components/employee/qr-scanner";
 import { formatMinutes, formatTime, greeting } from "@/lib/utils";
-import { employeeToday } from "@/server/attendance";
+import { employeeDeviceContext, employeeToday } from "@/server/attendance";
 import { getDeviceToken, requireActor } from "@/server/current";
-import { findBinding, isPasskeyExempt, relinkableBinding } from "@/server/devices";
 import { employeeHome } from "@/server/overview";
-import { passkeysForBinding } from "@/server/passkeys";
 
 export const metadata: Metadata = { title: "Inicio" };
 
+/**
+ * Inicio del empleado: marca aquí mismo, sin escanear el QR (el QR solo hace
+ * falta la primera vez para entrar). Pide ubicación y huella o Face ID.
+ */
 export default async function EmployeeHomePage() {
   const actor = await requireActor({ roles: ["EMPLOYEE"] });
   const now = new Date();
-  const [h, today, binding] = await Promise.all([employeeHome(actor, now), employeeToday(actor, now), findBinding(actor.employeeId!, await getDeviceToken())]);
+  const [h, today, ctx] = await Promise.all([employeeHome(actor, now), employeeToday(actor, now), employeeDeviceContext(actor, await getDeviceToken())]);
   const tz = h.timezone;
-  const canRelink = !binding && !!(await relinkableBinding(actor.userId, actor.employeeId!));
-  const passkeys = binding?.status === "ACTIVE" ? (await passkeysForBinding(actor.userId, binding.id)).length : 0;
   const schedule = h.shift ? `${formatTime(h.shift.start, tz)} – ${formatTime(h.shift.end, tz)}` : "Hoy no tienes turno programado";
 
   const state: PunchState = today.open
@@ -41,33 +40,32 @@ export default async function EmployeeHomePage() {
         siteName={h.siteName}
         schedule={schedule}
         state={state}
-        action={<QrScanButton working={!!today.open} />}
+        action={
+          <div className="grid gap-3">
+            <PunchPanel
+              timezone={ctx.timezone}
+              next={ctx.next}
+              requireDevice={ctx.requireDevice}
+              device={ctx.device}
+              passkeyRequired={ctx.passkeyRequired}
+              canRelink={ctx.canRelink}
+              hasOtherDevice={ctx.hasOtherDevice}
+              needsPasskeySetup={ctx.needsPasskeySetup}
+            />
+            <QrScanButton working={ctx.next === "OUT"} compact />
+          </div>
+        }
       />
       {h.todayShifts.length > 1 && (
         <p className="mt-3 text-sm text-fg-muted">
           Hoy tienes turno partido: {h.todayShifts.map((s) => `${formatTime(s.start, tz)}–${formatTime(s.end, tz)}`).join(" y ")}
         </p>
       )}
-      <div className="mt-6 grid gap-3">
-        {canRelink && (
-          <div className="grid gap-3 rounded-2xl border border-border bg-surface p-5 shadow-card">
-            <p className="flex items-center gap-2 font-medium"><Fingerprint className="size-4 text-primary" aria-hidden /> Este navegador no recuerda tu celular</p>
-            <p className="text-sm text-fg-muted">Confírmalo con tu huella o Face ID para marcar sin pedir aprobación. Solo se pide una vez en esta ventana.</p>
-            <DeviceRelink />
-          </div>
-        )}
-        {binding?.status === "ACTIVE" && passkeys === 0 && !isPasskeyExempt(binding.label) && <PasskeySetup required={h.requireDevice} />}
-        {binding?.status === "ACTIVE" && passkeys > 0 && (
-          <p className="flex items-center gap-2 rounded-xl bg-success-soft px-4 py-3 text-sm text-success" role="status">
-            <Fingerprint className="size-4" aria-hidden /> Huella o Face ID activado en este celular. Te lo pediremos al marcar.
-          </p>
-        )}
-        {binding?.status === "PENDING" && (
-          <p className="flex items-start gap-2 rounded-xl bg-warning-soft px-4 py-3 text-sm text-fg">
-            <Smartphone className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden /> Este celular está pendiente de aprobación por tu administrador.
-          </p>
-        )}
-      </div>
+      {ctx.device?.status === "ACTIVE" && ctx.passkeyRequired && (
+        <p className="mt-6 flex items-center gap-2 rounded-xl bg-success-soft px-4 py-3 text-sm text-success" role="status">
+          <Fingerprint className="size-4" aria-hidden /> Huella o Face ID activado en este celular. Te lo pediremos al marcar.
+        </p>
+      )}
     </>
   );
 }

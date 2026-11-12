@@ -26,7 +26,7 @@ export function qrPath(text: string): string | null {
 type Status = { kind: "idle" } | { kind: "starting" } | { kind: "scanning" } | { kind: "found" } | { kind: "error"; message: string };
 
 /** Botón «Marcar entrada/salida»: abre la cámara dentro de Nexora y lee el QR de la sede. */
-export function QrScanButton({ working }: { working: boolean }) {
+export function QrScanButton({ working, compact = false }: { working: boolean; compact?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -126,10 +126,18 @@ export function QrScanButton({ working }: { working: boolean }) {
 
   return (
     <>
-      <Button ref={buttonRef} size="lg" className="h-14 w-full text-base" onClick={() => setOpen(true)}>
-        {working ? <LogOut aria-hidden /> : <LogIn aria-hidden />} {label}
-      </Button>
-      <p className="mt-2 text-center text-xs text-fg-muted">Se abre la cámara: apunta al QR pegado en la entrada de la sede.</p>
+      {compact ? (
+        <Button ref={buttonRef} variant="ghost" size="sm" className="justify-self-center text-fg-muted" onClick={() => setOpen(true)}>
+          <Camera aria-hidden /> ¿No te ubica? Escanea el QR de la sede
+        </Button>
+      ) : (
+        <>
+          <Button ref={buttonRef} size="lg" className="h-14 w-full text-base" onClick={() => setOpen(true)}>
+            {working ? <LogOut aria-hidden /> : <LogIn aria-hidden />} {label}
+          </Button>
+          <p className="mt-2 text-center text-xs text-fg-muted">Se abre la cámara: apunta al QR pegado en la entrada de la sede.</p>
+        </>
+      )}
 
       {open && createPortal(
         <div role="dialog" aria-modal="true" aria-label={`${label}: escanear el QR de la sede`} className="fixed inset-0 z-50 flex flex-col bg-black text-white">

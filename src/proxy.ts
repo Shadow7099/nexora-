@@ -7,8 +7,14 @@ const COOKIES = ["__Host-nexora_session", "nexora_session"];
 
 export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  const hasSession = COOKIES.some((c) => req.cookies.has(c));
+  // Con sesión, la dirección principal lleva a la cuenta (no a la página de ventas).
+  // ?ver=inicio deja ver la página de ventas igual.
+  if (pathname === "/" && hasSession && req.nextUrl.searchParams.get("ver") !== "inicio") {
+    return NextResponse.redirect(new URL("/inicio", req.url));
+  }
   const isPrivate = PRIVATE.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  if (isPrivate && !COOKIES.some((c) => req.cookies.has(c))) {
+  if (isPrivate && !hasSession) {
     const url = new URL("/ingresar", req.url);
     url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
