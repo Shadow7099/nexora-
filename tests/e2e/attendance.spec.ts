@@ -51,13 +51,23 @@ async function login(page: Page, user: string) {
   }
 }
 
+const withAuthenticator = new WeakSet<Page>();
+
+/** Vincula el celular y activa la huella/Face ID (obligatoria): la simula el autenticador virtual de Chrome. */
 async function bindThisPhone(page: Page) {
+  if (!withAuthenticator.has(page)) await addVirtualAuthenticator(page.context(), page);
   await page.goto(`/m/${qrCentro}`);
   await page.getByRole("button", { name: "Vincular este celular" }).click();
+  // Sin huella o Face ID todavía no se puede marcar.
+  await expect(page.getByText("Activa tu huella o Face ID para marcar")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Registrar (entrada|salida)/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Activar huella o Face ID" }).click();
   await expect(page.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
+  await expect(page.getByText("Te pediremos tu huella o Face ID")).toBeVisible();
 }
 
 async function addVirtualAuthenticator(context: BrowserContext, page: Page) {
+  withAuthenticator.add(page);
   const cdp = await context.newCDPSession(page);
   await cdp.send("WebAuthn.enable");
   await cdp.send("WebAuthn.addVirtualAuthenticator", {
@@ -134,11 +144,10 @@ test("con huella activada, la marcación se confirma con passkey", async ({ page
   await bindThisPhone(page);
 
   await page.goto("/app");
-  await page.getByRole("button", { name: "Activar huella" }).click();
-  await expect(page.getByText("Huella activada")).toBeVisible();
+  await expect(page.getByText("Huella o Face ID activado en este celular")).toBeVisible();
 
   await page.goto(`/m/${qrCentro}`);
-  await expect(page.getByText("Te pediremos tu huella o rostro")).toBeVisible();
+  await expect(page.getByText("Te pediremos tu huella o Face ID")).toBeVisible();
   await page.getByRole("button", { name: /Registrar (entrada|salida)/ }).click();
   await expect(page.getByText(/(Entrada|Salida) registrada/)).toBeVisible();
 
@@ -149,19 +158,31 @@ test("con huella activada, la marcación se confirma con passkey", async ({ page
   );
   expect(ev!.verification).toBe("PASSKEY");
 
-  // El navegador olvida el celular (en iPhone pasa al alternar Safari y el ícono de inicio):
-  // se reconoce con la misma huella, sin crear un celular pendiente de aprobación.
+  // Otra ventana del mismo celular (en iPhone: Safari, el ícono de inicio o la ventana que abre la cámara
+  // no comparten cookies): se reconoce con la misma huella, sin crear un celular pendiente de aprobación.
+  const safariCookie = (await context.cookies()).find((c) => /nexora_device/.test(c.name))!;
   await context.clearCookies({ name: /nexora_device/ });
   await page.goto(`/m/${qrCentro}`);
   await expect(page.getByText("Confirma que es tu celular")).toBeVisible();
-  await page.getByRole("button", { name: "Reconocer este celular con mi huella" }).click();
+  await page.getByRole("button", { name: "Confirmar con huella o Face ID" }).click();
   await expect(page.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
-  await expect(page.getByText("Te pediremos tu huella o rostro")).toBeVisible();
-  const bindings = await sql<{ status: string }>(
-    `SELECT d.status FROM device_binding d JOIN employee e ON e.id = d.employee_id JOIN app_user u ON u.id = e.user_id WHERE u.email = $1`,
+  await expect(page.getByText("Te pediremos tu huella o Face ID")).toBeVisible();
+
+  // Volver a la primera ventana NO pide confirmar otra vez (antes cada ventana anulaba a la otra).
+  await context.addCookies([safariCookie]);
+  await page.goto(`/m/${qrCentro}`);
+  await expect(page.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
+  await expect(page.getByText("Confirma que es tu celular")).toHaveCount(0);
+  await page.goto("/app");
+  await expect(page.getByText("Huella o Face ID activado en este celular")).toBeVisible(); // no vuelve a pedir activarla
+
+  const bindings = await sql<{ status: string; label: string }>(
+    `SELECT d.status, d.label FROM device_binding d JOIN employee e ON e.id = d.employee_id JOIN app_user u ON u.id = e.user_id
+     WHERE u.email = $1 ORDER BY d.created_at`,
     [`${who}@eltrigal.test`],
   );
-  expect(bindings.map((b) => b.status)).toEqual(["ACTIVE"]);
+  expect(bindings.map((b) => b.status)).toEqual(["ACTIVE", "ACTIVE"]);
+  expect(bindings[1]!.label).toMatch(/reconocido con huella$/);
 });
 
 test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", async ({ browser, page }, info) => {
@@ -176,9 +197,9 @@ test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", a
   const p2 = await phone2.newPage();
   await login(p2, who);
   await p2.goto(`/m/${qrCentro}`);
-  // Explica que puede ser la ventana de la cámara y ofrece vincularlo como celular nuevo.
-  await expect(p2.getByText("Esta ventana no reconoce tu celular")).toBeVisible();
-  await p2.getByRole("button", { name: "Vincular como celular nuevo" }).click();
+  // Sin la huella o Face ID del celular anterior, solo puede pedir vincularlo como nuevo.
+  await expect(p2.getByText("Confirma que es tu celular")).toBeVisible();
+  await p2.getByRole("button", { name: "Es un celular nuevo (requiere aprobación)" }).click();
   await expect(p2.getByText("Celular pendiente de aprobación")).toBeVisible();
 
   const adminCtx = await browser.newContext();
@@ -188,8 +209,11 @@ test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", a
   await admin.locator("li", { hasText: new RegExp(`^${who}`, "i") }).getByRole("button", { name: "Aprobar" }).click();
   await expect(admin.getByText("Celular aprobado.")).toBeVisible();
 
-  // Aprobado el nuevo, el nuevo marca y el anterior queda desvinculado.
+  // Aprobado el nuevo, activa su propia huella o Face ID y marca; el anterior queda desvinculado.
   await p2.reload();
+  await expect(p2.getByText("Activa tu huella o Face ID para marcar")).toBeVisible();
+  await addVirtualAuthenticator(phone2, p2);
+  await p2.getByRole("button", { name: "Activar huella o Face ID" }).click();
   await expect(p2.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
   await page.reload();
   await expect(page.getByText("Este celular fue desvinculado")).toBeVisible();
@@ -223,7 +247,7 @@ test("desde el inicio del empleado, «Marcar entrada» abre la cámara, lee el Q
     // Lee el QR y abre la marcación en ESTE sitio (aunque el QR traiga otro dominio).
     await page.waitForURL(new RegExp(`/m/${qrCentro}$`), { timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Vincular (este celular|como celular nuevo)|Registrar (entrada|salida)/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Vincular (este celular|como celular nuevo)|Registrar (entrada|salida)|Confirmar con huella o Face ID/ })).toBeVisible();
   } catch (e) {
     await page.screenshot({ path: test.info().outputPath("camara.png") }).catch(() => {});
     throw e;

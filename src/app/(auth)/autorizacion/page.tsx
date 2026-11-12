@@ -11,7 +11,7 @@ const items = [
   ["Qué datos", "Nombre, documento, cargo, correo, teléfono, horarios, marcaciones de entrada y salida, y la ubicación del celular en el momento de marcar."],
   ["Para qué", "Controlar la asistencia, calcular la jornada y las horas extra, y preparar la estimación de nómina de tu empleador."],
   ["Ubicación", "Solo se toma cuando tú marcas entrada o salida. No hay rastreo continuo."],
-  ["Biometría", "No se recogen huellas ni fotos. Si usas huella o rostro en tu celular, lo verifica el propio celular; Nexora no los recibe."],
+  ["Biometría", "No se recogen huellas ni fotos. Para marcar se usa la huella o el Face ID de tu celular: lo verifica el propio celular; Nexora no los recibe."],
   ["Tus derechos", "Conocer, actualizar, rectificar y pedir la supresión de tus datos, y revocar esta autorización, escribiendo al responsable del tratamiento (tu empleador)."],
 ] as const;
 

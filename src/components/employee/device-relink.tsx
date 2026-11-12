@@ -26,17 +26,17 @@ export function DeviceRelink({ onFallback }: { onFallback?: React.ReactNode }) {
             setError(null);
             try {
               const options = await relinkOptionsAction();
-              if (!options) return setError("Este celular no tiene una huella registrada para recuperar.");
+              if (!options) return setError("Este celular no tiene huella ni Face ID registrado para recuperar.");
               const r = await relinkDeviceAction(await startAuthentication({ optionsJSON: options }));
               if (!r.ok) return setError(r.message);
               router.refresh();
             } catch {
-              setError("Se canceló o tu celular no confirmó la huella.");
+              setError("Se canceló o tu celular no confirmó tu huella o Face ID.");
             }
           })
         }
       >
-        <Fingerprint aria-hidden /> Reconocer este celular con mi huella
+        <Fingerprint aria-hidden /> Confirmar con huella o Face ID
       </Button>
       {error && <p className="text-sm text-danger" role="alert">{error}</p>}
       {onFallback}

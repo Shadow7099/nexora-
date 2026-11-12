@@ -10,7 +10,7 @@ import {
 import { db } from "@/lib/db";
 import { audit } from "@/server/audit";
 import { requireEmployee } from "@/server/authz";
-import { findBinding, relinkableBinding, rotateDeviceToken } from "@/server/devices";
+import { addRelinkedWindow, findBinding, relinkableBinding } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import type { Actor } from "@/server/sessions";
 
@@ -95,9 +95,15 @@ export async function registerPasskey(actor: Actor, deviceToken: string | undefi
   await audit({ companyId: actor.companyId, actorUserId: actor.userId, action: "passkey.register", entityType: "device", entityId: binding.id });
 }
 
-/** Passkeys vinculadas a este celular. Si hay alguna, marcar exige usarla. */
+/**
+ * Passkeys del celular activo del empleado. Si hay alguna, marcar exige usarla,
+ * también desde las otras ventanas del mismo celular reconocidas con la huella
+ * (Safari, el ícono, la ventana de la cámara), que son vínculos aparte.
+ */
 export async function passkeysForBinding(userId: string, bindingId: string) {
-  return db.passkeyCredential.findMany({ where: { userId, deviceBindingId: bindingId } });
+  const b = await db.deviceBinding.findUnique({ where: { id: bindingId }, select: { employeeId: true, status: true } });
+  if (!b || b.status !== "ACTIVE") return [];
+  return db.passkeyCredential.findMany({ where: { userId, deviceBinding: { employeeId: b.employeeId, status: "ACTIVE" } } });
 }
 
 export async function passkeyAuthenticationOptions(actor: Actor, bindingId: string, rp: RelyingParty) {
@@ -117,7 +123,7 @@ export async function verifyPasskeyAssertion(actor: Actor, bindingId: string, re
   if (!response) return false;
   const challenge = await takeChallenge(actor.sessionId);
   if (!challenge) return false;
-  const cred = await db.passkeyCredential.findFirst({ where: { credentialId: response.id, userId: actor.userId, deviceBindingId: bindingId } });
+  const cred = (await passkeysForBinding(actor.userId, bindingId)).find((c) => c.credentialId === response.id);
   if (!cred) return false;
   try {
     const v = await verifyAuthenticationResponse({
@@ -137,10 +143,11 @@ export async function verifyPasskeyAssertion(actor: Actor, bindingId: string, re
 }
 
 /**
- * Reconocer este celular con la huella: si el navegador perdió la cookie del
+ * Reconocer este celular con la huella o Face ID: si el navegador perdió la cookie del
  * dispositivo pero el empleado tiene una passkey en su celular activo, la
- * firma de esa passkey prueba que es el mismo dueño y se emite un token nuevo
- * para el MISMO vínculo (sin crear un celular pendiente de aprobación).
+ * firma de esa passkey prueba que es el mismo dueño y este navegador queda
+ * reconocido como el mismo celular (sin anular los otros navegadores ni crear
+ * un celular pendiente de aprobación).
  */
 export async function relinkOptions(actor: Actor, rp: RelyingParty) {
   const { employeeId } = requireEmployee(actor);
@@ -148,11 +155,11 @@ export async function relinkOptions(actor: Actor, rp: RelyingParty) {
   return b ? passkeyAuthenticationOptions(actor, b.id, rp) : null;
 }
 
-export async function relinkWithPasskey(actor: Actor, response: AuthenticationResponseJSON, rp: RelyingParty) {
+export async function relinkWithPasskey(actor: Actor, response: AuthenticationResponseJSON, rp: RelyingParty, userAgent?: string | null) {
   const { employeeId } = requireEmployee(actor);
   const b = await relinkableBinding(actor.userId, employeeId);
   if (!b || !(await verifyPasskeyAssertion(actor, b.id, response, rp))) {
     throw new AppError("FORBIDDEN", "No pudimos confirmar tu huella. Intenta de nuevo o vincula este celular como nuevo.");
   }
-  return rotateDeviceToken(actor, b.id);
+  return addRelinkedWindow(actor, b.id, userAgent);
 }

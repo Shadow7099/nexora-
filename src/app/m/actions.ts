@@ -26,7 +26,7 @@ export async function relinkOptionsAction() {
 export async function relinkDeviceAction(response: AuthenticationResponseJSON) {
   const actor = await employee();
   try {
-    await setDeviceCookie(await relinkWithPasskey(actor, response, await getRelyingParty()));
+    await setDeviceCookie(await relinkWithPasskey(actor, response, await getRelyingParty(), await getUserAgent()));
     revalidatePath("/app");
     return { ok: true as const };
   } catch (e) {

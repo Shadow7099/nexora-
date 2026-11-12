@@ -4,7 +4,7 @@ import * as z from "zod";
 import { db } from "@/lib/db";
 import { audit } from "@/server/audit";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
-import { notFound } from "@/server/errors";
+import { AppError, notFound } from "@/server/errors";
 import type { Actor } from "@/server/sessions";
 
 /**
@@ -40,14 +40,62 @@ export async function relinkableBinding(userId: string, employeeId: string) {
   });
 }
 
-/** Nuevo token para un vínculo existente (después de verificar la huella). El token anterior deja de servir. */
-export async function rotateDeviceToken(actor: Actor, bindingId: string) {
+/**
+ * Excepción de huella/Face ID: el administrador permite que un celular puntual
+ * (p. ej. uno viejo sin huella ni Face ID) marque sin ella. Queda en la
+ * etiqueta del celular, visible para el administrador, y no pasa a un celular
+ * nuevo.
+ */
+export const NO_PASSKEY_SUFFIX = " · sin huella autorizado";
+export const isPasskeyExempt = (label: string) => label.includes(NO_PASSKEY_SUFFIX);
+
+export async function setPasskeyExemption(actor: Actor, id: string, allow: boolean) {
+  const companyId = requireCompanyAdmin(actor);
+  const d = await getCompanyDevice(companyId, id);
+  if (d.status !== "ACTIVE") throw new AppError("CONFLICT", "Solo se puede cambiar en un celular activo.");
+  if (isPasskeyExempt(d.label) === allow) return;
+  const label = allow ? `${d.label}${NO_PASSKEY_SUFFIX}` : d.label.replace(NO_PASSKEY_SUFFIX, "");
+  await db.$transaction(async (tx) => {
+    await tx.deviceBinding.update({ where: { id: d.id }, data: { label } });
+    await audit({ companyId, actorUserId: actor.userId, action: allow ? "device.passkey_exempt" : "device.passkey_required", entityType: "device", entityId: d.id, after: { label } }, tx);
+  });
+}
+
+/** Marca de las ventanas del MISMO celular reconocidas con la huella (Safari, el ícono, la ventana de la cámara…). */
+export const RELINK_SUFFIX = " · reconocido con huella";
+/** Ventanas reconocidas que se mantienen a la vez; las más antiguas se revocan. */
+export const MAX_RELINKED_WINDOWS = 4;
+
+/**
+ * Reconoce ESTE navegador como el mismo celular, después de verificar la
+ * huella. No reemplaza el token de los otros navegadores del celular: en
+ * iPhone, Safari, el ícono de la pantalla de inicio y la ventana que abre la
+ * cámara guardan cookies por separado, y rotar un único token hacía que cada
+ * uno anulara al otro (pedía confirmar en cada escaneo).
+ */
+export async function addRelinkedWindow(actor: Actor, sourceBindingId: string, userAgent?: string | null) {
   const { companyId, employeeId } = requireEmployee(actor);
   const token = randomBytes(32).toString("base64url");
   await db.$transaction(async (tx) => {
-    const r = await tx.deviceBinding.updateMany({ where: { id: bindingId, employeeId, status: "ACTIVE" }, data: { tokenHash: hashDeviceToken(token), lastSeenAt: new Date() } });
-    if (r.count !== 1) throw notFound("El celular");
-    await audit({ companyId, actorUserId: actor.userId, action: "device.relink", entityType: "device", entityId: bindingId, after: { method: "passkey" } }, tx);
+    const source = await tx.deviceBinding.findFirst({ where: { id: sourceBindingId, employeeId, status: "ACTIVE" } });
+    if (!source) throw notFound("El celular");
+    const now = new Date();
+    const b = await tx.deviceBinding.create({
+      data: {
+        companyId, employeeId, tokenHash: hashDeviceToken(token), label: `${deviceLabel(userAgent)}${RELINK_SUFFIX}`,
+        userAgent: userAgent?.slice(0, 300), status: "ACTIVE", activatedAt: now, lastSeenAt: now,
+      },
+    });
+    const windows = await tx.deviceBinding.findMany({
+      where: { employeeId, status: "ACTIVE", label: { endsWith: RELINK_SUFFIX } },
+      orderBy: [{ lastSeenAt: { sort: "desc", nulls: "last" } }, { activatedAt: "desc" }],
+      select: { id: true },
+    });
+    const old = windows.slice(MAX_RELINKED_WINDOWS).map((w) => w.id);
+    if (old.length) {
+      await tx.deviceBinding.updateMany({ where: { id: { in: old } }, data: { status: "REVOKED", revokedAt: now, revokeReason: "Ventana reconocida más antigua" } });
+    }
+    await audit({ companyId, actorUserId: actor.userId, action: "device.relink", entityType: "device", entityId: b.id, after: { method: "passkey", source: source.id, label: b.label, retired: old.length } }, tx);
   });
   return token;
 }
@@ -129,6 +177,13 @@ export async function revokeDevice(actor: Actor, id: string) {
   if (d.status === "REVOKED") return;
   await db.$transaction(async (tx) => {
     await tx.deviceBinding.update({ where: { id: d.id }, data: { status: "REVOKED", revokedAt: new Date(), revokeReason: "Revocado por el administrador" } });
-    await audit({ companyId, actorUserId: actor.userId, action: "device.revoke", entityType: "device", entityId: d.id }, tx);
+    // Revocar el celular también revoca sus otras ventanas reconocidas con la huella.
+    const windows = d.label.endsWith(RELINK_SUFFIX)
+      ? { count: 0 }
+      : await tx.deviceBinding.updateMany({
+          where: { employeeId: d.employeeId, status: "ACTIVE", label: { endsWith: RELINK_SUFFIX } },
+          data: { status: "REVOKED", revokedAt: new Date(), revokeReason: "Revocado junto con el celular" },
+        });
+    await audit({ companyId, actorUserId: actor.userId, action: "device.revoke", entityType: "device", entityId: d.id, after: { windows: windows.count } }, tx);
   });
 }

@@ -37,19 +37,19 @@ Después de 5 intentos fallidos la cuenta se bloquea 15 minutos. Si hay muchos i
 ### Marcar entrada y salida
 
 1. En la entrada de la sede, abra Nexora y toque **Marcar entrada** (o **Marcar salida**): se abre la cámara dentro de Nexora; apunte al QR pegado en la entrada y se lee solo. También puede escanear el QR con la cámara del celular (si no tiene sesión, ingrese y volverá al QR).
-   - **En iPhone:** es mejor el botón **Marcar entrada**. La ventana que abre la cámara del iPhone no recuerda el celular ya vinculado y muestra «Esta ventana no reconoce tu celular».
-2. **La primera vez:** toque **Vincular este celular**. Solo podrá marcar desde ese celular. Si ya tenía otro vinculado, el nuevo queda pendiente hasta que el administrador lo apruebe.
+   - **En iPhone:** es mejor el botón **Marcar entrada**. La ventana que abre la cámara del iPhone no recuerda el celular: la primera vez pide **Confirmar con huella o Face ID** en esa ventana.
+2. **La primera vez:** toque **Vincular este celular** y luego **Activar huella o Face ID** (obligatorio). Solo podrá marcar desde ese celular. Si ya tenía otro vinculado, el nuevo queda pendiente hasta que el administrador lo apruebe y después también activa su huella o Face ID.
 3. Toque **Registrar entrada** (o **Registrar salida**). El celular pide permiso de **ubicación**: debe estar dentro del área de la sede.
-4. Si activó la huella, el celular le pide su huella, rostro o PIN.
+4. El celular le pide su **huella o Face ID** (en algunos celulares, el PIN del celular).
 5. Verá la confirmación con la hora. **La hora la pone el servidor**, no el celular.
 
 | Antes de marcar | Entrada registrada |
 |---|---|
 | <img src="img/celular-qr-antes.jpg" alt="Pantalla del QR antes de marcar" width="240"> | <img src="img/celular-qr-entrada.jpg" alt="Entrada registrada" width="240"> |
 
-**Activar la huella (recomendado):** en Inicio, **Activar huella**. Así nadie más puede marcar por usted, aunque tenga su celular. Nexora no recibe su huella; la verifica el celular.
+**Huella o Face ID (obligatorio):** sin ella no se puede marcar. Si no la activó al vincular, Nexora muestra **Activar huella o Face ID** en Inicio y en la pantalla del QR. Así nadie más puede marcar por usted, aunque tenga su celular. Nexora no recibe su huella ni su rostro; los verifica el celular. Si su celular no tiene huella ni Face ID, el administrador puede autorizarlo a marcar sin ella.
 
-**Si Nexora le pide confirmar que es su celular** (por ejemplo, después de borrar los datos del navegador), toque **Reconocer este celular con mi huella**. No hace falta que el administrador apruebe nada.
+**Si Nexora le pide confirmar que es su celular** (por ejemplo, después de borrar los datos del navegador o al abrir el QR desde la cámara del iPhone), toque **Confirmar con huella o Face ID**. No hace falta que el administrador apruebe nada, y las demás ventanas del celular (Safari, el ícono de inicio, la cámara) siguen reconocidas: solo se confirma una vez por ventana.
 
 **En iPhone:** si agregó Nexora a la pantalla de inicio antes del 2 de noviembre de 2026, bórrelo y vuelva a agregarlo desde Safari (Compartir → Agregar a inicio).
 
@@ -99,6 +99,7 @@ Si se registró con un link de invitación, **Primeros pasos** (en el menú) mue
 ### Día a día
 
 - **Asistencia:** quién está en jornada, quién llegó tarde o no ha llegado, intentos rechazados y celulares por aprobar.
+- **Celular sin huella ni Face ID** (por ejemplo, uno viejo): en **Empleados →** el empleado **→ Celulares vinculados**, **Permitir marcar sin huella ni Face ID**. Solo aplica a ese celular; uno nuevo vuelve a exigirla. Se puede revertir con **Volver a exigir huella o Face ID**.
 - **Solicitudes:**
   - **Horas extra:** Nexora las detecta al cerrar cada jornada (tiempo registrado por encima del programado, desde 15 minutos). Puede **Aprobar** todo o parte, o **Rechazar**. Rechazar no borra el tiempo registrado: solo define cuánto se paga como extra. Para datos anteriores: **Revisar jornadas pasadas**.
   - **Novedades:** aprobar o rechazar permisos y vacaciones; **Registrar novedad aprobada** (por ejemplo, una incapacidad que le enviaron).

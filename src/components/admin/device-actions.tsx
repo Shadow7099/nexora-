@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { approveDeviceAction, revokeDeviceAction } from "@/app/admin/actions";
+import { approveDeviceAction, passkeyExemptionAction, revokeDeviceAction } from "@/app/admin/actions";
 import { SubmitButton } from "@/components/ui/form";
 
 export function DeviceActions({ id, pending }: { id: string; pending: boolean }) {
@@ -32,5 +32,27 @@ export function DeviceActions({ id, pending }: { id: string; pending: boolean })
       </form>
       {msg && <span className="w-full text-right text-xs text-fg-muted" role="status">{msg}</span>}
     </div>
+  );
+}
+
+/**
+ * Excepción de huella/Face ID para un celular activo sin ella (p. ej. un celular
+ * viejo). Solo la ve el administrador en el detalle del empleado.
+ */
+export function PasskeyExemption({ id, exempt }: { id: string; exempt: boolean }) {
+  const [state, action] = useActionState(passkeyExemptionAction.bind(null, id, !exempt), null);
+  return (
+    <form
+      action={action}
+      className="mt-2 grid gap-1"
+      onSubmit={(e) => {
+        if (!exempt && !confirm("¿Permitir que este celular marque sin huella ni Face ID? Úsalo solo si el celular no tiene ninguna de las dos.")) e.preventDefault();
+      }}
+    >
+      <SubmitButton size="sm" variant="ghost" className="justify-self-start">
+        {exempt ? "Volver a exigir huella o Face ID" : "Permitir marcar sin huella ni Face ID"}
+      </SubmitButton>
+      {state?.message && <span className={state.ok ? "text-xs text-success" : "text-xs text-danger"} role="status">{state.message}</span>}
+    </form>
   );
 }

@@ -42,7 +42,7 @@ export async function employeeHome(actor: Actor, now = new Date()) {
   const { companyId, employeeId } = requireEmployee(actor);
   const employee = await db.employee.findFirstOrThrow({
     where: { id: employeeId, companyId },
-    select: { firstName: true, defaultSite: { select: { name: true } }, company: { select: { timezone: true } } },
+    select: { firstName: true, defaultSite: { select: { name: true } }, company: { select: { timezone: true, requireDeviceBinding: true } } },
   });
   const tz = employee.company.timezone;
   const today = localDate(now, tz);
@@ -52,6 +52,7 @@ export async function employeeHome(actor: Actor, now = new Date()) {
   return {
     firstName: employee.firstName,
     timezone: tz,
+    requireDevice: employee.company.requireDeviceBinding,
     siteName: shift?.siteName ?? employee.defaultSite?.name ?? "Sin sede asignada",
     shift,
     todayShifts: shiftsOn(patterns, today, tz, ov),

@@ -7,7 +7,7 @@ import { currentOrNextShift, localDate, shiftsOn, zonedTimeToUtc } from "@/lib/s
 import { Prisma } from "@/generated/prisma/client";
 import type { AttemptReason } from "@/generated/prisma/enums";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
-import { findBinding, relinkableBinding } from "@/server/devices";
+import { findBinding, isPasskeyExempt, relinkableBinding } from "@/server/devices";
 import { passkeysForBinding, verifyPasskeyAssertion, type RelyingParty } from "@/server/passkeys";
 import { holidayOn } from "@/lib/holidays";
 import { approvedNoveltiesOn, noveltyLabel } from "@/server/novelties";
@@ -32,9 +32,11 @@ const reasonMessage: Record<AttemptReason, string> = {
   DUPLICATE_PUNCH: "Ya registraste una marcación hace un momento.",
   NO_OPEN_SESSION: "No tienes una jornada abierta.",
   RATE_LIMITED: "Demasiados intentos. Espera un momento.",
-  PASSKEY_FAILED: "No se pudo confirmar tu identidad con la huella. Intenta de nuevo.",
+  PASSKEY_FAILED: "No se pudo confirmar tu identidad con tu huella o Face ID. Intenta de nuevo.",
   OTHER: "No se pudo registrar la marcación.",
 };
+
+export const PASSKEY_MISSING_MESSAGE = "Para marcar, primero activa tu huella o Face ID en este celular.";
 
 /** Motivo de rechazo redactado para el administrador (en tercera persona). */
 export const reasonLabel: Record<AttemptReason, string> = {
@@ -49,7 +51,7 @@ export const reasonLabel: Record<AttemptReason, string> = {
   DUPLICATE_PUNCH: "Marcación repetida",
   NO_OPEN_SESSION: "Sin jornada abierta",
   RATE_LIMITED: "Demasiados intentos",
-  PASSKEY_FAILED: "Huella no confirmada",
+  PASSKEY_FAILED: "Huella o Face ID no confirmado",
   OTHER: "Otro motivo",
 };
 
@@ -88,6 +90,8 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
   const passkeys = binding?.status === "ACTIVE" ? await passkeysForBinding(actor.userId, binding.id) : [];
   const canRelink = !binding && !!(await relinkableBinding(actor.userId, employeeId));
   // Ya tiene un celular activo pero este navegador no lo recuerda (p. ej. la ventana que abre la cámara del iPhone).
+  const passkeyExempt = binding?.status === "ACTIVE" && isPasskeyExempt(binding.label);
+  const needsPasskeySetup = employee.company.requireDeviceBinding && binding?.status === "ACTIVE" && passkeys.length === 0 && !passkeyExempt;
   const hasOtherDevice = !binding && (await db.deviceBinding.count({ where: { employeeId, status: "ACTIVE" } })) > 0;
   const stale = open && Date.now() - open.startAt.getTime() > STALE_SESSION_HOURS * 3600_000;
   return {
@@ -100,6 +104,7 @@ export async function qrContext(actor: Actor, publicCode: string, deviceToken: s
     passkeyRequired: passkeys.length > 0,
     canRelink,
     hasOtherDevice,
+    needsPasskeySetup,
     next: open && !stale ? ("OUT" as const) : ("IN" as const),
     openSince: open && !stale ? open.startAt : null,
     openSiteName: open && !stale ? open.site.name : null,
@@ -173,13 +178,20 @@ export async function punch(
   }
   const activeBinding = binding?.status === "ACTIVE" ? binding : null;
 
-  // 3. Passkey (obligatoria si el empleado la activó en este celular)
+  // 3. Huella o Face ID (passkey): obligatoria cuando la empresa exige celular vinculado,
+  //    salvo que el administrador haya autorizado este celular a marcar sin ella.
   let verification: "PASSKEY" | "DEVICE_TOKEN" = "DEVICE_TOKEN";
-  if (activeBinding && (await passkeysForBinding(actor.userId, activeBinding.id)).length > 0) {
-    if (!(await verifyPasskeyAssertion(actor, activeBinding.id, ctx.passkeyResponse, ctx.rp))) {
-      return logAttempt(actor, "PASSKEY_FAILED", site.id, { bindingId: activeBinding.id }, ctx.userAgent);
+  if (activeBinding) {
+    const hasPasskey = (await passkeysForBinding(actor.userId, activeBinding.id)).length > 0;
+    if (hasPasskey) {
+      if (!(await verifyPasskeyAssertion(actor, activeBinding.id, ctx.passkeyResponse, ctx.rp))) {
+        return logAttempt(actor, "PASSKEY_FAILED", site.id, { bindingId: activeBinding.id }, ctx.userAgent);
+      }
+      verification = "PASSKEY";
+    } else if (company.requireDeviceBinding && !isPasskeyExempt(activeBinding.label)) {
+      await logAttempt(actor, "PASSKEY_FAILED", site.id, { bindingId: activeBinding.id, missing: true }, ctx.userAgent);
+      return { ok: false, reason: "PASSKEY_FAILED", message: PASSKEY_MISSING_MESSAGE };
     }
-    verification = "PASSKEY";
   }
 
   // 4. Ubicación

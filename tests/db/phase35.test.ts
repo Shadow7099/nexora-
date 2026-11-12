@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 import { shiftsOn } from "@/lib/schedule";
 import { punch } from "@/server/attendance";
 import { addManualSession, closeSessionManually } from "@/server/corrections";
-import { bindDevice } from "@/server/devices";
+import { bindDevice, findBinding, setPasskeyExemption } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import { cancelNovelty, decideNovelty, listNovelties, myNovelties, registerNovelty, requestNovelty } from "@/server/novelties";
 import { decideOvertime, detectOvertime, listOvertime, myOvertime } from "@/server/overtime";
@@ -40,6 +40,8 @@ async function setup(tag: string) {
   const emp = await login(f.empUser.email);
   const qr = await db.siteQrCode.create({ data: { companyId: f.company.id, siteId: f.site.id, publicCode: `qr${randomUUID().replace(/-/g, "").slice(0, 16)}`, version: 1 } });
   const device = await bindDevice(emp.actor);
+  // Estas pruebas no usan huella/Face ID: el celular queda autorizado a marcar sin ella.
+  await setPasskeyExemption(admin.actor, (await findBinding(f.employee.id, device.token))!.id, true);
   const doPunch = (iso: string) =>
     punch(emp.actor, { publicCode: qr.publicCode, idempotencyKey: randomUUID(), position: { lat: 4.14, lng: -73.62, accuracy: 10 } }, { deviceToken: device.token, rp, now: new Date(iso) });
   return { ...f, admin, emp, qr, doPunch };

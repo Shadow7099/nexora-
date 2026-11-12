@@ -6,8 +6,8 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
-import { attendanceDay, employeeHistory, punch, STALE_SESSION_HOURS } from "@/server/attendance";
-import { approveDevice, bindDevice, listDevices, revokeDevice } from "@/server/devices";
+import { attendanceDay, employeeHistory, PASSKEY_MISSING_MESSAGE, punch, qrContext, STALE_SESSION_HOURS } from "@/server/attendance";
+import { addRelinkedWindow, approveDevice, bindDevice, findBinding, listDevices, MAX_RELINKED_WINDOWS, revokeDevice, setPasskeyExemption } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import { login, makeCompany } from "../support/fixtures";
 
@@ -17,13 +17,17 @@ const at = (metersNorth: number, accuracy = 15) => ({ lat: 4.14 + metersNorth / 
 const t0 = new Date("2026-10-27T12:55:00Z"); // martes 7:55 a. m. en Bogotá
 const plus = (min: number) => new Date(t0.getTime() + min * 60_000);
 
-async function setup(tag: string, opts: { requireDevice?: boolean } = {}) {
+async function setup(tag: string, opts: { requireDevice?: boolean; passkeyExempt?: boolean } = {}) {
   const f = await makeCompany(tag);
   if (opts.requireDevice === false) await db.company.update({ where: { id: f.company.id }, data: { requireDeviceBinding: false } });
   const qr = await db.siteQrCode.create({ data: { companyId: f.company.id, siteId: f.site.id, publicCode: `qr${randomUUID().replace(/-/g, "").slice(0, 16)}`, version: 1 } });
   const emp = await login(f.empUser.email);
   const admin = await login(f.admin.email);
   const device = await bindDevice(emp.actor, "Mozilla/5.0 (Linux; Android 14) Chrome/130");
+  // La mayoría de estas pruebas no usan huella/Face ID: el celular queda autorizado a marcar sin ella.
+  if (opts.passkeyExempt !== false && device.status === "ACTIVE") {
+    await setPasskeyExemption(admin.actor, (await findBinding(f.employee.id, device.token))!.id, true);
+  }
   const doPunch = (o: { meters?: number; accuracy?: number; now?: Date; key?: string; token?: string | null; code?: string; position?: null } = {}) =>
     punch(
       emp.actor,
@@ -151,6 +155,9 @@ describe("dispositivo vinculado", () => {
     expect(await s.doPunch({ token: second.token })).toMatchObject({ ok: false, reason: "DEVICE_NOT_BOUND", message: expect.stringContaining("pendiente") });
     const pending = (await listDevices(s.admin.actor)).find((d) => d.status === "PENDING")!;
     await approveDevice(s.admin.actor, pending.id);
+    // El celular nuevo también debe activar su huella o Face ID (la excepción del anterior no pasa al nuevo).
+    expect(await s.doPunch({ token: second.token })).toMatchObject({ ok: false, reason: "PASSKEY_FAILED", message: PASSKEY_MISSING_MESSAGE });
+    await setPasskeyExemption(s.admin.actor, pending.id, true);
     expect((await s.doPunch({ token: second.token })).ok).toBe(true);
     expect(await s.doPunch({ token: s.device.token, now: plus(120) })).toMatchObject({ ok: false, reason: "DEVICE_REVOKED" });
   });
@@ -174,6 +181,64 @@ describe("dispositivo vinculado", () => {
       data: { userId: s.empUser.id, deviceBindingId: binding.id, credentialId: `cred-${randomUUID()}`, publicKey: Buffer.from([1, 2, 3]) },
     });
     expect(await s.doPunch()).toMatchObject({ ok: false, reason: "PASSKEY_FAILED" });
+  });
+
+  it("huella o Face ID obligatoria: sin ella no se marca, salvo que el administrador autorice ese celular", async () => {
+    const s = await setup("d10", { passkeyExempt: false });
+    const binding = (await findBinding(s.employee.id, s.device.token))!;
+    expect(await s.doPunch()).toMatchObject({ ok: false, reason: "PASSKEY_FAILED", message: PASSKEY_MISSING_MESSAGE });
+    expect(await db.attendanceAttempt.count({ where: { userId: s.empUser.id, reason: "PASSKEY_FAILED" } })).toBe(1);
+    const ctx = await qrContext(s.emp.actor, s.qr.publicCode, s.device.token);
+    expect(ctx).toMatchObject({ valid: true, needsPasskeySetup: true });
+
+    // Solo el administrador de la empresa autoriza la excepción, y queda auditada.
+    expect(await code(setPasskeyExemption(s.emp.actor, binding.id, true))).toBe("FORBIDDEN");
+    const other = await setup("d11");
+    expect(await code(setPasskeyExemption(other.admin.actor, binding.id, true))).toBe("NOT_FOUND");
+    await setPasskeyExemption(s.admin.actor, binding.id, true);
+    expect(await qrContext(s.emp.actor, s.qr.publicCode, s.device.token)).toMatchObject({ needsPasskeySetup: false });
+    expect((await s.doPunch()).ok).toBe(true);
+    expect(await db.auditLog.count({ where: { companyId: s.company.id, action: "device.passkey_exempt" } })).toBe(1);
+
+    // Volver a exigirla.
+    await setPasskeyExemption(s.admin.actor, binding.id, false);
+    expect(await s.doPunch({ now: plus(9 * 60) })).toMatchObject({ ok: false, reason: "PASSKEY_FAILED" });
+    expect((await findBinding(s.employee.id, s.device.token))!.label).toBe("Android · Chrome");
+
+    // Un celular pendiente no se puede autorizar; si la empresa no exige celular, tampoco exige huella.
+    const free = await setup("d12", { requireDevice: false, passkeyExempt: false });
+    expect((await free.doPunch()).ok).toBe(true);
+  });
+
+  it("reconocer otra ventana del mismo celular con la huella no anula las demás (Safari ↔ cámara del iPhone)", async () => {
+    const s = await setup("d8");
+    const original = (await listDevices(s.admin.actor))[0]!;
+    await db.passkeyCredential.create({
+      data: { userId: s.empUser.id, deviceBindingId: original.id, credentialId: `cred-${randomUUID()}`, publicKey: Buffer.from([1, 2, 3]) },
+    });
+    const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1";
+    const camera = await addRelinkedWindow(s.emp.actor, original.id, iphone);
+    const safari = await addRelinkedWindow(s.emp.actor, original.id, iphone);
+    // Las tres llaves siguen activas: ninguna ventana anula a la otra.
+    for (const t of [s.device.token, camera, safari]) expect((await findBinding(s.employee.id, t))?.status).toBe("ACTIVE");
+    expect((await findBinding(s.employee.id, camera))?.label).toBe("iPhone · Safari · reconocido con huella");
+    // La huella sigue siendo obligatoria desde la ventana reconocida.
+    expect(await s.doPunch({ token: camera })).toMatchObject({ ok: false, reason: "PASSKEY_FAILED" });
+    // Sin la huella del celular activo no se reconoce: ni de otro empleado ni de un vínculo inexistente.
+    const other = await setup("d9");
+    expect(await code(addRelinkedWindow(other.emp.actor, original.id, iphone))).toBe("NOT_FOUND");
+
+    // Se guardan como máximo MAX_RELINKED_WINDOWS ventanas; las más antiguas se revocan.
+    for (let i = 0; i < MAX_RELINKED_WINDOWS; i++) await addRelinkedWindow(s.emp.actor, original.id, iphone);
+    const active = await db.deviceBinding.count({ where: { employeeId: s.employee.id, status: "ACTIVE", label: { endsWith: "reconocido con huella" } } });
+    expect(active).toBe(MAX_RELINKED_WINDOWS);
+    expect((await findBinding(s.employee.id, camera))?.status).toBe("REVOKED");
+    expect((await findBinding(s.employee.id, s.device.token))?.status).toBe("ACTIVE"); // el original nunca se toca
+    expect(await db.auditLog.count({ where: { companyId: s.company.id, action: "device.relink" } })).toBe(2 + MAX_RELINKED_WINDOWS);
+
+    // Revocar el celular revoca también sus ventanas reconocidas.
+    await revokeDevice(s.admin.actor, original.id);
+    expect(await db.deviceBinding.count({ where: { employeeId: s.employee.id, status: "ACTIVE" } })).toBe(0);
   });
 
   it("un administrador no puede aprobar ni revocar celulares de otra empresa", async () => {

@@ -96,3 +96,15 @@ export async function revokeDeviceAction(id: string, _: ActionState): Promise<Ac
   }
 }
 
+
+/** Excepción: permitir (o volver a exigir) que este celular marque sin huella ni Face ID. */
+export async function passkeyExemptionAction(id: string, allow: boolean, _: ActionState): Promise<ActionState> {
+  try {
+    const { setPasskeyExemption } = await import("@/server/devices");
+    await setPasskeyExemption(await admin(), id, allow);
+    revalidatePath("/admin/empleados", "layout");
+    return { ok: true, message: allow ? "Este celular puede marcar sin huella ni Face ID." : "Este celular vuelve a exigir huella o Face ID." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}

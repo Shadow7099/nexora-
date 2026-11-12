@@ -56,7 +56,7 @@ export const INTENTS: Intent[] = [
     key: "impersonation",
     keywords: ["por otro", "suplantar", "suplantacion", "amigo", "companero", "huella", "rostro", "passkey", "su celular", "vincular"],
     answer:
-      "Cada empleado marca solo desde su propio celular: la primera vez queda vinculado y un celular nuevo necesita tu aprobación. Además puede activar su huella o rostro (lo verifica el propio celular; Nexora no guarda la huella), así nadie marca por él aunque tenga su celular.",
+      "Cada empleado marca solo desde su propio celular y confirma cada marcación con su huella o Face ID (lo verifica el propio celular; Nexora no guarda la huella ni el rostro), así nadie marca por él aunque tenga su celular. Un celular nuevo necesita tu aprobación, y si un celular viejo no tiene huella ni Face ID puedes autorizarlo a marcar sin ella.",
     suggestions: ["¿Pueden marcar desde la casa?", "¿Y si no tienen celular?"],
   },
   {

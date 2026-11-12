@@ -60,7 +60,7 @@ const steps = [
 ];
 
 const features = [
-  { icon: Fingerprint, title: "Nadie marca por otro", text: "Celular vinculado a cada empleado y huella o rostro del propio celular. Nexora no guarda la huella." },
+  { icon: Fingerprint, title: "Nadie marca por otro", text: "Celular vinculado a cada empleado y huella o Face ID en cada marcación. Nexora no guarda la huella ni el rostro." },
   { icon: MapPin, title: "Solo en la sede", text: "La ubicación se toma únicamente al marcar y se compara con el área de la sede. Sin rastreo." },
   { icon: Clock, title: "Hora del servidor", text: "La hora la pone Nexora, no el celular. No se puede adelantar ni atrasar." },
   { icon: CalendarClock, title: "Turnos reales", text: "Madrugada, nocturnos que pasan la medianoche, turnos partidos y rotativos de 14 días." },

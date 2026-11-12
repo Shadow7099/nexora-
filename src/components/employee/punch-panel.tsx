@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { bindDeviceAction, punchAction, punchPasskeyOptionsAction, type PunchActionResult } from "@/app/m/actions";
 import { DeviceRelink } from "@/components/employee/device-relink";
+import { PasskeySetup } from "@/components/employee/passkey-setup";
 import { PunchButton } from "@/components/employee/punch-card";
 import { Button } from "@/components/ui/button";
 import { formatMinutes, formatTime } from "@/lib/utils";
@@ -21,6 +22,8 @@ type Props = {
   canRelink?: boolean;
   /** Ya hay un celular activo que este navegador no recuerda. */
   hasOtherDevice?: boolean;
+  /** La empresa exige huella o Face ID y este celular aún no la tiene. */
+  needsPasskeySetup?: boolean;
 };
 
 type Step = "idle" | "locating" | "verifying" | "saving";
@@ -39,11 +42,11 @@ function currentPosition(): Promise<{ lat: number; lng: number; accuracy: number
 
 const stepText: Record<Exclude<Step, "idle">, { icon: typeof MapPin; text: string }> = {
   locating: { icon: MapPin, text: "Verificando que estás en la sede…" },
-  verifying: { icon: Fingerprint, text: "Confirma con tu huella o rostro…" },
+  verifying: { icon: Fingerprint, text: "Confirma con tu huella o Face ID…" },
   saving: { icon: Loader2, text: "Registrando…" },
 };
 
-export function PunchPanel({ publicCode, next, timezone, requireDevice, device, passkeyRequired, canRelink = false, hasOtherDevice = false }: Props) {
+export function PunchPanel({ publicCode, next, timezone, requireDevice, device, passkeyRequired, canRelink = false, hasOtherDevice = false, needsPasskeySetup = false }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [result, setResult] = useState<PunchActionResult | null>(null);
@@ -58,7 +61,7 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
           <Fingerprint className="mt-0.5 size-5 text-primary" aria-hidden />
           <div>
             <p className="font-medium">Confirma que es tu celular</p>
-            <p className="mt-1 text-sm text-fg-muted">Este navegador no recuerda tu celular. Confírmalo con la huella que ya registraste y sigue marcando normalmente.</p>
+            <p className="mt-1 text-sm text-fg-muted">Este navegador no recuerda tu celular. Confírmalo con tu huella o Face ID y sigue marcando normalmente. Solo se pide una vez en esta ventana.</p>
           </div>
         </div>
         <DeviceRelink
@@ -89,7 +92,7 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
             ) : (
               <>
                 <p className="font-medium">Vincula este celular</p>
-                <p className="mt-1 text-sm text-fg-muted">Solo podrás marcar desde tu propio celular. Si es tu primer celular, queda listo de inmediato.</p>
+                <p className="mt-1 text-sm text-fg-muted">Solo podrás marcar desde tu propio celular, confirmando con tu huella o Face ID. Si es tu primer celular, queda listo de inmediato.</p>
               </>
             )}
           </div>
@@ -105,6 +108,10 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
   }
   if (requireDevice && device?.status === "REVOKED") {
     return <Notice icon={AlertCircle} title="Este celular fue desvinculado" text="Pide ayuda a tu administrador para vincular tu celular de nuevo." />;
+  }
+
+  if (requireDevice && device?.status === "ACTIVE" && needsPasskeySetup) {
+    return <PasskeySetup required />;
   }
 
   if (result?.ok) {
@@ -173,7 +180,7 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
           </>
         ) : passkeyRequired ? (
           <>
-            <Fingerprint className="size-4" aria-hidden /> Te pediremos tu huella o rostro
+            <Fingerprint className="size-4" aria-hidden /> Te pediremos tu huella o Face ID
           </>
         ) : (
           <>
