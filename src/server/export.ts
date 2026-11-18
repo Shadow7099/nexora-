@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import type { Payslips } from "@/server/payroll";
+import type { SaleDetail } from "@/server/sales";
 import { displayCell, formatDateTime, formatIsoDate, type ColumnKind, type ReportTable } from "@/lib/report-table";
 
 /**
@@ -167,5 +168,73 @@ export function toPayslipPdf(p: Payslips, generatedAt: Date): Buffer {
     doc.text(`Generado el ${formatDateTime(generatedAt, p.company.timeZone)} con Nexora · ${i + 1} de ${p.slips.length}`, margin, height - 20);
     doc.setTextColor(0);
   });
+  return Buffer.from(doc.output("arraybuffer"));
+}
+
+// ───────────────────────── Comprobante de venta ─────────────────────────
+
+const METHOD_TEXT: Record<string, string> = { CASH: "Efectivo", TRANSFER: "Transferencia", CARD: "Tarjeta", OTHER: "Otro" };
+
+/**
+ * Comprobante de una venta (media carta). Es un soporte interno: la factura
+ * electrónica ante la DIAN la emite el facturador conectado (Siigo o Alegra).
+ */
+export function toSalePdf(s: SaleDetail, generatedAt: Date): Buffer {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+  const margin = 40;
+  const width = doc.internal.pageSize.getWidth();
+  const height = doc.internal.pageSize.getHeight();
+  if (s.status === "VOIDED") {
+    doc.setTextColor(230, 200, 200).setFont("helvetica", "bold").setFontSize(80);
+    doc.text("ANULADA", width / 2, height / 2, { align: "center", angle: 35 });
+    doc.setTextColor(0);
+  }
+  doc.setFont("helvetica", "bold").setFontSize(15).text(s.company.name, margin, margin + 6);
+  doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(90);
+  const head = [s.company.nit ? `NIT ${s.company.nit}` : null, `${s.site.name} · ${s.site.address}, ${s.site.city}`].filter(Boolean) as string[];
+  head.forEach((l, i) => doc.text(l, margin, margin + 22 + i * 12));
+  doc.setTextColor(0).setFont("helvetica", "bold").setFontSize(13).text(`Comprobante de venta ${s.label}`, width - margin, margin + 6, { align: "right" });
+  doc.setFont("helvetica", "normal").setFontSize(9).text(formatDateTime(s.createdAt, s.company.timeZone), width - margin, margin + 22, { align: "right" });
+
+  autoTable(doc, {
+    startY: margin + 52,
+    margin: { left: margin, right: margin },
+    theme: "plain",
+    styles: { fontSize: 9, cellPadding: 2 },
+    body: [
+      [{ content: "Cliente", styles: { fontStyle: "bold" } }, s.customer.name, { content: "Documento", styles: { fontStyle: "bold" } }, s.customer.doc ?? "—"],
+      [{ content: "Medio de pago", styles: { fontStyle: "bold" } }, METHOD_TEXT[s.paymentMethod] ?? s.paymentMethod, { content: "Atendió", styles: { fontStyle: "bold" } }, s.by],
+    ],
+  });
+  const y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["Código", "Producto", "Cant.", "Precio", "Desc.", "IVA", "Total"]],
+    body: s.items.map((i) => [i.sku, i.name, i.quantity.toLocaleString("es-CO"), money(i.unitPrice), i.discount ? money(i.discount) : "", `${i.taxRate.toLocaleString("es-CO")} %`, money(i.total)]),
+    foot: [
+      [{ content: "Subtotal", colSpan: 6 }, money(s.subtotal)],
+      [{ content: "IVA", colSpan: 6 }, money(s.taxTotal)],
+      [{ content: "Total", colSpan: 6, styles: { fontSize: 11 } }, { content: money(s.total), styles: { fontSize: 11 } }],
+    ],
+    showFoot: "lastPage",
+    styles: { fontSize: 8.5, cellPadding: 4 },
+    headStyles: { fillColor: [37, 70, 184], textColor: 255, fontStyle: "bold" },
+    footStyles: { fillColor: [232, 236, 248], textColor: 20, fontStyle: "bold", halign: "right" },
+    columnStyles: { 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } },
+  });
+  let end = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
+  doc.setFontSize(8).setTextColor(90);
+  if (s.notes) {
+    doc.text(doc.splitTextToSize(`Nota: ${s.notes}`, width - margin * 2), margin, end);
+    end += 14;
+  }
+  if (s.voided) {
+    doc.setTextColor(180, 30, 30).text(doc.splitTextToSize(`Venta anulada el ${formatDateTime(s.voided.at, s.company.timeZone)} por ${s.voided.by}: ${s.voided.reason}`, width - margin * 2), margin, end);
+    doc.setTextColor(90);
+    end += 14;
+  }
+  doc.text(doc.splitTextToSize("Comprobante interno de venta generado con Nexora. No reemplaza la factura electrónica ante la DIAN, que se emite con el facturador de la empresa.", width - margin * 2), margin, end);
+  doc.text(`Generado el ${formatDateTime(generatedAt, s.company.timeZone)}`, margin, height - 20);
   return Buffer.from(doc.output("arraybuffer"));
 }

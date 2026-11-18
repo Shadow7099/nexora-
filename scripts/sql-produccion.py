@@ -14,6 +14,7 @@ PENDING = [
     ("20261118000000_integration", "integration"),
     ("20261119000000_inventory", "product"),
     ("20261120000000_cash", "cash_movement"),
+    ("20261121000000_sales", "sale"),
 ]
 
 def block(name: str, table: str) -> str:

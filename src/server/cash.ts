@@ -38,7 +38,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Fecha inválid
 
 type Tx = Prisma.TransactionClient;
 
-async function companyToday(companyId: string, now: Date) {
+export async function companyToday(companyId: string, now: Date) {
   const c = await db.company.findUniqueOrThrow({ where: { id: companyId }, select: { timezone: true } });
   return localDate(now, c.timezone);
 }
@@ -56,7 +56,7 @@ function checkDate(date: string, today: string) {
 }
 
 /** Una operación a la vez por sede y día: registrar, anular y cerrar no se cruzan. */
-async function lockDay(tx: Tx, siteId: string, date: string) {
+export async function lockDay(tx: Tx, siteId: string, date: string) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`cash:${siteId}:${date}`}))`;
 }
 
@@ -64,8 +64,8 @@ async function activeClosing(tx: Tx | typeof db, companyId: string, siteId: stri
   return tx.cashClosing.findFirst({ where: { companyId, siteId, date: day(date), reopenedAt: null } });
 }
 
-async function assertOpen(tx: Tx, companyId: string, siteId: string, date: string) {
-  if (await activeClosing(tx, companyId, siteId, date)) throw new AppError("CONFLICT", "Ese día ya está cerrado. Para cambiarlo, reábrelo con un motivo.");
+export async function assertOpen(tx: Tx, companyId: string, siteId: string, date: string, what = "Ese día") {
+  if (await activeClosing(tx, companyId, siteId, date)) throw new AppError("CONFLICT", `${what} ya está cerrado en la caja. Para cambiarlo, reabre el día con un motivo.`);
 }
 
 /** Saldo inicial: lo contado en el último cierre vigente anterior a la fecha. */

@@ -129,6 +129,14 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
 
 ![Detalle por empleado](img/escritorio-pre-nomina-detalle.jpg)
 
+### Ventas
+
+1. **Nueva venta:** elige la sede, busca los productos por nombre o código y tócalos para agregarlos (Enter agrega el primero). Ajusta cantidades y descuentos; el total con IVA se calcula en vivo. Si no hay stock suficiente en la sede, el renglón se marca y no deja registrar.
+2. **Cliente:** consumidor final, uno existente o uno nuevo (con documento, la siguiente vez se reconoce).
+3. **Registrar venta:** recibe un número consecutivo (V-000001, V-000002…), descuenta el inventario de la sede y el valor entra a la caja de hoy con su medio de pago. La caja del día debe estar abierta.
+4. **Comprobante (PDF):** soporte interno de la venta. La factura electrónica ante la DIAN se emite con tu facturador (Siigo o Alegra); su envío automático se activa al conectar la cuenta en Integraciones.
+5. **Anular venta:** con motivo; devuelve los productos al inventario y anula el ingreso de caja. El número no se reutiliza.
+
 ### Inventario
 
 - **Nuevo producto:** código (SKU, único en tu empresa), nombre, categoría, unidad, precio de venta antes de IVA, IVA (0, 5 o 19 %), costo y stock mínimo. Un **servicio** no lleva inventario.
