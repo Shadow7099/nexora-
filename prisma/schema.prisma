@@ -226,6 +226,8 @@ model Company {
   cashClosings       CashClosing[]
   customers          Customer[]
   sales              Sale[]
+  deals              Deal[]
+  crmActivities      CrmActivity[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -264,6 +266,8 @@ model User {
   cashReopenings     CashClosing[]       @relation("CashClosingReopenedBy")
   sales              Sale[]              @relation("SaleBy")
   voidedSales        Sale[]              @relation("SaleVoidedBy")
+  ownedDeals         Deal[]              @relation("DealOwner")
+  crmActivities      CrmActivity[]       @relation("CrmActivityBy")
 
   @@index([companyId, role])
   @@map("app_user")
@@ -1086,15 +1090,26 @@ model Customer {
   phone          String?
   address        String?
   city           String?
+  /// De dónde llegó: MANUAL, SALE, META, WHATSAPP, TIKTOK, WEB.
+  source         String           @default("MANUAL")
+  notes          String?
+  /// Autorización para contacto comercial (Ley 1581 de 2012) y cuándo/cómo se obtuvo.
+  marketingConsent Boolean        @default(false) @map("marketing_consent")
+  consentAt      DateTime?        @map("consent_at") @db.Timestamptz(3)
+  consentSource  String?          @map("consent_source")
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  sales   Sale[]
+  company    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sales      Sale[]
+  deals      Deal[]
+  activities CrmActivity[]
 
   @@unique([id, companyId])
   @@unique([companyId, documentType, documentNumber])
   @@index([companyId, name])
+  @@index([companyId, phone])
+  @@index([companyId, email])
   @@map("customer")
 }
 
@@ -1160,4 +1175,79 @@ model SaleItem {
 
   @@index([saleId])
   @@map("sale_item")
+}
+
+// ─────────────────────────────── CRM ───────────────────────────────
+
+enum DealStage {
+  NEW // nuevo
+  CONTACTED // contactado
+  PROPOSAL // propuesta
+  NEGOTIATION // negociación
+  WON // ganado
+  LOST // perdido
+}
+
+// Oportunidad de negocio con un cliente, en una etapa del embudo.
+model Deal {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  customerId    String    @map("customer_id") @db.Uuid
+  title         String
+  value         Decimal?  @db.Decimal(14, 2)
+  stage         DealStage @default(NEW)
+  source        String    @default("MANUAL")
+  ownerId       String?   @map("owner_id") @db.Uuid
+  expectedClose DateTime? @map("expected_close") @db.Date
+  lostReason    String?   @map("lost_reason")
+  closedAt      DateTime? @map("closed_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer   Customer      @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  owner      User?         @relation("DealOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities CrmActivity[]
+
+  @@unique([id, companyId])
+  @@index([companyId, stage])
+  @@index([companyId, customerId])
+  @@map("deal")
+}
+
+enum CrmActivityType {
+  NOTE
+  CALL
+  WHATSAPP
+  EMAIL
+  MEETING
+  TASK
+  STAGE // cambio de etapa (automático)
+  LEAD // llegada de un lead (automático)
+}
+
+// Seguimiento: nota, llamada, mensaje, reunión o tarea (con fecha) de un cliente.
+model CrmActivity {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  companyId   String          @map("company_id") @db.Uuid
+  customerId  String          @map("customer_id") @db.Uuid
+  dealId      String?         @map("deal_id") @db.Uuid
+  type        CrmActivityType
+  body        String
+  dueAt       DateTime?       @map("due_at") @db.Timestamptz(3)
+  doneAt      DateTime?       @map("done_at") @db.Timestamptz(3)
+  /// Identificador externo (p. ej. id del lead de Meta o del mensaje de WhatsApp) para no duplicar.
+  externalId  String?         @map("external_id")
+  createdById String?         @map("created_by_id") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer  Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  deal      Deal?    @relation(fields: [dealId, companyId], references: [id, companyId], onDelete: Restrict)
+  createdBy User?    @relation("CrmActivityBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, externalId])
+  @@index([companyId, customerId, createdAt])
+  @@index([companyId, dueAt])
+  @@map("crm_activity")
 }

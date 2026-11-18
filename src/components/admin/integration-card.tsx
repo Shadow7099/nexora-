@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, CircleAlert, ExternalLink, KeyRound, Plug, Unplug } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { removeIntegrationAction, saveIntegrationAction, testIntegrationAction } from "@/app/integration-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,16 @@ export type IntegrationState = {
   savedSecrets: string[];
   lastError: string | null;
   testedAt: string | null;
+  webhookToken?: string | null;
 };
+
+/** Dónde recibe Nexora los avisos de cada plataforma (para el CRM). */
+const WEBHOOK: Record<string, { path: string; steps: string }> = {
+  META: { path: "meta", steps: "En tu app de Meta → Webhooks → Page: pega la URL y el token de verificación y suscribe el campo «leadgen». Los clientes de tus formularios de anuncios llegarán al CRM." },
+  WHATSAPP: { path: "whatsapp", steps: "En tu app de Meta → WhatsApp → Configuración → Webhook: pega la URL y el token de verificación y suscribe «messages». Los mensajes entrantes llegarán al CRM." },
+  LEADS: { path: "leads", steps: "Envía aquí, por POST, un JSON con name, phone, email, message, campaign y source (TIKTOK o WEB)." },
+};
+const noop = () => () => {};
 
 const STATUS = {
   CONNECTED: <Badge tone="success" dot>Conectada</Badge>,
@@ -38,6 +47,8 @@ export function IntegrationCard({ scope, provider: p, state, disabled }: { scope
   const err = saveState?.fieldErrors ?? {};
   const message = result ?? saveState;
   const id = (k: string) => `${p.id}-${k}`;
+  const origin = useSyncExternalStore(noop, () => window.location.origin, () => "");
+  const hook = WEBHOOK[p.id];
 
   return (
     <Card className="p-5" role="region" aria-labelledby={id("title")}>
@@ -114,6 +125,23 @@ export function IntegrationCard({ scope, provider: p, state, disabled }: { scope
         </div>
         <FormAlert message={message?.message} tone={message?.ok ? "success" : "danger"} />
       </form>
+
+      {hook && state.webhookToken && origin && (
+        <div className="mt-4 grid gap-2 rounded-lg border border-border p-3 text-sm">
+          <p className="font-medium">Recibir en el CRM</p>
+          <p className="text-xs text-fg-muted">{hook.steps}</p>
+          <label className="grid gap-1 text-xs text-fg-muted">
+            URL privada (no la compartas)
+            <Input readOnly value={`${origin}/api/webhooks/${hook.path}/${state.webhookToken}`} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+          </label>
+          {p.id !== "LEADS" && (
+            <label className="grid gap-1 text-xs text-fg-muted">
+              Token de verificación
+              <Input readOnly value={state.webhookToken} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+            </label>
+          )}
+        </div>
+      )}
 
       {state.testedAt && (
         <p className="mt-3 flex items-start gap-2 text-xs text-fg-muted">

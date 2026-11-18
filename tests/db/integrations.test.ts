@@ -82,7 +82,7 @@ describe("integraciones de la empresa", () => {
     const list = await listIntegrations(s.admin.actor, "company");
     expect(JSON.stringify(list)).not.toContain(TOKEN); // ni hacia la pantalla
     expect(list.items.find((i) => i.id === "META")).toMatchObject({ connected: true, savedSecrets: ["pageAccessToken"] });
-    expect(list.items.map((i) => i.id)).toEqual(["META", "TIKTOK", "WHATSAPP", "SIIGO", "ALEGRA", "RESEND", "CLAUDE"]);
+    expect(list.items.map((i) => i.id)).toEqual(["META", "TIKTOK", "WHATSAPP", "LEADS", "SIIGO", "ALEGRA", "RESEND", "CLAUDE"]);
 
     // Cambiar el ID sin reescribir el token: se conserva.
     await saveIntegration(s.admin.actor, "company", "META", { ...meta, pageId: "999999999999999", pageAccessToken: "" });

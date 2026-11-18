@@ -216,6 +216,9 @@ const TESTERS: Record<string, (c: Record<string, string>, s: Record<string, stri
     if (found.status !== "verified") return { ok: false, error: `El dominio ${domain} aún no está verificado en Resend (estado: ${found.status}).` };
     return { ok: true, detail: `Dominio ${domain} verificado` };
   },
+  async LEADS() {
+    return { ok: true, detail: "Lista para recibir leads en tu dirección privada" };
+  },
   async CLAUDE(_c, s, f) {
     try {
       const client = new Anthropic({ apiKey: s.apiKey, fetch: f, timeout: 15_000, maxRetries: 0 });

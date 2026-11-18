@@ -81,6 +81,7 @@ export const INTEGRATIONS: IntegrationProvider[] = [
       { key: "phoneNumberId", label: "ID del número de teléfono", placeholder: "100000000000000" },
       { key: "businessAccountId", label: "ID de la cuenta de WhatsApp Business (WABA)", placeholder: "100000000000000" },
       { key: "accessToken", label: "Token de acceso permanente", secret: true, help: "Token de un usuario del sistema con whatsapp_business_messaging y whatsapp_business_management." },
+      { key: "appSecret", label: "Clave secreta de la app de Meta", secret: true, optional: true, help: "Necesaria para recibir los mensajes en el CRM: verifica que los avisos vienen de Meta." },
     ],
     howTo: [
       "En developers.facebook.com agrega el producto WhatsApp a tu app de Meta.",
@@ -88,6 +89,20 @@ export const INTEGRATIONS: IntegrationProvider[] = [
       "Genera un token permanente desde Meta Business Suite → Usuarios del sistema.",
     ],
     docsUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started",
+    scope: "company",
+  },
+  {
+    id: "LEADS",
+    name: "Entrada de leads (TikTok, formularios web, Zapier o Make)",
+    group: "Redes sociales y mensajería",
+    description: "Una dirección privada que recibe clientes potenciales y los crea en el CRM. Úsala con los formularios de TikTok (vía Zapier o Make) o el formulario de tu página web.",
+    fields: [],
+    howTo: [
+      "Toca «Guardar» para crear tu dirección privada y cópiala.",
+      "En Zapier o Make: disparador «TikTok Lead Generation → New lead» y acción «Webhook → POST» a esa dirección, con un JSON {\"name\", \"phone\", \"email\", \"message\", \"campaign\", \"source\": \"TIKTOK\"}.",
+      "Desde tu página web, envía el mismo JSON con \"source\": \"WEB\". No compartas la dirección: quien la tenga puede crear leads.",
+    ],
+    docsUrl: "https://business-api.tiktok.com/portal/docs?id=1739088223290369",
     scope: "company",
   },
   {

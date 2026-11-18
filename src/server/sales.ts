@@ -97,7 +97,7 @@ async function resolveCustomer(tx: Tx, companyId: string, v: z.infer<typeof sale
   const existing = c.documentNumber ? await tx.customer.findFirst({ where: { companyId, documentType: c.documentType, documentNumber: c.documentNumber } }) : null;
   const saved = existing
     ? await tx.customer.update({ where: { id: existing.id }, data: { name: c.name, email: c.email ?? existing.email, phone: c.phone ?? existing.phone } })
-    : await tx.customer.create({ data: { companyId, ...c } });
+    : await tx.customer.create({ data: { companyId, ...c, source: "SALE" } });
   return { id: saved.id, name: saved.name, doc: saved.documentNumber ? `${saved.documentType ?? ""} ${saved.documentNumber}`.trim() : null };
 }
 

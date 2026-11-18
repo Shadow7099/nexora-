@@ -129,6 +129,17 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
 
 ![Detalle por empleado](img/escritorio-pre-nomina-detalle.jpg)
 
+### CRM
+
+- **Embudo:** oportunidades por etapa (Nuevo, Contactado, Propuesta, Negociación, Ganado, Perdido) con su valor. Cambia la etapa desde la tarjeta; **Perdido** pide el motivo. Arriba: valor abierto, tasa de cierre de 30 días y tareas pendientes.
+- **Clientes:** búsqueda por nombre, celular, correo o documento y filtro por origen (manual, venta, Facebook/Instagram, WhatsApp, TikTok, web). En la ficha: llamar, abrir WhatsApp, oportunidades, **seguimientos** (nota, llamada, WhatsApp, correo, reunión) y **tareas con fecha**, que aparecen en el CRM hasta marcarlas **Hecha**.
+- **Autorización comercial (Ley 1581):** marca si el cliente aceptó recibir promociones; queda la fecha y el origen. Sin ella no le envíes publicidad.
+- **Leads automáticos** (Integraciones):
+  - **Facebook e Instagram:** en la tarjeta de Meta aparecen la URL privada y el token de verificación. En tu app de Meta → Webhooks → Page, pégalos y suscribe «leadgen». Cada formulario de anuncio crea el cliente y una oportunidad.
+  - **WhatsApp:** igual, en WhatsApp → Configuración → Webhook, suscribiendo «messages». Cada mensaje queda en el historial del cliente. Requiere la clave secreta de la app.
+  - **TikTok y formularios web:** activa «Entrada de leads» y envía a su URL privada un JSON con name, phone, email, message, campaign y source (TIKTOK o WEB), por ejemplo desde Zapier o Make.
+  - El cliente se reconoce por celular o correo (no se duplica) y el mismo aviso nunca se registra dos veces.
+
 ### Ventas
 
 1. **Nueva venta:** elige la sede, busca los productos por nombre o código y tócalos para agregarlos (Enter agrega el primero). Ajusta cantidades y descuentos; el total con IVA se calcula en vivo. Si no hay stock suficiente en la sede, el renglón se marca y no deja registrar.
