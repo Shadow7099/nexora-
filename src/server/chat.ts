@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { platformClaudeKey } from "@/server/integrations";
 import * as z from "zod";
 import { KNOWLEDGE_TEXT, type ChatLink } from "@/lib/chat-knowledge";
 import { matchIntent } from "@/lib/chat-match";
@@ -9,7 +10,8 @@ import { hashIp } from "@/server/sessions";
 /**
  * Asistente de la página de inicio.
  * - Siempre responde con la base de conocimiento propia (sin servicios externos).
- * - Si hay ANTHROPIC_API_KEY, Claude redacta la respuesta usando SOLO esa base,
+ * - Si hay llave de Claude (Plataforma → Integraciones, o ANTHROPIC_API_KEY),
+ *   Claude redacta la respuesta usando SOLO esa base,
  *   para entender preguntas abiertas; si la llamada falla, vuelve a la base propia.
  * - Límite de mensajes por red para evitar abuso y costos.
  */
@@ -56,8 +58,9 @@ Base de conocimiento:
 ${KNOWLEDGE_TEXT}`;
 
 async function askClaude(history: z.infer<typeof historySchema>): Promise<string | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  const client = new Anthropic({ timeout: 25_000, maxRetries: 1 });
+  const apiKey = await platformClaudeKey();
+  if (!apiKey) return null;
+  const client = new Anthropic({ apiKey, timeout: 25_000, maxRetries: 1 });
   try {
     const response = await client.beta.messages.create({
       model: "claude-opus-5-5",

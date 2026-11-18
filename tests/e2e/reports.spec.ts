@@ -25,7 +25,9 @@ const noOverflow = async (page: Page) => {
   expect(m.inner, "el viewport no se agranda").toBeLessThanOrEqual(m.screen);
 };
 // Rango con las marcaciones simuladas de la demo.
-const RANGE = "desde=2026-10-16&hasta=2026-10-31";
+// La demo simula marcaciones de los últimos 14 días (prisma/seed-attendance.ts): el rango sigue a la fecha de hoy.
+const isoDaysAgo = (n: number) => new Date(Date.now() - 5 * 3_600_000 - n * 86_400_000).toISOString().slice(0, 10); // hora de Colombia
+const RANGE = `desde=${isoDaysAgo(14)}&hasta=${isoDaysAgo(1)}`;
 
 test("tablero: indicadores, gráficos y filtros con datos reales", async ({ page }, info) => {
   await login(page, "admin@eltrigal.test");
@@ -61,7 +63,7 @@ test("vista previa y descarga en Excel: mismos totales; CSV y PDF se descargan",
   await noOverflow(page);
 
   const [xlsx] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Excel" }).click()]);
-  expect(xlsx.suggestedFilename()).toBe("nexora-asistencia-2026-10-16_2026-10-31.xlsx");
+  expect(xlsx.suggestedFilename()).toBe(`nexora-asistencia-${isoDaysAgo(14)}_${isoDaysAgo(1)}.xlsx`);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load((await readFile((await xlsx.path())!)) as unknown as ArrayBuffer);
   const rows = (wb.worksheets[0]!.getSheetValues().filter(Boolean) as unknown[][]);

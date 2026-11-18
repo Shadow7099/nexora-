@@ -20,7 +20,8 @@ export default defineConfig({
   webServer: {
     command: `tsx scripts/e2e-db.ts && npm run start -- -p ${PORT}`,
     // APP_URL debe coincidir con el origen real: WebAuthn (passkeys) verifica el origen exacto.
-    env: { DATABASE_URL: E2E_DATABASE_URL, APP_URL: `http://localhost:${PORT}` },
+    // NEXORA_SECRETS_KEY: clave SOLO de pruebas para cifrar los tokens de Integraciones.
+    env: { DATABASE_URL: E2E_DATABASE_URL, APP_URL: `http://localhost:${PORT}`, NEXORA_SECRETS_KEY: "dGVzdC1zb2xvLXBydWViYXMtMzItYnl0ZXMtZXhhY3Q=" },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 120_000,

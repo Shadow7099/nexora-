@@ -129,6 +129,15 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
 
 ![Detalle por empleado](img/escritorio-pre-nomina-detalle.jpg)
 
+### Integraciones
+
+Conecta las cuentas de tu negocio en **Integraciones**: Facebook e Instagram, TikTok for Business, WhatsApp Business, facturación electrónica (Siigo **o** Alegra, uno a la vez), correo (Resend) y la llave de Claude.
+
+1. Abre **¿Dónde consigo estos datos?** en la tarjeta de la plataforma y sigue los pasos.
+2. Pega los datos y toca **Guardar**. Los tokens se guardan cifrados y **nunca se vuelven a mostrar**: para cambiar uno, escribe el nuevo; si dejas el campo vacío se conserva el guardado.
+3. Toca **Probar conexión**: Nexora consulta la plataforma y muestra **Conectada** (con el nombre de tu página, cuenta o número) o **Con error** y el motivo.
+4. **Desconectar** borra los datos y tokens guardados.
+
 ### Reportes
 
 - Filtros por fechas, sede y empleado (con atajos: últimos 7 días, últimos 30 días, este mes, mes anterior).
@@ -147,6 +156,7 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
 
 - **Empresas → Nueva empresa:** nombre, NIT, plan y límites de sedes y empleados, y el primer administrador. Nexora muestra su contraseña temporal una sola vez.
 - **Detalle de la empresa:** activar, pasar a prueba o **Suspender** (cierra al instante las sesiones de todos sus usuarios; los datos no se borran). **Restablecer contraseña** de un administrador que la olvidó.
+- **Integraciones:** la llave de Claude que usa el asistente de la página de inicio de Nexora (si no hay, se usa la variable `ANTHROPIC_API_KEY`).
 - **Parámetros laborales:** cargar una **nueva versión** cuando cambie una norma (la anterior se cierra el día previo; nada se borra) y **Validar** cada valor después de la revisión del contador.
 
 ![Nueva empresa](img/escritorio-plataforma-nueva.jpg)

@@ -7,6 +7,7 @@ import {
   Home,
   Inbox,
   LayoutDashboard,
+  Plug,
   ListChecks,
   Rocket,
   Scale,
@@ -36,6 +37,7 @@ export const adminNav: NavItem[] = [
   { href: "/admin/solicitudes", label: "Solicitudes", icon: Inbox, phase: 2 },
   { href: "/admin/pre-nomina", label: "Pre-nómina", icon: Wallet, phase: 6 },
   { href: "/admin/reportes", label: "Reportes", icon: FileSpreadsheet, phase: 7 },
+  { href: "/admin/integraciones", label: "Integraciones", icon: Plug, phase: 8 },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings, phase: 2 },
 ];
 
@@ -54,4 +56,5 @@ export const platformNav: NavItem[] = [
   { href: "/plataforma/solicitudes", label: "Solicitudes", icon: Inbox, phase: 8 },
   { href: "/plataforma/invitaciones", label: "Invitaciones", icon: Send, phase: 8 },
   { href: "/plataforma/parametros", label: "Parámetros laborales", icon: Scale, phase: 6 },
+  { href: "/plataforma/integraciones", label: "Integraciones", icon: Plug, phase: 8 },
 ];

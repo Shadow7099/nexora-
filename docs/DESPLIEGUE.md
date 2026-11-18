@@ -14,6 +14,8 @@ Producción actual: **Vercel** (app) + **Supabase** (PostgreSQL). Cada push a `m
 |---|---|---|
 | `DATABASE_URL` | Sí | Cadena del **Transaction pooler** de Supabase (puerto **6543**). Supabase → botón **Connect** → ORMs |
 | `APP_URL` | Solo con dominio propio | El dominio definitivo, p. ej. `https://asistencia.miempresa.com` |
+| `NEXORA_SECRETS_KEY` | Sí, para Integraciones | Clave que cifra los tokens de las integraciones. Genérela con `openssl rand -base64 32` y péguela **solo en Vercel** (marcada como *Sensitive*). **No la cambie ni la borre**: los tokens guardados dejarían de poder leerse y habría que volver a escribirlos |
+| `ANTHROPIC_API_KEY` | No | Respaldo de la llave de Claude del asistente de la página de inicio. Lo normal es guardarla en Plataforma → Integraciones |
 
 - La contraseña de la base **nunca** va en el código, en GitHub ni en un chat: solo en Vercel.
 - **No defina `APP_URL` antes de tener el dominio final.** Las passkeys (huella) verifican el origen exacto y los QR impresos llevan esa dirección. Sin `APP_URL`, Nexora usa el dominio desde el que se abre.

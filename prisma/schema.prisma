@@ -219,6 +219,7 @@ model Company {
   auditLogs          AuditLog[]
   qrCodes            SiteQrCode[]
   contracts          EmployeeContract[]
+  integrations       Integration[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -864,4 +865,38 @@ model AuditLog {
   @@index([companyId, occurredAt])
   @@index([entityType, entityId])
   @@map("audit_log")
+}
+
+// ─────────────────────────────── Integraciones ───────────────────────────────
+
+enum IntegrationStatus {
+  UNTESTED
+  CONNECTED
+  ERROR
+}
+
+// Conexión con un servicio externo (Meta, TikTok, WhatsApp, facturación
+// electrónica, correo, Claude). companyId null = de la plataforma (p. ej. la
+// llave de Claude del asistente de la página de inicio). Los datos sensibles
+// (tokens, llaves) van cifrados en secretCipher (AES-256-GCM con
+// NEXORA_SECRETS_KEY); nunca se devuelven al navegador.
+model Integration {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  companyId    String?           @map("company_id") @db.Uuid
+  provider     String
+  config       Json              @default("{}")
+  secretCipher String?           @map("secret_cipher")
+  secretKeys   String[]          @default([]) @map("secret_keys")
+  status       IntegrationStatus @default(UNTESTED)
+  lastError    String?           @map("last_error")
+  testedAt     DateTime?         @map("tested_at") @db.Timestamptz(3)
+  webhookToken String            @unique @map("webhook_token")
+  updatedById  String?           @map("updated_by_id") @db.Uuid
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, provider])
+  @@map("integration")
 }
