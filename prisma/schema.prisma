@@ -222,6 +222,8 @@ model Company {
   integrations       Integration[]
   products           Product[]
   stockMovements     StockMovement[]
+  cashMovements      CashMovement[]
+  cashClosings       CashClosing[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -254,6 +256,10 @@ model User {
   requestedNovelties Novelty[]           @relation("NoveltyRequester")
   manualPunches      AttendanceEvent[]   @relation("PunchCreatedBy")
   stockMovements     StockMovement[]     @relation("StockMovementBy")
+  cashMovements      CashMovement[]      @relation("CashMovementBy")
+  cashVoids          CashMovement[]      @relation("CashMovementVoidedBy")
+  cashClosings       CashClosing[]       @relation("CashClosingBy")
+  cashReopenings     CashClosing[]       @relation("CashClosingReopenedBy")
 
   @@index([companyId, role])
   @@map("app_user")
@@ -339,6 +345,8 @@ model Site {
   events           AttendanceEvent[]
   sessions         WorkSession[]
   stockMovements   StockMovement[]
+  cashMovements    CashMovement[]
+  cashClosings     CashClosing[]
 
   @@unique([id, companyId])
   @@unique([companyId, name])
@@ -973,4 +981,79 @@ model StockMovement {
   @@index([companyId, productId, siteId])
   @@index([companyId, createdAt])
   @@map("stock_movement")
+}
+
+// ─────────────────────────────── Caja ───────────────────────────────
+
+enum CashMovementType {
+  IN
+  OUT
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  OTHER
+}
+
+// Ingreso o egreso de la caja de una sede en un día. Nunca se borra: se anula
+// con motivo (la base solo permite llenar los datos de anulación, una vez).
+model CashMovement {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  companyId   String           @map("company_id") @db.Uuid
+  siteId      String           @map("site_id") @db.Uuid
+  date        DateTime         @db.Date
+  type        CashMovementType
+  category    String
+  method      PaymentMethod
+  amount      Decimal          @db.Decimal(14, 2)
+  description String?
+  /// Origen automático (p. ej. una venta): una sola vez por origen.
+  source      String?
+  sourceId    String?          @map("source_id") @db.Uuid
+  createdById String           @map("created_by_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  voidedAt    DateTime?        @map("voided_at") @db.Timestamptz(3)
+  voidedById  String?          @map("voided_by_id") @db.Uuid
+  voidReason  String?          @map("void_reason")
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site      Site    @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Restrict)
+  createdBy User    @relation("CashMovementBy", fields: [createdById], references: [id], onDelete: Restrict)
+  voidedBy  User?   @relation("CashMovementVoidedBy", fields: [voidedById], references: [id], onDelete: Restrict)
+
+  @@index([companyId, siteId, date])
+  @@map("cash_movement")
+}
+
+// Cierre del día de una sede: efectivo esperado vs. contado. Con un cierre
+// vigente el día queda bloqueado; reabrirlo exige motivo y queda registrado.
+model CashClosing {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  companyId      String    @map("company_id") @db.Uuid
+  siteId         String    @map("site_id") @db.Uuid
+  date           DateTime  @db.Date
+  openingBalance Decimal   @map("opening_balance") @db.Decimal(14, 2)
+  cashIn         Decimal   @map("cash_in") @db.Decimal(14, 2)
+  cashOut        Decimal   @map("cash_out") @db.Decimal(14, 2)
+  expected       Decimal   @db.Decimal(14, 2)
+  counted        Decimal   @db.Decimal(14, 2)
+  difference     Decimal   @db.Decimal(14, 2)
+  /// Totales del día por tipo y medio de pago.
+  totals         Json
+  notes          String?
+  closedById     String    @map("closed_by_id") @db.Uuid
+  closedAt       DateTime  @default(now()) @map("closed_at") @db.Timestamptz(3)
+  reopenedAt     DateTime? @map("reopened_at") @db.Timestamptz(3)
+  reopenedById   String?   @map("reopened_by_id") @db.Uuid
+  reopenReason   String?   @map("reopen_reason")
+
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site       Site    @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Restrict)
+  closedBy   User    @relation("CashClosingBy", fields: [closedById], references: [id], onDelete: Restrict)
+  reopenedBy User?   @relation("CashClosingReopenedBy", fields: [reopenedById], references: [id], onDelete: Restrict)
+
+  @@index([companyId, siteId, date])
+  @@map("cash_closing")
 }

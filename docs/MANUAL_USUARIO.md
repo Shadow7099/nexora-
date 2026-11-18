@@ -140,6 +140,14 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
 - Cada movimiento queda con fecha, sede, motivo y quién lo hizo, y **no se puede editar ni borrar**: un error se corrige con otro movimiento.
 - La lista muestra el stock total o por sede, el valor del inventario a costo y los productos **en o bajo el mínimo**. Un producto desactivado deja de aparecer y no se puede mover.
 
+### Caja
+
+1. Elige la **sede** y el **día** (por defecto hoy).
+2. **Registrar movimiento:** ingreso o egreso, valor, medio de pago (efectivo, transferencia, tarjeta u otro), categoría y detalle.
+3. Un error se **anula** con motivo: queda tachado y sale de los totales. Ningún movimiento se borra.
+4. **Cerrar el día:** escribe el efectivo contado. Nexora lo compara con el **esperado** (saldo inicial + ingresos − egresos en efectivo) y muestra si sobra o falta. Si no cuadra, hay que explicar la diferencia.
+5. Con el día cerrado no se registra ni se anula nada. Para corregir, **Reabrir el día** con un motivo (solo el último día cerrado de la sede). El saldo inicial de cada día es el efectivo contado en el cierre anterior.
+
 ### Integraciones
 
 Conecta las cuentas de tu negocio en **Integraciones**: Facebook e Instagram, TikTok for Business, WhatsApp Business, facturación electrónica (Siigo **o** Alegra, uno a la vez), correo (Resend) y la llave de Claude.
