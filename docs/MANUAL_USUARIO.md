@@ -129,6 +129,17 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
 
 ![Detalle por empleado](img/escritorio-pre-nomina-detalle.jpg)
 
+### Inventario
+
+- **Nuevo producto:** código (SKU, único en tu empresa), nombre, categoría, unidad, precio de venta antes de IVA, IVA (0, 5 o 19 %), costo y stock mínimo. Un **servicio** no lleva inventario.
+- En la ficha del producto, **Registrar movimiento**:
+  - **Entrada** (compra, producción). Si escribes el costo unitario, queda como costo del producto.
+  - **Salida** (consumo, daño, pérdida). No deja sacar más de lo que hay en la sede.
+  - **Ajuste por conteo físico:** escribe lo que contaste; Nexora registra la diferencia.
+  - **Traslado entre sedes:** sale de una sede y entra a la otra en un solo paso.
+- Cada movimiento queda con fecha, sede, motivo y quién lo hizo, y **no se puede editar ni borrar**: un error se corrige con otro movimiento.
+- La lista muestra el stock total o por sede, el valor del inventario a costo y los productos **en o bajo el mínimo**. Un producto desactivado deja de aparecer y no se puede mover.
+
 ### Integraciones
 
 Conecta las cuentas de tu negocio en **Integraciones**: Facebook e Instagram, TikTok for Business, WhatsApp Business, facturación electrónica (Siigo **o** Alegra, uno a la vez), correo (Resend) y la llave de Claude.

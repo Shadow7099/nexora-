@@ -220,6 +220,8 @@ model Company {
   qrCodes            SiteQrCode[]
   contracts          EmployeeContract[]
   integrations       Integration[]
+  products           Product[]
+  stockMovements     StockMovement[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -251,6 +253,7 @@ model User {
   decidedNovelties   Novelty[]           @relation("NoveltyDecider")
   requestedNovelties Novelty[]           @relation("NoveltyRequester")
   manualPunches      AttendanceEvent[]   @relation("PunchCreatedBy")
+  stockMovements     StockMovement[]     @relation("StockMovementBy")
 
   @@index([companyId, role])
   @@map("app_user")
@@ -335,6 +338,7 @@ model Site {
   patternDays      SchedulePatternDay[]
   events           AttendanceEvent[]
   sessions         WorkSession[]
+  stockMovements   StockMovement[]
 
   @@unique([id, companyId])
   @@unique([companyId, name])
@@ -899,4 +903,74 @@ model Integration {
 
   @@unique([companyId, provider])
   @@map("integration")
+}
+
+// ─────────────────────────────── Inventario ───────────────────────────────
+
+enum ProductKind {
+  PRODUCT
+  SERVICE
+}
+
+enum StockMovementType {
+  IN // entrada (compra, producción)
+  OUT // salida (consumo, daño, pérdida)
+  ADJUST // ajuste por conteo físico
+  TRANSFER_OUT // traslado: sale de una sede
+  TRANSFER_IN // traslado: entra a otra sede
+  SALE // venta (facturación)
+}
+
+// Producto o servicio que vende la empresa. Los servicios no llevan stock.
+model Product {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  companyId String      @map("company_id") @db.Uuid
+  sku       String
+  name      String
+  category  String?
+  kind      ProductKind @default(PRODUCT)
+  unit      String      @default("UNIDAD")
+  price     Decimal     @db.Decimal(14, 2)
+  cost      Decimal?    @db.Decimal(14, 2)
+  taxRate   Decimal     @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  minStock  Decimal     @default(0) @map("min_stock") @db.Decimal(14, 3)
+  barcode   String?
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company   Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, sku])
+  @@index([companyId, active])
+  @@map("product")
+}
+
+// Movimiento de inventario (solo inserción): el stock de cada sede es la suma
+// de sus movimientos. Una corrección es un movimiento nuevo, nunca una edición.
+model StockMovement {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  companyId   String            @map("company_id") @db.Uuid
+  productId   String            @map("product_id") @db.Uuid
+  siteId      String            @map("site_id") @db.Uuid
+  type        StockMovementType
+  /// Cambio de cantidad: positivo entra, negativo sale.
+  quantity    Decimal           @db.Decimal(14, 3)
+  unitCost    Decimal?          @map("unit_cost") @db.Decimal(14, 2)
+  reason      String
+  reference   String?
+  transferId  String?           @map("transfer_id") @db.Uuid
+  createdById String?           @map("created_by_id") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  product   Product @relation(fields: [productId, companyId], references: [id, companyId], onDelete: Restrict)
+  site      Site    @relation(fields: [siteId, companyId], references: [id, companyId], onDelete: Restrict)
+  createdBy User?   @relation("StockMovementBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([companyId, productId, siteId])
+  @@index([companyId, createdAt])
+  @@map("stock_movement")
 }

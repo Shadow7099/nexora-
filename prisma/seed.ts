@@ -191,12 +191,32 @@ async function main() {
       });
     }
 
+    // Inventario de ejemplo: productos de panadería con su entrada inicial en cada sede.
+    const products = [
+      { sku: "PAN-TAJ", name: "Pan tajado", category: "Panadería", price: 6500, cost: 3200, minStock: 20, qty: [30, 18, 25, 12] },
+      { sku: "PAN-BLD", name: "Pan blandito (x6)", category: "Panadería", price: 4500, cost: 2100, minStock: 15, qty: [25, 20, 8, 15] },
+      { sku: "PAN-ALM", name: "Almojábana", category: "Panadería", price: 2500, cost: 1100, minStock: 30, qty: [40, 35, 30, 25] },
+      { sku: "TOR-CHO", name: "Torta de chocolate (porción)", category: "Pastelería", price: 7000, cost: 3000, minStock: 10, qty: [12, 6, 10, 8] },
+      { sku: "BEB-CAF", name: "Café tinto", category: "Bebidas", price: 2000, cost: 500, minStock: 0, qty: null, service: true },
+    ];
+    const siteOrder = ["centro", "primavera", "acacias", "restrepo"];
+    for (const p of products) {
+      const product = await tx.product.create({
+        data: { companyId, sku: p.sku, name: p.name, category: p.category, price: p.price, cost: p.cost, minStock: p.minStock, kind: p.service ? "SERVICE" : "PRODUCT", unit: p.service ? "SERVICIO" : "UNIDAD" },
+      });
+      for (const [i, q] of (p.qty ?? []).entries()) {
+        await tx.stockMovement.create({
+          data: { companyId, productId: product.id, siteId: sites[siteOrder[i]!]!, type: "IN", quantity: q, unitCost: p.cost, reason: "Inventario inicial", createdById: admin.id },
+        });
+      }
+    }
+
     await tx.auditLog.create({
-      data: { companyId, action: "demo.seed", entityType: "company", entityId: companyId, after: { sites: 4, employees: people.length } },
+      data: { companyId, action: "demo.seed", entityType: "company", entityId: companyId, after: { sites: 4, employees: people.length, products: products.length } },
     });
   });
 
-  console.log("Demo creada: 1 empresa, 4 sedes, 8 empleados.");
+  console.log("Demo creada: 1 empresa, 4 sedes, 8 empleados, 5 productos.");
   await seedAttendance(db, DEMO_SLUG);
   // Horas extra de las jornadas simuladas (lo mismo que hace "Revisar jornadas pasadas").
   console.log("Para detectar las horas extra de la demo: Solicitudes → Revisar jornadas pasadas.");

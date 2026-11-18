@@ -27,3 +27,8 @@ export function toActionState(e: unknown): ActionState {
   console.error(e);
   return { ok: false, message: "Ocurrió un error inesperado. Intenta de nuevo." };
 }
+
+/** La tabla aún no existe (migración pendiente en esta base): la pantalla lo explica en vez de fallar. */
+export function isMissingTable(e: unknown) {
+  return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2021";
+}
