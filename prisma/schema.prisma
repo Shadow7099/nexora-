@@ -228,6 +228,11 @@ model Company {
   sales              Sale[]
   deals              Deal[]
   crmActivities      CrmActivity[]
+  conversations      Conversation[]
+  messages           Message[]
+  crmAiConfig        CrmAiConfig?
+  aiGaps             AiGap[]
+  waTemplates        WaTemplate[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -268,6 +273,7 @@ model User {
   voidedSales        Sale[]              @relation("SaleVoidedBy")
   ownedDeals         Deal[]              @relation("DealOwner")
   crmActivities      CrmActivity[]       @relation("CrmActivityBy")
+  sentMessages       Message[]           @relation("MessageSentBy")
 
   @@index([companyId, role])
   @@map("app_user")
@@ -1100,10 +1106,11 @@ model Customer {
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  company    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  sales      Sale[]
-  deals      Deal[]
-  activities CrmActivity[]
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sales         Sale[]
+  deals         Deal[]
+  activities    CrmActivity[]
+  conversations Conversation[]
 
   @@unique([id, companyId])
   @@unique([companyId, documentType, documentNumber])
@@ -1250,4 +1257,167 @@ model CrmActivity {
   @@index([companyId, customerId, createdAt])
   @@index([companyId, dueAt])
   @@map("crm_activity")
+}
+
+// ─────────────────────────────── Mensajes ───────────────────────────────
+
+enum MessageChannel {
+  WHATSAPP
+  MESSENGER
+  INSTAGRAM
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+enum MessageStatus {
+  RECEIVED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// Conversación con un cliente por un canal (un número de WhatsApp, una
+// persona en Messenger o en Instagram).
+model Conversation {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  companyId     String         @map("company_id") @db.Uuid
+  customerId    String         @map("customer_id") @db.Uuid
+  channel       MessageChannel
+  /// Quién es del otro lado: el número (WhatsApp) o el id de la persona en Messenger/Instagram.
+  externalUser  String         @map("external_user")
+  lastMessageAt DateTime       @map("last_message_at") @db.Timestamptz(3)
+  /// Último mensaje del cliente: abre la ventana de 24 h para responder libremente.
+  lastInboundAt DateTime?      @map("last_inbound_at") @db.Timestamptz(3)
+  lastPreview   String?        @map("last_preview")
+  unread        Int            @default(0)
+  /// Análisis de la IA del último mensaje: etiqueta, resumen y respuesta sugerida.
+  aiTag         String?        @map("ai_tag")
+  aiSummary     String?        @map("ai_summary")
+  aiSuggestion  String?        @map("ai_suggestion")
+  needsHuman    Boolean        @default(false) @map("needs_human")
+  humanReason   String?        @map("human_reason")
+  aiAt          DateTime?      @map("ai_at") @db.Timestamptz(3)
+  aiError       String?        @map("ai_error")
+  /// La IA no responde sola en este chat (una persona lo tomó).
+  aiPaused      Boolean        @default(false) @map("ai_paused")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer  @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  messages Message[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, channel, externalUser])
+  @@index([companyId, lastMessageAt])
+  @@map("conversation")
+}
+
+model Message {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  companyId      String           @map("company_id") @db.Uuid
+  conversationId String           @map("conversation_id") @db.Uuid
+  direction      MessageDirection
+  body           String
+  /// Tipo en la plataforma (text, image, audio…); lo no textual se muestra como aviso.
+  kind           String           @default("text")
+  status         MessageStatus
+  /// Quién lo escribió: CUSTOMER (cliente), NEXORA (persona desde Nexora), AI (la IA), PHONE (desde la app del celular).
+  origin         String           @default("CUSTOMER")
+  error          String?
+  /// Id del mensaje en la plataforma (para no duplicar y para actualizar su estado).
+  externalId     String?          @map("external_id")
+  sentById       String?          @map("sent_by_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  conversation Conversation @relation(fields: [conversationId, companyId], references: [id, companyId], onDelete: Restrict)
+  sentBy       User?        @relation("MessageSentBy", fields: [sentById], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, externalId])
+  @@index([conversationId, createdAt])
+  @@map("message")
+}
+
+enum AiMode {
+  SUGGEST // la IA sugiere y una persona envía
+  AUTO // la IA responde sola (salvo que el chat deba atenderlo una persona)
+}
+
+// Configuración de la IA de mensajes de una empresa (lo que sabe y cómo responde).
+model CrmAiConfig {
+  companyId    String   @id @map("company_id") @db.Uuid
+  enabled      Boolean  @default(false)
+  mode         AiMode   @default(SUGGEST)
+  /// Datos del negocio: horarios, precios, políticas, preguntas frecuentes…
+  knowledge    String   @default("")
+  /// Cómo debe sonar y qué debe buscar (p. ej. cerrar ventas, agendar).
+  instructions String   @default("")
+  /// Cuándo pasar el chat a una persona además de las reglas fijas.
+  escalation   String   @default("")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("crm_ai_config")
+}
+
+enum AiGapStatus {
+  PENDING
+  ANSWERED
+  DISMISSED
+}
+
+// Lo que le falta a la IA: datos del negocio que un cliente preguntó y la IA no sabía.
+model AiGap {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  companyId String      @map("company_id") @db.Uuid
+  missing   String
+  question  String?
+  count     Int         @default(1)
+  status    AiGapStatus @default(PENDING)
+  answer    String?
+  lastAt    DateTime    @default(now()) @map("last_at") @db.Timestamptz(3)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, missing])
+  @@index([companyId, status])
+  @@map("ai_gap")
+}
+
+enum TemplateStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PAUSED
+  DISABLED
+}
+
+// Plantilla de WhatsApp: se envía a Meta para aprobación y sirve para escribir
+// fuera de la ventana de 24 h (retomar chats, recordatorios).
+model WaTemplate {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  companyId    String         @map("company_id") @db.Uuid
+  name         String
+  language     String         @default("es")
+  category     String
+  body         String
+  examples     String[]       @default([])
+  buttons      String[]       @default([])
+  status       TemplateStatus @default(DRAFT)
+  metaId       String?        @map("meta_id")
+  rejectReason String?        @map("reject_reason")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, name, language])
+  @@map("wa_template")
 }

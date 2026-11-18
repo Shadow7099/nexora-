@@ -50,7 +50,9 @@ export function AdminShell({
       </div>
       <p className="truncate px-2 pb-2 text-xs font-medium text-fg-subtle">{user.companyName}</p>
       {nav.map(({ href, label, icon: Icon, phase }) => {
-        const active = isActive(pathname, href, nav[0]?.href ?? "/admin");
+        // Si dos secciones coinciden (CRM y CRM › Mensajes), solo la más específica queda activa.
+        const root = nav[0]?.href ?? "/admin";
+        const active = isActive(pathname, href, root) && !nav.some((o) => o.href.length > href.length && o.href.startsWith(`${href}/`) && isActive(pathname, o.href, root));
         const preview = phase > CURRENT_PHASE;
         return (
           <Link

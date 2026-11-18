@@ -140,6 +140,20 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
   - **TikTok y formularios web:** activa «Entrada de leads» y envía a su URL privada un JSON con name, phone, email, message, campaign y source (TIKTOK o WEB), por ejemplo desde Zapier o Make.
   - El cliente se reconoce por celular o correo (no se duplica) y el mismo aviso nunca se registra dos veces.
 
+### Mensajes (WhatsApp, Messenger e Instagram)
+
+En **Mensajes** están todas las conversaciones, unidas a la ficha de cada cliente (como en el CRM de Ámbar Couture).
+
+- **Chats:** la lista muestra el canal, los mensajes sin leer, la etiqueta de la IA y si el chat **debe atenderlo una persona**. Al abrir uno ves la conversación, el estado de cada mensaje enviado (✓ enviado, ✓✓ entregado, leído) y quién lo escribió (tú, la IA o desde el celular).
+- **Responder:** escribe abajo y toca enviar (Enter envía; Mayús+Enter, nueva línea). Meta solo deja responder libremente **hasta 24 horas después del último mensaje del cliente**; pasado ese tiempo, en WhatsApp se usa una **plantilla aprobada**.
+- **IA de mensajes:** con tu llave de Claude (Integraciones), la IA lee cada mensaje nuevo con lo que sabe de tu negocio, tus productos, precios, stock y sedes:
+  - **Sugerir:** deja la respuesta lista; tú la revisas con «Usar la respuesta de la IA» y la envías.
+  - **Responder sola:** la envía al instante, salvo reclamos, pagos, excepciones o cuando el cliente pide una persona (esos chats quedan marcados). Puedes **pausar la IA** en un chat.
+  - **Lo que le falta a la IA:** las preguntas que no pudo responder por falta de un dato. Respóndelas una vez y se agregan a lo que sabe.
+  - Nunca inventa precios, existencias ni políticas: si no lo sabe, dice que lo confirma.
+- **Plantillas de WhatsApp:** escribe la plantilla (con variables {{1}}, {{2}}… y su ejemplo), **Enviar a Meta** y espera la aprobación (el estado se actualiza solo o con «Sincronizar con Meta»). Aprobada, aparece en los chats de más de 24 h para retomarlos.
+- **Conectar:** en Integraciones, WhatsApp (con la clave secreta de la app) y Facebook e Instagram. En tu app de Meta suscribe «messages» (WhatsApp y página) y, para plantillas, «message_template_status_update».
+
 ### Ventas
 
 1. **Nueva venta:** elige la sede, busca los productos por nombre o código y tócalos para agregarlos (Enter agrega el primero). Ajusta cantidades y descuentos; el total con IVA se calcula en vivo. Si no hay stock suficiente en la sede, el renglón se marca y no deja registrar.

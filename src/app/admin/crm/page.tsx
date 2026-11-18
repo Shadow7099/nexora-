@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarClock, Target, TrendingUp, UserPlus, Users } from "lucide-react";
+import { CalendarClock, MessageCircle, Target, TrendingUp, UserPlus, Users } from "lucide-react";
 import { CompleteTaskButton, DealStageSelect } from "@/components/admin/crm-forms";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { ModulePending } from "@/components/layout/module-pending";
@@ -35,6 +35,7 @@ export default async function CrmPage() {
         description="Embudo de oportunidades y seguimientos. Los leads de Facebook, Instagram, WhatsApp y TikTok entran solos cuando conectas esas cuentas en Integraciones."
         actions={
           <>
+            <Link href="/admin/crm/mensajes" className={buttonVariants({ variant: "secondary" })}><MessageCircle aria-hidden /> Mensajes</Link>
             <Link href="/admin/crm/clientes" className={buttonVariants({ variant: "secondary" })}><Users aria-hidden /> Clientes</Link>
             <Link href="/admin/crm/clientes/nuevo" className={buttonVariants()}><UserPlus aria-hidden /> Nuevo cliente</Link>
           </>

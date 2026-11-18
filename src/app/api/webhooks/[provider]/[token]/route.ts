@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
+import { analyzeConversation } from "@/server/crm-ai";
 import { handleGenericLead, handleMetaEvent, handleWhatsappEvent, verifySubscription, type WebhookResult } from "@/server/crm-webhooks";
 
 /**
@@ -17,14 +18,27 @@ export async function GET(req: NextRequest, { params }: RouteContext<"/api/webho
   return reply(await verifySubscription(provider === "meta" ? "META" : "WHATSAPP", token, req.nextUrl.searchParams));
 }
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest, { params }: RouteContext<"/api/webhooks/[provider]/[token]">) {
   const { provider, token } = await params;
   const raw = await req.text();
   if (raw.length > MAX_BODY) return reply({ status: 413, body: "Demasiado grande" });
   try {
     const signature = req.headers.get("x-hub-signature-256");
-    if (provider === "meta") return reply(await handleMetaEvent(token, raw, signature));
-    if (provider === "whatsapp") return reply(await handleWhatsappEvent(token, raw, signature));
+    if (provider === "meta" || provider === "whatsapp") {
+      const r = provider === "meta" ? await handleMetaEvent(token, raw, signature) : await handleWhatsappEvent(token, raw, signature);
+      // La IA lee los chats con mensajes nuevos DESPUÉS de responderle a Meta (Meta exige respuesta rápida).
+      if (r.analyze?.conversationIds.length) {
+        const { companyId, conversationIds } = r.analyze;
+        after(async () => {
+          for (const id of conversationIds) {
+            await analyzeConversation(companyId, id, { allowAutoSend: true }).catch((e) => console.error("ia", id, e instanceof Error ? e.message : e));
+          }
+        });
+      }
+      return reply(r);
+    }
     if (provider === "leads") return reply(await handleGenericLead(token, raw));
     return reply({ status: 404, body: "No encontrado" });
   } catch (e) {

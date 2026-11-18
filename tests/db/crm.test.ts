@@ -165,11 +165,13 @@ describe("leads entrantes", () => {
       entry: [{ changes: [{ value: { contacts: [{ wa_id: "573004445566", profile: { name: "Carlos" } }], messages: [{ id: "wamid.1", from: "573004445566", type: "text", text: { body: "¿Tienen pan integral?" } }] } }] }],
     });
     expect(await handleWhatsappEvent(token, body, null)).toMatchObject({ status: 401 });
-    expect(await handleWhatsappEvent(token, body, sign(body, "wa-secret"))).toMatchObject({ status: 200 });
-    expect(await handleWhatsappEvent(token, body, sign(body, "wa-secret"))).toMatchObject({ status: 200 });
-    const acts = await db.crmActivity.findMany({ where: { companyId: s.company.id, type: "WHATSAPP" }, include: { customer: true } });
-    expect(acts).toHaveLength(1);
-    expect(acts[0]).toMatchObject({ body: "¿Tienen pan integral?", customer: { name: "Carlos", phone: "3004445566" } });
+    const first = await handleWhatsappEvent(token, body, sign(body, "wa-secret"));
+    expect(first).toMatchObject({ status: 200, analyze: { companyId: s.company.id, conversationIds: [expect.any(String)] } });
+    expect(await handleWhatsappEvent(token, body, sign(body, "wa-secret"))).toMatchObject({ status: 200, analyze: { conversationIds: [] } }); // reintento de Meta
+    const msgs = await db.message.findMany({ where: { companyId: s.company.id }, include: { conversation: { include: { customer: true } } } });
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0]).toMatchObject({ body: "¿Tienen pan integral?", direction: "IN", conversation: { channel: "WHATSAPP", unread: 1, customer: { name: "Carlos", phone: "3004445566", source: "WHATSAPP" } } });
+    expect(await db.crmActivity.count({ where: { companyId: s.company.id, type: "LEAD" } })).toBe(1); // nuevo contacto en el historial
   });
 
   it("aislamiento: el token de una empresa solo crea leads en esa empresa; los datos no se cruzan", async () => {

@@ -4,6 +4,8 @@ import * as z from "zod";
 import { db } from "@/lib/db";
 import { ingestLead, leadSchema } from "@/server/crm";
 import { integrationCredentials } from "@/server/integrations";
+import { recordEcho, recordInbound, updateMessageStatus, type Channel } from "@/server/messages";
+import { templateStatusFromWebhook } from "@/server/wa-templates";
 
 /**
  * Avisos (webhooks) que crean leads en el CRM de UNA empresa. Cada empresa
@@ -13,7 +15,8 @@ import { integrationCredentials } from "@/server/integrations";
  */
 
 const META_VERSION = "v21.0";
-export type WebhookResult = { status: number; body: string; contentType?: string };
+/** «analyze»: conversaciones con mensajes nuevos que la IA debe leer después de responder el aviso. */
+export type WebhookResult = { status: number; body: string; contentType?: string; analyze?: { companyId: string; conversationIds: string[] } };
 const ok = (body = "ok"): WebhookResult => ({ status: 200, body });
 const fail = (status: number, body: string): WebhookResult => ({ status, body });
 const parseJson = (raw: string): unknown => {
@@ -50,10 +53,31 @@ export async function verifySubscription(provider: "META" | "WHATSAPP", token: s
 
 // ───────────────────────────── Meta: formularios de anuncios ─────────────────────────────
 
+const metaMessaging = z.object({
+  sender: z.object({ id: z.string() }),
+  recipient: z.object({ id: z.string() }),
+  timestamp: z.number().optional(),
+  message: z.object({ mid: z.string(), text: z.string().optional(), is_echo: z.boolean().optional(), attachments: z.array(z.object({ type: z.string() })).optional() }).optional(),
+});
 const metaEvent = z.object({
   object: z.string(),
-  entry: z.array(z.object({ changes: z.array(z.object({ field: z.string(), value: z.record(z.string(), z.unknown()) })).optional() })).default([]),
+  entry: z.array(z.object({
+    changes: z.array(z.object({ field: z.string(), value: z.record(z.string(), z.unknown()) })).optional(),
+    messaging: z.array(metaMessaging).optional(),
+  })).default([]),
 });
+
+/** Nombre de la persona en Messenger o Instagram (si la API lo da). */
+async function profileName(id: string, channel: Channel, token: string, f: typeof fetch) {
+  try {
+    const r = await f(`https://graph.facebook.com/${META_VERSION}/${encodeURIComponent(id)}?fields=${channel === "INSTAGRAM" ? "name,username" : "name"}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8_000) });
+    if (!r.ok) return null;
+    const d = (await r.json()) as { name?: string; username?: string };
+    return d.name || (d.username ? `@${d.username}` : null);
+  } catch {
+    return null;
+  }
+}
 
 /** Campos del formulario de Meta → datos del lead (nombres en inglés o español). */
 export function leadFromMetaFields(fields: { name: string; values?: string[] }[]) {
@@ -75,7 +99,28 @@ export async function handleMetaEvent(token: string, rawBody: string, signature:
   if (!i) return fail(404, "No encontrado");
   if (!validMetaSignature(rawBody, signature, i.secrets.appSecret)) return fail(401, "Firma inválida");
   const parsed = metaEvent.safeParse(parseJson(rawBody));
-  if (!parsed.success || parsed.data.object !== "page") return ok("ignorado");
+  if (!parsed.success || (parsed.data.object !== "page" && parsed.data.object !== "instagram")) return ok("ignorado");
+  const channel: Channel = parsed.data.object === "instagram" ? "INSTAGRAM" : "MESSENGER";
+  const analyze = new Set<string>();
+
+  // Mensajes de Messenger o Instagram → bandeja del CRM.
+  for (const ev of parsed.data.entry.flatMap((e) => e.messaging ?? [])) {
+    if (!ev.message) continue;
+    const body = ev.message.text ?? (ev.message.attachments?.length ? `[${ev.message.attachments.map((a) => a.type).join(", ")}]` : "");
+    if (!body) continue;
+    const at = ev.timestamp ? new Date(ev.timestamp) : undefined;
+    if (ev.message.is_echo) {
+      // Lo que el negocio respondió desde Meta Business Suite o la app: se muestra también aquí.
+      await recordEcho(i.companyId, { channel, externalUser: ev.recipient.id, body, kind: ev.message.text ? "text" : "attachment", externalId: `${channel.toLowerCase()}:${ev.message.mid}`, at });
+      continue;
+    }
+    const known = await db.conversation.findFirst({ where: { companyId: i.companyId, channel, externalUser: ev.sender.id }, select: { id: true } });
+    const name = known ? null : await profileName(ev.sender.id, channel, i.secrets.pageAccessToken!, f);
+    const r = await recordInbound(i.companyId, { channel, externalUser: ev.sender.id, name, body, kind: ev.message.text ? "text" : "attachment", externalId: `${channel.toLowerCase()}:${ev.message.mid}`, at });
+    if (!r.duplicate) analyze.add(r.conversationId);
+  }
+
+  // Formularios de anuncios (leadgen) → cliente y oportunidad.
   for (const change of parsed.data.entry.flatMap((e) => e.changes ?? [])) {
     if (change.field !== "leadgen") continue;
     const leadId = String(change.value.leadgen_id ?? "");
@@ -94,7 +139,7 @@ export async function handleMetaEvent(token: string, rawBody: string, signature:
     // Quien llena un formulario de anuncio con aviso de privacidad acepta ser contactado sobre esa solicitud.
     await ingestLead(i.companyId, "META", { ...lead, campaign: d.campaign_name ?? d.ad_name, consent: true, externalId: `meta:${leadId}` });
   }
-  return ok();
+  return { ...ok(), analyze: { companyId: i.companyId, conversationIds: [...analyze] } };
 }
 
 // ───────────────────────────── WhatsApp: mensajes entrantes ─────────────────────────────
@@ -103,13 +148,27 @@ const waEvent = z.object({
   object: z.literal("whatsapp_business_account"),
   entry: z.array(z.object({
     changes: z.array(z.object({
+      field: z.string().optional(),
       value: z.object({
         contacts: z.array(z.object({ wa_id: z.string(), profile: z.object({ name: z.string().optional() }).optional() })).optional(),
-        messages: z.array(z.object({ id: z.string(), from: z.string(), type: z.string(), text: z.object({ body: z.string() }).optional() })).optional(),
+        messages: z.array(z.object({
+          id: z.string(), from: z.string(), type: z.string(), timestamp: z.string().optional(),
+          text: z.object({ body: z.string() }).optional(),
+          button: z.object({ text: z.string() }).optional(),
+          interactive: z.object({ button_reply: z.object({ title: z.string() }).optional(), list_reply: z.object({ title: z.string() }).optional() }).optional(),
+        })).optional(),
+        statuses: z.array(z.object({ id: z.string(), status: z.string(), errors: z.array(z.object({ title: z.string().optional(), message: z.string().optional() })).optional() })).optional(),
+        // Cambio de estado de una plantilla (field = message_template_status_update).
+        event: z.string().optional(),
+        message_template_id: z.union([z.string(), z.number()]).optional(),
+        message_template_name: z.string().optional(),
+        reason: z.string().nullable().optional(),
       }).passthrough(),
     })).default([]),
   })).default([]),
 });
+
+const WA_STATUS = { sent: "SENT", delivered: "DELIVERED", read: "READ", failed: "FAILED" } as const;
 
 export async function handleWhatsappEvent(token: string, rawBody: string, signature: string | null): Promise<WebhookResult> {
   const i = await integrationByToken("WHATSAPP", token);
@@ -117,14 +176,28 @@ export async function handleWhatsappEvent(token: string, rawBody: string, signat
   if (!validMetaSignature(rawBody, signature, i.secrets.appSecret)) return fail(401, "Firma inválida");
   const parsed = waEvent.safeParse(parseJson(rawBody));
   if (!parsed.success) return ok("ignorado");
-  for (const v of parsed.data.entry.flatMap((e) => e.changes.map((c) => c.value))) {
+  const analyze = new Set<string>();
+  for (const change of parsed.data.entry.flatMap((e) => e.changes)) {
+    const v = change.value;
+    if (change.field === "message_template_status_update") {
+      await templateStatusFromWebhook(i.companyId, { message_template_id: v.message_template_id, message_template_name: v.message_template_name, event: v.event, reason: v.reason ?? undefined });
+      continue;
+    }
     for (const m of v.messages ?? []) {
       const name = v.contacts?.find((c) => c.wa_id === m.from)?.profile?.name;
-      const text = m.type === "text" ? m.text?.body : `[${m.type}]`;
-      await ingestLead(i.companyId, "WHATSAPP", { name, phone: m.from, message: text, externalId: `wa:${m.id}`, activityType: "WHATSAPP" });
+      const text = m.text?.body ?? m.button?.text ?? m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title;
+      const r = await recordInbound(i.companyId, {
+        channel: "WHATSAPP", externalUser: m.from, name, body: text ?? `[${m.type}]`, kind: text ? "text" : m.type, externalId: `wa:${m.id}`,
+        at: m.timestamp ? new Date(Number(m.timestamp) * 1000) : undefined,
+      });
+      if (!r.duplicate) analyze.add(r.conversationId);
+    }
+    for (const st of v.statuses ?? []) {
+      const status = WA_STATUS[st.status as keyof typeof WA_STATUS];
+      if (status) await updateMessageStatus(i.companyId, st.id, status, st.errors?.[0]?.message ?? st.errors?.[0]?.title);
     }
   }
-  return ok();
+  return { ...ok(), analyze: { companyId: i.companyId, conversationIds: [...analyze] } };
 }
 
 // ───────────────────────────── Entrada genérica (TikTok vía Zapier/Make, web) ─────────────────────────────
