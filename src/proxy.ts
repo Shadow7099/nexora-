@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalRedirect } from "@/lib/canonical-host";
 
 // Comprobación optimista: sin cookie de sesión no tiene sentido renderizar una
 // zona privada. La verificación real (sesión en BD, rol, empresa) ocurre en el servidor.
@@ -7,6 +8,8 @@ const COOKIES = ["__Host-nexora_session", "nexora_session"];
 
 export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  const canonical = canonicalRedirect(req.url, req.headers.get("x-forwarded-host") ?? req.headers.get("host"), process.env.APP_URL);
+  if (canonical) return NextResponse.redirect(canonical, 308);
   const hasSession = COOKIES.some((c) => req.cookies.has(c));
   // Con sesión, la dirección principal lleva a la cuenta (no a la página de ventas).
   // ?ver=inicio deja ver la página de ventas igual.
