@@ -27,6 +27,8 @@ export const employeeSchema = z.object({
   position: z.string().trim().min(2, { error: "Escribe el cargo." }).max(80),
   defaultSiteId: z.uuid({ error: "Elige una sede." }),
   hireDate: isoDate,
+  // Casilla del formulario: "on" cuando el administrador exige Face ID o huella.
+  requirePasskey: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()).default(false),
 });
 
 export const contractSchema = z.object({

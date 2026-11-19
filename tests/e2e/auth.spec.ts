@@ -62,7 +62,7 @@ test("un empleado no puede entrar al panel de administración", async ({ page })
   await expect(page).toHaveURL(/\/app$/);
 });
 
-test("ciclo completo: crear empleado → activar con cédula y código → desactivar", async ({ browser }) => {
+test("ciclo completo: crear empleado → entrar con su código → desactivar", async ({ browser }) => {
   test.setTimeout(90_000); // varios inicios de sesión con Argon2 (lento a propósito)
   const suffix = Date.now().toString(36);
   const email = `prueba-${suffix}@eltrigal.test`;
@@ -81,16 +81,15 @@ test("ciclo completo: crear empleado → activar con cédula y código → desac
   await admin.getByLabel("Sede habitual").selectOption({ label: "Acacías" });
   await admin.getByLabel("Salario mensual (COP)").fill("1800000");
   await admin.getByRole("button", { name: "Crear empleado" }).click();
-  const code = (await admin.getByTestId("activation-code").textContent())!.trim();
-  expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  const code = (await admin.getByTestId("access-code").textContent())!.trim();
+  expect(code).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
 
-  // 2. El empleado activa su celular con cédula + código (sin correo ni contraseña) y acepta la autorización.
+  // 2. El empleado entra con su código (sin correo ni contraseña) y acepta la autorización.
   const empCtx = await browser.newContext();
   const emp = await empCtx.newPage();
-  await emp.goto("/activar");
-  await emp.getByLabel("Cédula").fill(doc);
-  await emp.getByLabel("Código de activación").fill(code);
-  await emp.getByRole("button", { name: "Activar" }).click();
+  await emp.goto("/ingresar");
+  await emp.getByLabel("Código de empleado").fill(code);
+  await emp.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(emp).toHaveURL(/\/autorizacion(\?|$)/);
   await emp.getByRole("checkbox").check();
   await emp.getByRole("button", { name: "Aceptar y continuar" }).click();

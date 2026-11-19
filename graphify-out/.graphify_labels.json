@@ -6,12 +6,10 @@
   "12": "compilerOptions",
   "13": "Nexora: Arquitectura",
   "17": "scripts",
-  "18": "novelties.ts",
   "21": "src/app/layout.tsx",
   "22": "apple-icon.tsx",
   "24": "next.config.ts",
   "25": "empty.ts",
-  "26": "server/reports.ts",
   "27": "holidays.ts",
   "31": "guarantees.test.ts",
   "33": "AGENTS.md",
@@ -28,6 +26,5 @@
   "51": "Plan de implementación",
   "52": "Pruebas y resultados",
   "53": "Revisión de seguridad (fase 8)",
-  "57": "plantilla-empresa.ts",
   "59": "Cuestionario para activar la empresa en Nexora"
 }

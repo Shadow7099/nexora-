@@ -2,7 +2,6 @@
 
 import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 import { ScanFace } from "lucide-react";
-import Link from "next/link";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { passkeyLoginAction, passkeyLoginOptionsAction } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ export function PasskeyLogin({ next }: { next?: string }) {
       {supported && (
         <Button
           size="lg"
+          variant="secondary"
           className="w-full"
           loading={pending}
           onClick={() =>
@@ -40,9 +40,6 @@ export function PasskeyLogin({ next }: { next?: string }) {
         </Button>
       )}
       {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-      <p className="text-center text-sm text-fg-muted">
-        ¿Primera vez o celular nuevo? <Link href="/activar" className="font-medium text-primary hover:underline">Activa tu celular con tu cédula y código</Link>
-      </p>
     </div>
   );
 }

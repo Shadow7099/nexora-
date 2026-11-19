@@ -17,17 +17,22 @@ PENDING = [
     ("20261121000000_sales", "sale"),
     ("20261122000000_crm", "deal"),
     ("20261123000000_messages", "conversation"),
-    ("20261124000000_activation", "activation_code"),
+    ("20261124000000_activation", None),
+    ("20261125000000_access_code", None),
 ]
+# None: se aplica si la migración aún no está registrada (la 25 borra la tabla de la 24,
+# así que la existencia de una tabla ya no sirve para saber si se aplicó).
 
 def block(name: str, table: str) -> str:
     raw = (ROOT / "prisma" / "migrations" / name / "migration.sql").read_bytes()
     checksum = hashlib.sha256(raw).hexdigest()
     body = raw.decode("utf-8").replace("'", "''")
+    cond = (f"to_regclass('public.{table}') IS NULL" if table
+            else f"NOT EXISTS (SELECT 1 FROM \"_prisma_migrations\" WHERE migration_name = '{name}')")
     return f"""-- ── {name} ──
 DO $migracion$
 BEGIN
-  IF to_regclass('public.{table}') IS NULL THEN
+  IF {cond} THEN
     EXECUTE '{body}';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '{name}') THEN
@@ -45,6 +50,8 @@ out = """-- Nexora · cambios pendientes en la base de producción.
 
 """ + "\n".join(block(n, t) for n, t in PENDING) + """
 -- Comprobación: debe mostrar todas las tablas.
-SELECT """ + ", ".join(f"to_regclass('public.{t}') AS {t}" for _, t in PENDING) + ";\n"
+SELECT """ + ", ".join(f"to_regclass('public.{t}') AS {t}" for _, t in PENDING if t) + """,
+  (SELECT count(*) FROM information_schema.columns WHERE table_name = 'employee' AND column_name = 'access_code_hash') AS codigo_acceso;
+"""
 (ROOT / "docs" / "sql" / "aplicar-en-produccion.sql").write_text(out, encoding="utf-8")
 print("docs/sql/aplicar-en-produccion.sql:", ", ".join(n for n, _ in PENDING))

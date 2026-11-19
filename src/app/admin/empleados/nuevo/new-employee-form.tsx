@@ -28,7 +28,7 @@ function Form({ sites, onAnother }: { sites: Sites; onAnother: () => void }) {
         <CardContent className="grid gap-5">
           <div>
             <h2 className="text-lg font-semibold">Empleado creado</h2>
-            <p className="mt-1 text-sm text-fg-muted">Envíale este código: con su cédula activa su celular y su huella o Face ID. No tienes que aprobar nada más.</p>
+            <p className="mt-1 text-sm text-fg-muted">Envíale este código: con él entra y marca desde su celular. No tienes que aprobar nada más.</p>
           </div>
           <ActivationCode code={state.data.code ?? ""} phone={state.data.phone} name={state.data.name} />
           <div className="flex flex-wrap gap-2">
@@ -50,11 +50,18 @@ function Form({ sites, onAnother }: { sites: Sites; onAnother: () => void }) {
         <CardHeader>
           <div>
             <CardTitle>Datos personales y acceso</CardTitle>
-            <CardDescription>Entrará con su cédula y un código de activación; luego con su huella o Face ID.</CardDescription>
+            <CardDescription>Entrará con un código de acceso personal que Nexora genera al crearlo.</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <EmployeeFields errors={errors} values={values} sites={sites} />
+          <label className="mt-4 flex items-start gap-3 rounded-xl border border-border p-3 text-sm">
+            <input type="checkbox" name="requirePasskey" defaultChecked={(values as Record<string, string | undefined>).requirePasskey === "on"} className="mt-0.5 size-4 accent-[var(--primary)]" />
+            <span>
+              <span className="font-medium">Exigir Face ID o huella para marcar</span>
+              <span className="block text-fg-muted">Si no lo marcas, entra y marca solo con su código; puede activar el Face ID si quiere. Lo puedes cambiar después en su ficha.</span>
+            </span>
+          </label>
         </CardContent>
       </Card>
       <Card>

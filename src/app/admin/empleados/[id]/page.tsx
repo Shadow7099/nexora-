@@ -10,9 +10,10 @@ import { formatCOP, formatDate, formatTime } from "@/lib/utils";
 import { requireActor } from "@/server/current";
 import { isPasskeyExempt, listDevices, NO_PASSKEY_SUFFIX, RELINK_SUFFIX } from "@/server/devices";
 import { getEmployee, listSiteOptions } from "@/server/employees";
+import { getAccessCode } from "@/server/activation";
 import { DeviceActions, PasskeyExemption } from "@/components/admin/device-actions";
 import { AppError } from "@/server/errors";
-import { EditEmployeeForm, NewActivationCodeButton, NewContractForm, StatusButton } from "./employee-forms";
+import { EditEmployeeForm, AccessCodePanel, NewContractForm, PasskeyRequirement, StatusButton } from "./employee-forms";
 
 export const metadata: Metadata = { title: "Empleado" };
 
@@ -29,7 +30,7 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
     if (err instanceof AppError && err.code === "NOT_FOUND") notFound();
     throw err;
   }
-  const [sites, devices] = await Promise.all([listSiteOptions(actor), listDevices(actor, e.id)]);
+  const [sites, devices, accessCode] = await Promise.all([listSiteOptions(actor), listDevices(actor, e.id), getAccessCode(actor, e.id)]);
   // La huella o Face ID es del celular: cuenta para todas sus ventanas activas.
   const groupPasskey = devices.some((d) => d.status === "ACTIVE" && d._count.passkeys > 0);
   const current = e.contracts.find((c) => !c.endDate) ?? e.contracts[0];
@@ -152,7 +153,8 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
                   </ul>
                 )}
               </div>
-              {active && <NewActivationCodeButton id={e.id} phone={e.phone ?? undefined} name={e.firstName} />}
+              {active && <AccessCodePanel id={e.id} code={accessCode} phone={e.phone ?? undefined} name={e.firstName} />}
+              {active && <PasskeyRequirement id={e.id} required={e.requirePasskey} />}
               <StatusButton id={e.id} active={active} />
             </CardContent>
           </Card>

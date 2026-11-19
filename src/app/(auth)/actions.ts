@@ -5,7 +5,7 @@ import * as z from "zod";
 import { fieldErrors, loginSchema, passwordSchema } from "@/lib/validation";
 import type { ActionState } from "@/server/errors";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
-import { activateWithCode, passkeyLogin, passkeyLoginOptions } from "@/server/activation";
+import { loginWithCode, passkeyLogin, passkeyLoginOptions } from "@/server/activation";
 import {
   clearSessionCookie,
   getClientIp,
@@ -90,24 +90,22 @@ export async function changePasswordAction(_: ActionState, formData: FormData): 
   redirect(actor.hasConsent ? next : `/autorizacion?next=${encodeURIComponent(next)}`);
 }
 
-/** Activar el celular con cédula + código (sin correo ni contraseña). */
-export async function activateAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const documentNumber = String(formData.get("documentNumber") ?? "").slice(0, 30);
+/** Empleados: entrar con su código de acceso (sin correo ni contraseña). */
+export async function codeLoginAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const code = String(formData.get("code") ?? "").slice(0, 30);
-  const data = { documentNumber, code };
-  if (!documentNumber.trim()) return { ok: false, fieldErrors: { documentNumber: "Escribe tu número de cédula." }, data };
-  if (!code.trim()) return { ok: false, fieldErrors: { code: "Escribe el código que te envió tu empresa." }, data };
-  let r: Awaited<ReturnType<typeof activateWithCode>>;
+  const data = { code };
+  if (!code.trim()) return { ok: false, fieldErrors: { code: "Escribe el código que te dio tu empresa." }, data };
+  let r: Awaited<ReturnType<typeof loginWithCode>>;
   try {
-    r = await activateWithCode({ documentNumber, code }, await getUserAgent(), await getClientIp());
+    r = await loginWithCode(code, await getDeviceToken(), await getUserAgent(), await getClientIp());
   } catch (e) {
-    console.error("activar: error de infraestructura", e);
+    console.error("ingreso con código: error de infraestructura", e);
     return { ok: false, message: "El servicio no está disponible en este momento. Intenta en unos minutos.", data };
   }
   if (!r.ok) return { ok: false, message: r.message, data };
   await setSessionCookie(r.sessionToken, r.sessionExpires);
-  await setDeviceCookie(r.deviceToken);
-  redirect("/app");
+  if (r.deviceToken) await setDeviceCookie(r.deviceToken);
+  redirect(safeNext(formData.get("next"), "EMPLOYEE"));
 }
 
 /** Paso 1 de «Entrar con Face ID o huella»: el desafío viaja en una cookie de 5 min. */

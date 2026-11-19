@@ -65,7 +65,7 @@ test("alta de empresa → primer ingreso del administrador → panel vacío de s
 test("ingreso: ayuda para recuperar la contraseña", async ({ page }) => {
   await page.goto("/ingresar");
   await page.getByText("¿Olvidaste tu contraseña?").click();
-  await expect(page.getByText(/pide a tu administrador una contraseña temporal/)).toBeVisible();
+  await expect(page.getByText(/entra con tu código de empleado/)).toBeVisible();
 });
 
 test("autogestión: link de invitación → el dueño registra su negocio → primeros pasos", async ({ page, browser }, info) => {

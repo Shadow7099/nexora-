@@ -3,7 +3,7 @@
  * - un empleado no puede consultar información ajena;
  * - un administrador de una empresa no puede acceder a otra.
  */
-import { activateWithCode, newActivationCode } from "@/server/activation";
+import { getAccessCode, loginWithCode, regenerateAccessCode } from "@/server/activation";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { getCompanySettings, listCompanies, updateCompanySettings } from "@/server/company";
@@ -106,25 +106,34 @@ describe("gestión de empleados", () => {
     const { actor } = await login(a.admin.email);
     const input = newEmployeeInput(a.site.id);
     const r = await createEmployee(actor, input);
-    expect(r.activationCode).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    expect(r.accessCode).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
     const e = await getEmployee(actor, r.employeeId);
     expect(e.user.mustChangePassword).toBe(false);
+    expect(e.requirePasskey).toBe(false);
     expect(e.contracts).toHaveLength(1);
     expect(Number(e.contracts[0]!.monthlySalary)).toBe(1_900_000);
     expect(await db.auditLog.count({ where: { entityId: r.employeeId, action: "employee.create" } })).toBe(1);
-    // Cédula equivocada: no activa; correcta: activa el celular una sola vez.
-    const bad = await activateWithCode({ documentNumber: "000", code: r.activationCode }, "ua", "10.0.0.1");
-    expect(bad.ok).toBe(false);
-    const ok = await activateWithCode({ documentNumber: String(input.documentNumber), code: r.activationCode.toLowerCase() }, "ua", "10.0.0.1");
-    expect(ok.ok).toBe(true);
-    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(1);
-    const again = await activateWithCode({ documentNumber: String(input.documentNumber), code: r.activationCode }, "ua", "10.0.0.1");
-    expect(again.ok).toBe(false);
-    // Celular nuevo con un código nuevo: el anterior se retira solo, sin aprobación.
-    const code2 = await newActivationCode(actor, r.employeeId);
-    expect((await activateWithCode({ documentNumber: String(input.documentNumber), code: code2 }, "ua2", "10.0.0.1")).ok).toBe(true);
+    // El administrador lo puede volver a ver (se guarda cifrado; en la base no está en claro).
+    expect(await getAccessCode(actor, r.employeeId)).toBe(r.accessCode);
+    expect(JSON.stringify(await db.employee.findUnique({ where: { id: r.employeeId } }))).not.toContain(r.accessCode);
+
+    // Código equivocado: no entra. Correcto (en minúsculas y sin guion también): entra; es permanente.
+    expect((await loginWithCode("ZZZZZ-ZZZZZ", undefined, "ua", "10.0.0.1")).ok).toBe(false);
+    const first = await loginWithCode(r.accessCode.toLowerCase().replace("-", ""), undefined, "ua", "10.0.0.1");
+    expect(first.ok).toBe(true);
+    const token1 = first.ok ? first.deviceToken! : "";
+    // Mismo celular: no crea otro vínculo.
+    const again = await loginWithCode(r.accessCode, token1, "ua", "10.0.0.1");
+    expect(again.ok && again.deviceToken).toBe(null);
+    // Otro celular: lo reemplaza sin aprobación.
+    expect((await loginWithCode(r.accessCode, undefined, "ua2", "10.0.0.1")).ok).toBe(true);
     expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(1);
     expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "REVOKED" } })).toBe(1);
+    // Cambiar el código: el anterior deja de servir.
+    const code2 = await regenerateAccessCode(actor, r.employeeId);
+    expect(code2).not.toBe(r.accessCode);
+    expect((await loginWithCode(r.accessCode, undefined, "ua", "10.0.0.1")).ok).toBe(false);
+    expect((await loginWithCode(code2, undefined, "ua", "10.0.0.1")).ok).toBe(true);
   });
 
   it("rechaza correo o documento repetido con mensaje por campo", async () => {

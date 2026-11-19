@@ -8,7 +8,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { audit } from "@/server/audit";
 import { requireCompanyAdmin } from "@/server/authz";
 import { AppError, notFound } from "@/server/errors";
-import { issueActivationCode } from "@/server/activation";
+import { assignAccessCode } from "@/server/activation";
 import { revokeUserSessions, type Actor } from "@/server/sessions";
 
 /** Contraseña temporal legible (sin caracteres ambiguos), p. ej. "kq7m-x2pt-9hcw". */
@@ -114,6 +114,7 @@ export async function createEmployee(actor: Actor, input: unknown) {
           position: v.position,
           defaultSiteId: v.defaultSiteId,
           hireDate: d(v.hireDate),
+          requirePasskey: v.requirePasskey,
         },
       });
       await tx.employeeContract.create({
@@ -141,10 +142,10 @@ export async function createEmployee(actor: Actor, input: unknown) {
         },
         tx,
       );
-      const activationCode = await issueActivationCode(companyId, employee.id, actor.userId, tx);
-      return { id: employee.id, activationCode };
+      const accessCode = await assignAccessCode(companyId, employee.id, tx);
+      return { id: employee.id, accessCode };
     });
-    return { employeeId: employee.id, activationCode: employee.activationCode };
+    return { employeeId: employee.id, accessCode: employee.accessCode };
   } catch (e) {
     throw uniqueViolation(e) ?? e;
   }

@@ -204,7 +204,6 @@ model Company {
   sites              Site[]
   employees          Employee[]
   devices            DeviceBinding[]
-  activationCodes    ActivationCode[]
   shiftTemplates     ShiftTemplate[]
   schedulePatterns   SchedulePattern[]
   scheduledShifts    ScheduledShift[]
@@ -416,6 +415,12 @@ model Employee {
   defaultSiteId  String?        @map("default_site_id") @db.Uuid
   hireDate       DateTime       @map("hire_date") @db.Date
   status         EmployeeStatus @default(ACTIVE)
+  // Código de acceso permanente (sin contraseña): SHA-256 para buscarlo y copia cifrada
+  // (AES-256-GCM con NEXORA_SECRETS_KEY) para que el administrador lo vuelva a ver.
+  accessCodeHash String?        @unique @map("access_code_hash")
+  accessCodeEnc  String?        @map("access_code_enc")
+  // El administrador decide si a este empleado se le exige Face ID o huella para marcar.
+  requirePasskey Boolean        @default(false) @map("require_passkey")
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -424,7 +429,6 @@ model Employee {
   defaultSite Site?              @relation(fields: [defaultSiteId], references: [id], onDelete: SetNull)
   contracts   EmployeeContract[]
   devices     DeviceBinding[]
-  activations ActivationCode[]
   patterns    SchedulePattern[]
   shifts      ScheduledShift[]
   events      AttendanceEvent[]
@@ -1424,26 +1428,7 @@ model WaTemplate {
   @@map("wa_template")
 }
 
-// ─────────────────────────── Activación sin contraseña ───────────────────────────
-
-// Código de un solo uso para que el empleado active su celular con cédula + código.
-// Solo se guarda el SHA-256 del código; vence en 7 días.
-model ActivationCode {
-  id          String    @id @default(uuid(7)) @db.Uuid
-  companyId   String    @map("company_id") @db.Uuid
-  employeeId  String    @map("employee_id") @db.Uuid
-  codeHash    String    @unique @map("code_hash")
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
-  usedAt      DateTime? @map("used_at") @db.Timestamptz(3)
-  createdById String?   @map("created_by_id") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-
-  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  employee Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
-
-  @@index([employeeId])
-  @@map("activation_code")
-}
+// ─────────────────────────── Entrar con Face ID o huella ───────────────────────────
 
 // Desafío WebAuthn para entrar con Face ID o huella sin sesión previa.
 // id = SHA-256 del token de una cookie de corta vida; un solo uso.

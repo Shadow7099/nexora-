@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fingerprint } from "lucide-react";
 import { PunchCard, type PunchState } from "@/components/employee/punch-card";
+import { PasskeySetup } from "@/components/employee/passkey-setup";
 import { PunchPanel } from "@/components/employee/punch-panel";
 import { QrScanButton } from "@/components/employee/qr-scanner";
 import { formatMinutes, formatTime, greeting } from "@/lib/utils";
@@ -53,6 +54,7 @@ export default async function EmployeeHomePage() {
               needsPasskeySetup={ctx.needsPasskeySetup}
             />
             <QrScanButton working={ctx.next === "OUT"} compact />
+            {ctx.canAddPasskey && <PasskeySetup />}
           </div>
         }
       />

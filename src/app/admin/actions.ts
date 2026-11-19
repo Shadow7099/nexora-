@@ -14,7 +14,7 @@ export async function createEmployeeAction(_: ActionState, fd: FormData): Promis
   try {
     const r = await createEmployee(await admin(), echo(fd));
     revalidatePath("/admin/empleados");
-    return { ok: true, data: { employeeId: r.employeeId, code: r.activationCode, email: String(fd.get("email")), phone: String(fd.get("phone") ?? ""), name: String(fd.get("firstName") ?? "") } };
+    return { ok: true, data: { employeeId: r.employeeId, code: r.accessCode, email: String(fd.get("email")), phone: String(fd.get("phone") ?? ""), name: String(fd.get("firstName") ?? "") } };
   } catch (e) {
     return { ...toActionState(e), data: echo(fd) };
   }
@@ -60,11 +60,23 @@ export async function resetPasswordAction(id: string, _: ActionState): Promise<A
   }
 }
 
-export async function newActivationCodeAction(id: string, _: ActionState): Promise<ActionState> {
+export async function regenerateAccessCodeAction(id: string, _: ActionState): Promise<ActionState> {
   try {
-    const { newActivationCode } = await import("@/server/activation");
-    const code = await newActivationCode(await admin(), id);
-    return { ok: true, data: { code } };
+    const { regenerateAccessCode } = await import("@/server/activation");
+    const code = await regenerateAccessCode(await admin(), id);
+    revalidatePath(`/admin/empleados/${id}`);
+    return { ok: true, message: "Código cambiado. El anterior ya no sirve y se cerraron sus sesiones.", data: { code } };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function requirePasskeyAction(id: string, required: boolean, _: ActionState): Promise<ActionState> {
+  try {
+    const { setRequirePasskey } = await import("@/server/activation");
+    await setRequirePasskey(await admin(), id, required);
+    revalidatePath(`/admin/empleados/${id}`);
+    return { ok: true, message: required ? "Ahora debe marcar con Face ID o huella." : "Face ID o huella ahora es opcional para este empleado." };
   } catch (e) {
     return toActionState(e);
   }

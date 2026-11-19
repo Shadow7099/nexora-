@@ -34,6 +34,8 @@ test.beforeAll(async () => {
     `SELECT q.public_code FROM site_qr_code q JOIN site s ON s.id = q.site_id WHERE s.name = 'Villavicencio Centro' AND q.revoked_at IS NULL`,
   );
   qrCentro = row!.public_code;
+  // Estas pruebas cubren a empleados a quienes el administrador les exige Face ID o huella.
+  await sql(`UPDATE employee SET require_passkey = true WHERE user_id IN (SELECT id FROM app_user WHERE role = 'EMPLOYEE')`);
 });
 
 test.use({ geolocation: CENTRO, permissions: ["geolocation"] });

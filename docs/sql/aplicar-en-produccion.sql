@@ -771,7 +771,7 @@ $migracion$;
 -- ── 20261124000000_activation ──
 DO $migracion$
 BEGIN
-  IF to_regclass('public.activation_code') IS NULL THEN
+  IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20261124000000_activation') THEN
     EXECUTE '-- CreateTable
 CREATE TABLE "activation_code" (
     "id" UUID NOT NULL,
@@ -824,5 +824,36 @@ ALTER TABLE "passkey_login" ENABLE ROW LEVEL SECURITY;
 END
 $migracion$;
 
+-- ── 20261125000000_access_code ──
+DO $migracion$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20261125000000_access_code') THEN
+    EXECUTE '-- DropForeignKey
+ALTER TABLE "activation_code" DROP CONSTRAINT "activation_code_company_id_fkey";
+
+-- DropForeignKey
+ALTER TABLE "activation_code" DROP CONSTRAINT "activation_code_employee_id_company_id_fkey";
+
+-- AlterTable
+ALTER TABLE "employee" ADD COLUMN     "access_code_enc" TEXT,
+ADD COLUMN     "access_code_hash" TEXT,
+ADD COLUMN     "require_passkey" BOOLEAN NOT NULL DEFAULT false;
+
+-- DropTable
+DROP TABLE "activation_code";
+
+-- CreateIndex
+CREATE UNIQUE INDEX "employee_access_code_hash_key" ON "employee"("access_code_hash");
+
+';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20261125000000_access_code') THEN
+    INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+    VALUES (gen_random_uuid()::text, 'a6f3ed5617cadd66336d408b75869b2833a1f36407c2c870578ccc1fe53d6e71', now(), '20261125000000_access_code', NULL, NULL, now(), 1);
+  END IF;
+END
+$migracion$;
+
 -- Comprobación: debe mostrar todas las tablas.
-SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation, to_regclass('public.activation_code') AS activation_code;
+SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation,
+  (SELECT count(*) FROM information_schema.columns WHERE table_name = 'employee' AND column_name = 'access_code_hash') AS codigo_acceso;

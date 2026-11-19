@@ -17,7 +17,7 @@ const at = (metersNorth: number, accuracy = 15) => ({ lat: 4.14 + metersNorth / 
 const t0 = new Date("2026-10-27T12:55:00Z"); // martes 7:55 a. m. en Bogotá
 const plus = (min: number) => new Date(t0.getTime() + min * 60_000);
 
-async function setup(tag: string, opts: { requireDevice?: boolean; passkeyExempt?: boolean } = {}) {
+async function setup(tag: string, opts: { requireDevice?: boolean; passkeyExempt?: boolean; requirePasskey?: boolean } = {}) {
   const f = await makeCompany(tag);
   if (opts.requireDevice === false) await db.company.update({ where: { id: f.company.id }, data: { requireDeviceBinding: false } });
   const qr = await db.siteQrCode.create({ data: { companyId: f.company.id, siteId: f.site.id, publicCode: `qr${randomUUID().replace(/-/g, "").slice(0, 16)}`, version: 1 } });
@@ -25,6 +25,8 @@ async function setup(tag: string, opts: { requireDevice?: boolean; passkeyExempt
   const admin = await login(f.admin.email);
   const device = await bindDevice(emp.actor, "Mozilla/5.0 (Linux; Android 14) Chrome/130");
   // La mayoría de estas pruebas no usan huella/Face ID: el celular queda autorizado a marcar sin ella.
+  // Estas pruebas cubren el caso en que el administrador exige Face ID o huella a este empleado.
+  await db.employee.update({ where: { id: f.employee.id }, data: { requirePasskey: opts.requirePasskey ?? true } });
   if (opts.passkeyExempt !== false && device.status === "ACTIVE") {
     await setPasskeyExemption(admin.actor, (await findBinding(f.employee.id, device.token))!.id, true);
   }
@@ -325,6 +327,13 @@ describe("marcar desde la app, sin escanear el QR", () => {
     expect(denied.siteId).toBe(s.site.id);
     // Sin celular vinculado tampoco se marca desde la app.
     expect(await fromApp({ token: "otro-navegador", now: plus(11 * 60) })).toMatchObject({ ok: false, reason: "DEVICE_NOT_BOUND" });
+  });
+
+  it("si el administrador no exige Face ID a este empleado, marca solo con su celular y se le ofrece activarlo", async () => {
+    const s = await setup("app-opt", { passkeyExempt: false, requirePasskey: false });
+    const ctx = await employeeDeviceContext(s.emp.actor, s.device.token);
+    expect(ctx).toMatchObject({ needsPasskeySetup: false, canAddPasskey: true });
+    expect(await punchFromApp(s.emp.actor, { idempotencyKey: randomUUID(), position: at(10) }, { deviceToken: s.device.token, rp, now: t0 })).toMatchObject({ ok: true, type: "IN" });
   });
 
   it("exige huella o Face ID igual que el QR, y avisa si la empresa no tiene sedes con QR", async () => {

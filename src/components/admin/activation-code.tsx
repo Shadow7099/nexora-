@@ -11,19 +11,19 @@ function waNumber(phone?: string) {
   return d.length >= 11 ? d : "";
 }
 
-/** Muestra el código de activación una sola vez, para copiarlo o enviarlo por WhatsApp. */
+/** Código de acceso del empleado, para copiarlo o enviarlo por WhatsApp. */
 export function ActivationCode({ code, phone, name }: { code: string; phone?: string; name?: string }) {
   const [copied, setCopied] = useState(false);
-  const url = typeof window === "undefined" ? "/activar" : `${window.location.origin}/activar`;
-  const text = `Hola${name ? ` ${name}` : ""}, activa Nexora en tu celular: abre ${url}, escribe tu cédula y este código: ${code}. Luego activa tu huella o Face ID y listo, así entrarás y marcarás.`;
+  const url = typeof window === "undefined" ? "/ingresar" : `${window.location.origin}/ingresar`;
+  const text = `Hola${name ? ` ${name}` : ""}, este es tu código para entrar a Nexora y marcar: ${code}. Abre ${url} en tu celular y escríbelo. Es personal: no lo compartas.`;
   const wa = waNumber(phone);
   return (
     <div role="status" className="rounded-xl border border-success/30 bg-success-soft p-4 animate-fade-up">
       <div className="flex items-center gap-2 text-sm font-medium text-success">
-        <Smartphone className="size-4" aria-hidden /> Código de activación
+        <Smartphone className="size-4" aria-hidden /> Código de acceso
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <code className="tabular flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xl tracking-widest text-fg" data-testid="activation-code">
+        <code className="tabular flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xl tracking-widest text-fg" data-testid="access-code">
           {code}
         </code>
         <Button
@@ -48,7 +48,7 @@ export function ActivationCode({ code, phone, name }: { code: string; phone?: st
         <MessageCircle /> Enviar por WhatsApp
       </a>
       <p className="mt-3 text-xs text-fg-muted">
-        El empleado abre <strong>/activar</strong> en su celular, escribe su cédula y este código, y activa su huella o Face ID. No necesita correo ni contraseña. Sirve una sola vez y vence en 7 días.
+        El empleado abre <strong>/ingresar</strong> en su celular y escribe este código: no necesita correo ni contraseña. Es permanente; si lo usa en otro celular, ese reemplaza al anterior. Puedes verlo o cambiarlo en su ficha.
       </p>
     </div>
   );
