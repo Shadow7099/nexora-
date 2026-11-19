@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es-CO"><head><meta charset="utf-8"><title>Propuesta Nexora – Cámara de Comercio</title>
+<style>
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; }
+:root { --p: oklch(0.45 0.17 262); --a: oklch(0.55 0.2 295); --fg: oklch(0.21 0.02 265); --mu: oklch(0.47 0.02 265); --soft: oklch(0.95 0.03 262); --line: oklch(0.9 0.01 262); --ok: oklch(0.5 0.13 155); --oks: oklch(0.95 0.04 155); }
+body { margin: 0; font-family: "Inter", "Helvetica Neue", Arial, sans-serif; color: var(--fg); font-size: 10pt; line-height: 1.45; letter-spacing: 0; }
+.page { width: 210mm; height: 297mm; padding: 18mm 18mm 16mm; position: relative; page-break-after: always; overflow: hidden; }
+.page:last-child { page-break-after: auto; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14pt; letter-spacing: -.01em; }
+.iso { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, var(--p), var(--a)); display: grid; place-items: center; }
+.top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.meta { font-size: 9pt; color: var(--mu); text-align: right; }
+.hero { margin-top: 10mm; padding: 11mm 11mm; border-radius: 14px; background: linear-gradient(135deg, var(--p), var(--a)); color: white; }
+.hero .kick { font-size: 9.5pt; text-transform: uppercase; letter-spacing: .12em; opacity: .85; }
+.hero h1 { font-size: 25pt; line-height: 1.15; margin: 6px 0 8px; letter-spacing: -.02em; }
+.hero p { margin: 0; font-size: 11.5pt; opacity: .95; max-width: 145mm; }
+h2 { font-size: 14pt; margin: 7mm 0 3mm; color: var(--p); letter-spacing: -.01em; }
+p { margin: 0 0 3mm; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 3mm 4mm; break-inside: avoid; }
+.card b { display: block; margin-bottom: 1mm; font-size: 10.5pt; }
+.card span { color: var(--mu); font-size: 9.5pt; }
+table { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+th, td { padding: 3.2mm 3mm; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .06em; color: var(--mu); font-weight: 600; background: var(--soft); }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plan { font-weight: 700; }
+.gift { display: inline-block; background: var(--oks); color: var(--ok); font-weight: 700; border-radius: 999px; padding: 1mm 3mm; font-size: 9pt; white-space: nowrap; }
+.big { font-size: 13pt; font-weight: 700; }
+.note { font-size: 8.8pt; color: var(--mu); }
+.promo { margin-top: 6mm; display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.promo .box { border-radius: 12px; padding: 5mm; background: var(--soft); }
+.promo .box .n { font-size: 26pt; font-weight: 800; color: var(--p); line-height: 1; }
+.promo .box .t { font-weight: 700; margin-top: 2mm; }
+ol { margin: 0; padding-left: 5mm; } li { margin-bottom: 1.6mm; }
+.foot { position: absolute; left: 18mm; right: 18mm; bottom: 9mm; display: flex; justify-content: space-between; font-size: 8pt; color: var(--mu); border-top: 1px solid var(--line); padding-top: 3mm; }
+</style></head><body>
+
+<section class="page">
+  <div class="top">
+    <div class="brand"><span class="iso"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M10 22V10l12 12V10" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Nexora</div>
+    <div class="meta">Propuesta comercial<br>19 de noviembre de 2026</div>
+  </div>
+
+  <div class="hero">
+    <div class="kick">Propuesta de alianza para la Cámara de Comercio</div>
+    <h1>Talento Humano digital para las empresas afiliadas</h1>
+    <p>Asistencia con QR y Face ID, horarios, novedades y pre-nómina colombiana en una sola plataforma, sin equipos que comprar y con meses gratis para los afiliados.</p>
+  </div>
+
+  <h2>El problema que resolvemos</h2>
+  <p>La mayoría de las micro y pequeñas empresas todavía controla la asistencia en papel, Excel o relojes biométricos costosos. Eso genera discusiones por horas extra, errores en recargos nocturnos y dominicales, y horas del dueño o del contador cuadrando la nómina cada quincena.</p>
+  <p><b>Nexora</b> lleva ese proceso al celular del empleado y entrega al empresario una pre-nómina calculada con las reglas laborales colombianas, lista para revisar y enviar al contador.</p>
+
+  <h2>Qué incluye el módulo de Talento Humano</h2>
+  <div class="grid">
+    <div class="card"><b>Marcación con QR y GPS</b><span>El empleado escanea el QR de la sede; Nexora valida la ubicación y usa la hora del servidor.</span></div>
+    <div class="card"><b>Identidad con Face ID o huella</b><span>Nadie marca por otro. Activación con cédula y código: sin correos ni contraseñas para el empleado.</span></div>
+    <div class="card"><b>Horarios y turnos</b><span>Turnos fijos, rotativos y partidos, por sede y por empleado.</span></div>
+    <div class="card"><b>Novedades y horas extra</b><span>Incapacidades, permisos y vacaciones; horas extra con aprobación del administrador.</span></div>
+    <div class="card"><b>Pre-nómina colombiana</b><span>Recargos nocturnos, dominicales y festivos según la norma vigente, con explicación de cada valor.</span></div>
+    <div class="card"><b>Comprobantes y reportes</b><span>Comprobantes de pago en PDF, resumen en Excel para el contador y tablero de asistencia.</span></div>
+    <div class="card"><b>Varias sedes</b><span>Sin costo por sede: cada una con su QR y su radio de ubicación.</span></div>
+    <div class="card"><b>Datos protegidos</b><span>Autorización según la Ley 1581 de 2012, auditoría de cambios y datos cifrados.</span></div>
+  </div>
+
+  <div class="foot"><span>Nexora · Talento Humano</span><span>1 / 3</span></div>
+</section>
+
+<section class="page">
+  <div class="top">
+    <div class="brand"><span class="iso"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M10 22V10l12 12V10" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Nexora</div>
+    <div class="meta">Propuesta comercial<br>Planes y beneficio para afiliados</div>
+  </div>
+
+  <h2>Planes mensuales</h2>
+  <p>Precios en pesos colombianos. Todas las funciones del módulo de Talento Humano están incluidas en todos los planes; el plan solo cambia según el número de empleados.</p>
+  <table>
+    <thead><tr><th>Plan</th><th>Empleados</th><th>Precio mensual</th><th>Por empleado*</th><th>Beneficio afiliados</th></tr></thead>
+    <tbody>
+      <tr><td class="plan">Básico</td><td>Hasta 5</td><td class="num big">$59.900</td><td class="num">$11.980</td><td><span class="gift">3 meses gratis</span></td></tr>
+      <tr><td class="plan">Empresa</td><td>6 a 15</td><td class="num big">$99.900</td><td class="num">$6.660</td><td><span class="gift">1 mes gratis</span></td></tr>
+      <tr><td class="plan">Negocios</td><td>16 a 30</td><td class="num big">$149.900</td><td class="num">$4.997</td><td><span class="gift">1 mes gratis</span></td></tr>
+      <tr><td class="plan">A la medida</td><td>Más de 30</td><td>Cotización</td><td>—</td><td><span class="gift">1 mes gratis</span></td></tr>
+    </tbody>
+  </table>
+  <p class="note" style="margin-top:2mm">* Valor por empleado cuando la empresa usa el máximo de su plan. Sin costo por sede, sin equipos que comprar y sin costo de instalación.</p>
+
+  <div class="promo">
+    <div class="box"><div class="n">3 meses</div><div class="t">gratis hasta 5 empleados</div><p class="note" style="margin-top:2mm">Plan Básico: el afiliado ahorra $179.700 y prueba Nexora un trimestre completo antes de pagar.</p></div>
+    <div class="box"><div class="n">1 mes</div><div class="t">gratis desde 6 empleados</div><p class="note" style="margin-top:2mm">Planes Empresa, Negocios y a la medida: ahorro de hasta $149.900 en el primer mes.</p></div>
+  </div>
+
+  <div class="foot"><span>Nexora · Talento Humano</span><span>2 / 3</span></div>
+</section>
+
+<section class="page">
+  <div class="top">
+    <div class="brand"><span class="iso"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M10 22V10l12 12V10" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Nexora</div>
+    <div class="meta">Propuesta comercial<br>Alianza y próximos pasos</div>
+  </div>
+
+  <h2>Qué gana la Cámara y sus afiliados</h2>
+  <div class="grid">
+    <div class="card"><b>Beneficio concreto para afiliarse</b><span>Meses gratis exclusivos que la Cámara puede incluir en su portafolio de servicios.</span></div>
+    <div class="card"><b>Formalización laboral</b><span>Registros de jornada claros que ayudan a cumplir la normativa y a evitar reclamaciones.</span></div>
+    <div class="card"><b>Transformación digital sin barreras</b><span>Funciona en cualquier celular; el empresario lo configura en una tarde.</span></div>
+    <div class="card"><b>Acompañamiento</b><span>Sesión de capacitación para afiliados y soporte en español durante la implementación.</span></div>
+  </div>
+
+  <h2>Cómo empezamos</h2>
+  <ol>
+    <li><b>Acuerdo de alianza:</b> la Cámara divulga el beneficio entre sus afiliados (boletín, eventos, redes).</li>
+    <li><b>Registro del afiliado:</b> la empresa se inscribe y se le activan sus meses gratis según el número de empleados.</li>
+    <li><b>Puesta en marcha:</b> crea sus sedes y empleados; cada empleado activa su celular con su cédula y un código.</li>
+    <li><b>Seguimiento:</b> informe a la Cámara del número de empresas y empleados beneficiados.</li>
+  </ol>
+
+  <h2>Condiciones</h2>
+  <p class="note">Beneficio válido para empresas afiliadas a la Cámara de Comercio que se registren durante la vigencia del acuerdo. Los meses gratis aplican desde la activación de la cuenta; al terminar, continúa el plan elegido y se puede cancelar en cualquier momento, sin cláusula de permanencia. Precios sujetos a los impuestos que apliquen. Vigencia de esta propuesta: 30 días a partir de su fecha.</p>
+
+  <div class="foot"><span>Nexora · nexora-tau-liard.vercel.app</span><span>3 / 3</span></div>
+</section>
+</body></html>
