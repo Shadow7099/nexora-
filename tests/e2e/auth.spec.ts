@@ -62,7 +62,7 @@ test("un empleado no puede entrar al panel de administración", async ({ page })
   await expect(page).toHaveURL(/\/app$/);
 });
 
-test("ciclo completo: crear empleado → primer ingreso → nueva contraseña → desactivar", async ({ browser }) => {
+test("ciclo completo: crear empleado → activar con cédula y código → desactivar", async ({ browser }) => {
   test.setTimeout(90_000); // varios inicios de sesión con Argon2 (lento a propósito)
   const suffix = Date.now().toString(36);
   const email = `prueba-${suffix}@eltrigal.test`;
@@ -74,33 +74,23 @@ test("ciclo completo: crear empleado → primer ingreso → nueva contraseña �
   await admin.goto("/admin/empleados/nuevo");
   await admin.getByLabel("Nombres").fill("Sofía");
   await admin.getByLabel("Apellidos").fill(`Prueba ${suffix}`);
-  await admin.getByLabel("Número de documento").fill(`9${Date.now().toString().slice(-8)}`);
-  await admin.getByLabel("Correo (para ingresar)").fill(email);
+  const doc = `9${Date.now().toString().slice(-8)}`;
+  await admin.getByLabel("Número de documento").fill(doc);
+  await admin.getByLabel("Correo", { exact: true }).fill(email);
   await admin.getByLabel("Cargo").fill("Vendedora");
   await admin.getByLabel("Sede habitual").selectOption({ label: "Acacías" });
   await admin.getByLabel("Salario mensual (COP)").fill("1800000");
   await admin.getByRole("button", { name: "Crear empleado" }).click();
-  const temp = (await admin.getByTestId("temp-password").textContent())!.trim();
-  expect(temp).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
+  const code = (await admin.getByTestId("activation-code").textContent())!.trim();
+  expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
 
-  // 2. El empleado ingresa con la clave temporal: autorización de datos y nueva contraseña.
+  // 2. El empleado activa su celular con cédula + código (sin correo ni contraseña) y acepta la autorización.
   const empCtx = await browser.newContext();
   const emp = await empCtx.newPage();
-  await emp.goto("/ingresar");
-  await emp.getByLabel("Correo").fill(email);
-  await emp.getByLabel("Contraseña").fill(temp);
-  await emp.getByRole("button", { name: "Ingresar" }).click();
-  await expect(emp).toHaveURL(/\/cambiar-clave(\?|$)/);
-  await emp.getByLabel("Contraseña actual").fill(temp);
-  await emp.getByLabel("Nueva contraseña", { exact: true }).fill("corta");
-  await emp.getByLabel("Repite la nueva contraseña").fill("corta");
-  await emp.getByRole("button", { name: "Guardar contraseña" }).click();
-  // El error (no la ayuda fija «Mínimo 10 caracteres, con letras…»): así el formulario ya se reinició antes de volver a llenarlo.
-  await expect(emp.getByText("Mínimo 10 caracteres.", { exact: true }).first()).toBeVisible();
-  await emp.getByLabel("Contraseña actual").fill(temp);
-  await emp.getByLabel("Nueva contraseña", { exact: true }).fill("Sofia-Panaderia-2026");
-  await emp.getByLabel("Repite la nueva contraseña").fill("Sofia-Panaderia-2026");
-  await emp.getByRole("button", { name: "Guardar contraseña" }).click();
+  await emp.goto("/activar");
+  await emp.getByLabel("Cédula").fill(doc);
+  await emp.getByLabel("Código de activación").fill(code);
+  await emp.getByRole("button", { name: "Activar" }).click();
   await expect(emp).toHaveURL(/\/autorizacion(\?|$)/);
   await emp.getByRole("checkbox").check();
   await emp.getByRole("button", { name: "Aceptar y continuar" }).click();

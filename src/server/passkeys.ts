@@ -57,7 +57,7 @@ export async function passkeyRegistrationOptions(actor: Actor, deviceToken: stri
     userID: new TextEncoder().encode(actor.userId),
     attestationType: "none",
     excludeCredentials: existing.map((c) => ({ id: c.credentialId, transports: c.transports })),
-    authenticatorSelection: { residentKey: "preferred", userVerification: "required", authenticatorAttachment: "platform" },
+    authenticatorSelection: { residentKey: "required", userVerification: "required", authenticatorAttachment: "platform" },
   });
   await saveChallenge(actor.sessionId, options.challenge);
   return { options, bindingId: binding.id };

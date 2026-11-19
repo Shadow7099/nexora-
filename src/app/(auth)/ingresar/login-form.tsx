@@ -24,7 +24,7 @@ export function LoginForm({ next }: { next?: string }) {
       <details className="text-sm text-fg-muted">
         <summary className="cursor-pointer select-none text-center text-primary">¿Olvidaste tu contraseña?</summary>
         <p className="mt-2">
-          <strong className="font-medium text-fg">Empleados:</strong> pide a tu administrador una contraseña temporal (Empleados → tu nombre → Restablecer contraseña).
+          <strong className="font-medium text-fg">Empleados:</strong> no usas contraseña: entra con tu huella o Face ID. Si cambiaste de celular, pide a tu empresa un código nuevo y actívalo en «Activa tu celular».
         </p>
         <p className="mt-1">
           <strong className="font-medium text-fg">Administradores:</strong> escribe al soporte de Nexora desde el correo registrado; te enviaremos una contraseña temporal.

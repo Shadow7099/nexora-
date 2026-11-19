@@ -4,7 +4,21 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { fieldErrors, loginSchema, passwordSchema } from "@/lib/validation";
 import type { ActionState } from "@/server/errors";
-import { clearSessionCookie, getClientIp, getSessionToken, getUserAgent, requireActor, setSessionCookie } from "@/server/current";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
+import { activateWithCode, passkeyLogin, passkeyLoginOptions } from "@/server/activation";
+import {
+  clearSessionCookie,
+  getClientIp,
+  getDeviceToken,
+  getRelyingParty,
+  getSessionToken,
+  getUserAgent,
+  requireActor,
+  setDeviceCookie,
+  setPasskeyLoginCookie,
+  setSessionCookie,
+  takePasskeyLoginCookie,
+} from "@/server/current";
 import { authenticate, changePassword, homeFor, recordConsent, revokeSession } from "@/server/sessions";
 
 /** Solo se acepta un destino interno (evita redirecciones abiertas a otros sitios). */
@@ -74,4 +88,46 @@ export async function changePasswordAction(_: ActionState, formData: FormData): 
   }
   const next = safeNext(formData.get("next"), actor.role);
   redirect(actor.hasConsent ? next : `/autorizacion?next=${encodeURIComponent(next)}`);
+}
+
+/** Activar el celular con cédula + código (sin correo ni contraseña). */
+export async function activateAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const documentNumber = String(formData.get("documentNumber") ?? "").slice(0, 30);
+  const code = String(formData.get("code") ?? "").slice(0, 30);
+  const data = { documentNumber, code };
+  if (!documentNumber.trim()) return { ok: false, fieldErrors: { documentNumber: "Escribe tu número de cédula." }, data };
+  if (!code.trim()) return { ok: false, fieldErrors: { code: "Escribe el código que te envió tu empresa." }, data };
+  let r: Awaited<ReturnType<typeof activateWithCode>>;
+  try {
+    r = await activateWithCode({ documentNumber, code }, await getUserAgent(), await getClientIp());
+  } catch (e) {
+    console.error("activar: error de infraestructura", e);
+    return { ok: false, message: "El servicio no está disponible en este momento. Intenta en unos minutos.", data };
+  }
+  if (!r.ok) return { ok: false, message: r.message, data };
+  await setSessionCookie(r.sessionToken, r.sessionExpires);
+  await setDeviceCookie(r.deviceToken);
+  redirect("/app");
+}
+
+/** Paso 1 de «Entrar con Face ID o huella»: el desafío viaja en una cookie de 5 min. */
+export async function passkeyLoginOptionsAction() {
+  const { options, token } = await passkeyLoginOptions(await getRelyingParty());
+  await setPasskeyLoginCookie(token);
+  return options;
+}
+
+/** Paso 2: verifica la firma y abre la sesión. Devuelve a dónde ir. */
+export async function passkeyLoginAction(response: AuthenticationResponseJSON, next?: string) {
+  let r: Awaited<ReturnType<typeof passkeyLogin>>;
+  try {
+    r = await passkeyLogin(await takePasskeyLoginCookie(), response, await getRelyingParty(), await getDeviceToken(), await getUserAgent(), await getClientIp());
+  } catch (e) {
+    console.error("passkey login: error de infraestructura", e);
+    return { ok: false as const, message: "El servicio no está disponible en este momento. Intenta en unos minutos." };
+  }
+  if (!r.ok) return { ok: false as const, message: r.message };
+  await setSessionCookie(r.sessionToken, r.sessionExpires);
+  if (r.deviceToken) await setDeviceCookie(r.deviceToken);
+  return { ok: true as const, href: safeNext(next, "EMPLOYEE") };
 }

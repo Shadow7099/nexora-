@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { KeyRound, UserCheck, UserX } from "lucide-react";
-import { addContractAction, resetPasswordAction, setStatusAction, updateEmployeeAction } from "@/app/admin/actions";
+import { KeyRound, Smartphone, UserCheck, UserX } from "lucide-react";
+import { addContractAction, newActivationCodeAction, resetPasswordAction, setStatusAction, updateEmployeeAction } from "@/app/admin/actions";
 import { ContractFields, EmployeeFields } from "@/components/admin/employee-fields";
+import { ActivationCode } from "@/components/admin/activation-code";
 import { TempPassword } from "@/components/admin/temp-password";
 import { FormAlert, SubmitButton } from "@/components/ui/form";
 
@@ -67,6 +68,25 @@ export function ResetPasswordButton({ id }: { id: string }) {
         <KeyRound /> Restablecer contraseña
       </SubmitButton>
       {state?.data?.password && <TempPassword password={state.data.password} />}
+      {state?.ok === false && <FormAlert message={state.message} />}
+    </form>
+  );
+}
+
+export function NewActivationCodeButton({ id, phone, name }: { id: string; phone?: string; name?: string }) {
+  const [state, action] = useActionState(newActivationCodeAction.bind(null, id), null);
+  return (
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (!confirm("¿Generar un código nuevo? El anterior deja de servir. Al usarlo, su celular nuevo reemplaza al anterior.")) e.preventDefault();
+      }}
+      className="grid gap-3"
+    >
+      <SubmitButton variant="secondary">
+        <Smartphone /> Nuevo código de activación
+      </SubmitButton>
+      {state?.data?.code && <ActivationCode code={state.data.code} phone={phone} name={name} />}
       {state?.ok === false && <FormAlert message={state.message} />}
     </form>
   );

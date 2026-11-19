@@ -14,7 +14,7 @@ export async function createEmployeeAction(_: ActionState, fd: FormData): Promis
   try {
     const r = await createEmployee(await admin(), echo(fd));
     revalidatePath("/admin/empleados");
-    return { ok: true, data: { employeeId: r.employeeId, password: r.temporaryPassword, email: String(fd.get("email")) } };
+    return { ok: true, data: { employeeId: r.employeeId, code: r.activationCode, email: String(fd.get("email")), phone: String(fd.get("phone") ?? ""), name: String(fd.get("firstName") ?? "") } };
   } catch (e) {
     return { ...toActionState(e), data: echo(fd) };
   }
@@ -55,6 +55,16 @@ export async function resetPasswordAction(id: string, _: ActionState): Promise<A
   try {
     const password = await resetEmployeePassword(await admin(), id);
     return { ok: true, data: { password } };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function newActivationCodeAction(id: string, _: ActionState): Promise<ActionState> {
+  try {
+    const { newActivationCode } = await import("@/server/activation");
+    const code = await newActivationCode(await admin(), id);
+    return { ok: true, data: { code } };
   } catch (e) {
     return toActionState(e);
   }

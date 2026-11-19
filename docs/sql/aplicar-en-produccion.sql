@@ -768,5 +768,61 @@ ALTER TABLE "wa_template" ENABLE ROW LEVEL SECURITY;
 END
 $migracion$;
 
+-- ── 20261124000000_activation ──
+DO $migracion$
+BEGIN
+  IF to_regclass('public.activation_code') IS NULL THEN
+    EXECUTE '-- CreateTable
+CREATE TABLE "activation_code" (
+    "id" UUID NOT NULL,
+    "company_id" UUID NOT NULL,
+    "employee_id" UUID NOT NULL,
+    "code_hash" TEXT NOT NULL,
+    "expires_at" TIMESTAMPTZ(3) NOT NULL,
+    "used_at" TIMESTAMPTZ(3),
+    "created_by_id" UUID,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "activation_code_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "passkey_login" (
+    "id" TEXT NOT NULL,
+    "challenge" TEXT NOT NULL,
+    "expires_at" TIMESTAMPTZ(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "passkey_login_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "activation_code_code_hash_key" ON "activation_code"("code_hash");
+
+-- CreateIndex
+CREATE INDEX "activation_code_employee_id_idx" ON "activation_code"("employee_id");
+
+-- CreateIndex
+CREATE INDEX "passkey_login_expires_at_idx" ON "passkey_login"("expires_at");
+
+-- AddForeignKey
+ALTER TABLE "activation_code" ADD CONSTRAINT "activation_code_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activation_code" ADD CONSTRAINT "activation_code_employee_id_company_id_fkey" FOREIGN KEY ("employee_id", "company_id") REFERENCES "employee"("id", "company_id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- Cerradas a la API pública de Supabase como el resto.
+ALTER TABLE "activation_code" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "passkey_login" ENABLE ROW LEVEL SECURITY;
+';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20261124000000_activation') THEN
+    INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+    VALUES (gen_random_uuid()::text, '82bac27f310f335c16c4d20cdd472c2148d8948780e13e61ad7587986861c619', now(), '20261124000000_activation', NULL, NULL, now(), 1);
+  END IF;
+END
+$migracion$;
+
 -- Comprobación: debe mostrar todas las tablas.
-SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation;
+SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation, to_regclass('public.activation_code') AS activation_code;

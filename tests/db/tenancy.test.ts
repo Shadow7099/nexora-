@@ -3,6 +3,7 @@
  * - un empleado no puede consultar información ajena;
  * - un administrador de una empresa no puede acceder a otra.
  */
+import { activateWithCode, newActivationCode } from "@/server/activation";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { getCompanySettings, listCompanies, updateCompanySettings } from "@/server/company";
@@ -100,19 +101,30 @@ describe("permisos por rol", () => {
 });
 
 describe("gestión de empleados", () => {
-  it("crea usuario + empleado + contrato, con clave temporal y auditoría", async () => {
+  it("crea usuario + empleado + contrato, con código de activación (sin contraseña) y auditoría", async () => {
     const a = await makeCompany("eA");
     const { actor } = await login(a.admin.email);
     const input = newEmployeeInput(a.site.id);
     const r = await createEmployee(actor, input);
-    expect(r.temporaryPassword).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
+    expect(r.activationCode).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     const e = await getEmployee(actor, r.employeeId);
-    expect(e.user.mustChangePassword).toBe(true);
+    expect(e.user.mustChangePassword).toBe(false);
     expect(e.contracts).toHaveLength(1);
     expect(Number(e.contracts[0]!.monthlySalary)).toBe(1_900_000);
     expect(await db.auditLog.count({ where: { entityId: r.employeeId, action: "employee.create" } })).toBe(1);
-    const second = await login(input.email as string, r.temporaryPassword);
-    expect(second.actor.mustChangePassword).toBe(true);
+    // Cédula equivocada: no activa; correcta: activa el celular una sola vez.
+    const bad = await activateWithCode({ documentNumber: "000", code: r.activationCode }, "ua", "10.0.0.1");
+    expect(bad.ok).toBe(false);
+    const ok = await activateWithCode({ documentNumber: String(input.documentNumber), code: r.activationCode.toLowerCase() }, "ua", "10.0.0.1");
+    expect(ok.ok).toBe(true);
+    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(1);
+    const again = await activateWithCode({ documentNumber: String(input.documentNumber), code: r.activationCode }, "ua", "10.0.0.1");
+    expect(again.ok).toBe(false);
+    // Celular nuevo con un código nuevo: el anterior se retira solo, sin aprobación.
+    const code2 = await newActivationCode(actor, r.employeeId);
+    expect((await activateWithCode({ documentNumber: String(input.documentNumber), code: code2 }, "ua2", "10.0.0.1")).ok).toBe(true);
+    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(1);
+    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "REVOKED" } })).toBe(1);
   });
 
   it("rechaza correo o documento repetido con mensaje por campo", async () => {

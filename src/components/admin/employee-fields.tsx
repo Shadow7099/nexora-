@@ -39,7 +39,7 @@ export function EmployeeFields({ errors, values, sites }: { errors: Errors; valu
       <F name="lastName" label="Apellidos" autoComplete="off" required {...p} />
       <S name="documentType" label="Tipo de documento" options={documentTypeLabel} {...p} />
       <F name="documentNumber" label="Número de documento" inputMode="numeric" required {...p} />
-      <F name="email" label="Correo (para ingresar)" type="email" inputMode="email" required {...p} />
+      <F name="email" label="Correo" type="email" inputMode="email" required {...p} />
       <F name="phone" label="Celular" type="tel" inputMode="tel" {...p} />
       <F name="position" label="Cargo" required {...p} />
       <S name="defaultSiteId" label="Sede habitual" options={sites} {...p} />

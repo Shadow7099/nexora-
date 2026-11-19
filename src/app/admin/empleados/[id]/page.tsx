@@ -12,7 +12,7 @@ import { isPasskeyExempt, listDevices, NO_PASSKEY_SUFFIX, RELINK_SUFFIX } from "
 import { getEmployee, listSiteOptions } from "@/server/employees";
 import { DeviceActions, PasskeyExemption } from "@/components/admin/device-actions";
 import { AppError } from "@/server/errors";
-import { EditEmployeeForm, NewContractForm, ResetPasswordButton, StatusButton } from "./employee-forms";
+import { EditEmployeeForm, NewActivationCodeButton, NewContractForm, StatusButton } from "./employee-forms";
 
 export const metadata: Metadata = { title: "Empleado" };
 
@@ -152,7 +152,7 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
                   </ul>
                 )}
               </div>
-              {active && <ResetPasswordButton id={e.id} />}
+              {active && <NewActivationCodeButton id={e.id} phone={e.phone ?? undefined} name={e.firstName} />}
               <StatusButton id={e.id} active={active} />
             </CardContent>
           </Card>

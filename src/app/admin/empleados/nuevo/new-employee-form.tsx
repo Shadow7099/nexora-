@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { createEmployeeAction } from "@/app/admin/actions";
 import { ContractFields, EmployeeFields } from "@/components/admin/employee-fields";
-import { TempPassword } from "@/components/admin/temp-password";
+import { ActivationCode } from "@/components/admin/activation-code";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormAlert, SubmitButton } from "@/components/ui/form";
@@ -22,15 +22,15 @@ export function NewEmployeeForm({ sites }: { sites: Sites }) {
 function Form({ sites, onAnother }: { sites: Sites; onAnother: () => void }) {
   const [state, action] = useActionState(createEmployeeAction, null);
 
-  if (state?.ok && state.data?.password) {
+  if (state?.ok && state.data?.code) {
     return (
       <Card className="max-w-xl">
         <CardContent className="grid gap-5">
           <div>
             <h2 className="text-lg font-semibold">Empleado creado</h2>
-            <p className="mt-1 text-sm text-fg-muted">Ya puede ingresar con su correo y esta contraseña.</p>
+            <p className="mt-1 text-sm text-fg-muted">Envíale este código: con su cédula activa su celular y su huella o Face ID. No tienes que aprobar nada más.</p>
           </div>
-          <TempPassword password={state.data.password} email={state.data.email} />
+          <ActivationCode code={state.data.code ?? ""} phone={state.data.phone} name={state.data.name} />
           <div className="flex flex-wrap gap-2">
             <Link href={`/admin/empleados/${state.data.employeeId}`} className={buttonVariants()}>Ver empleado</Link>
             <button type="button" onClick={onAnother} className={buttonVariants({ variant: "secondary" })}>Crear otro</button>
@@ -50,7 +50,7 @@ function Form({ sites, onAnother }: { sites: Sites; onAnother: () => void }) {
         <CardHeader>
           <div>
             <CardTitle>Datos personales y acceso</CardTitle>
-            <CardDescription>El correo será su usuario para ingresar.</CardDescription>
+            <CardDescription>Entrará con su cédula y un código de activación; luego con su huella o Face ID.</CardDescription>
           </div>
         </CardHeader>
         <CardContent>

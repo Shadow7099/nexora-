@@ -1,5 +1,5 @@
 import "server-only";
-import { randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import * as z from "zod";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
@@ -8,6 +8,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { audit } from "@/server/audit";
 import { requireCompanyAdmin } from "@/server/authz";
 import { AppError, notFound } from "@/server/errors";
+import { issueActivationCode } from "@/server/activation";
 import { revokeUserSessions, type Actor } from "@/server/sessions";
 
 /** Contraseña temporal legible (sin caracteres ambiguos), p. ej. "kq7m-x2pt-9hcw". */
@@ -92,13 +93,14 @@ export async function createEmployee(actor: Actor, input: unknown) {
     }
   }
 
-  const password = temporaryPassword();
-  const passwordHash = await hashPassword(password);
+  // Sin contraseña: el empleado entra con cédula + código y luego con su huella o Face ID.
+  // Se guarda el hash de un valor aleatorio que nadie conoce (la columna no admite vacío).
+  const passwordHash = await hashPassword(randomBytes(32).toString("base64url"));
   try {
     const employee = await db.$transaction(async (tx) => {
       await assertSite(companyId, v.defaultSiteId, tx);
       const user = await tx.user.create({
-        data: { companyId, email: v.email, name: `${v.firstName} ${v.lastName}`, passwordHash, role: "EMPLOYEE", mustChangePassword: true },
+        data: { companyId, email: v.email, name: `${v.firstName} ${v.lastName}`, passwordHash, role: "EMPLOYEE", mustChangePassword: false },
       });
       const employee = await tx.employee.create({
         data: {
@@ -139,9 +141,10 @@ export async function createEmployee(actor: Actor, input: unknown) {
         },
         tx,
       );
-      return employee;
+      const activationCode = await issueActivationCode(companyId, employee.id, actor.userId, tx);
+      return { id: employee.id, activationCode };
     });
-    return { employeeId: employee.id, temporaryPassword: password };
+    return { employeeId: employee.id, activationCode: employee.activationCode };
   } catch (e) {
     throw uniqueViolation(e) ?? e;
   }

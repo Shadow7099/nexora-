@@ -78,3 +78,17 @@ export async function getRelyingParty() {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return { rpID: host.split(":")[0]!, origin: `${proto}://${host}` };
 }
+
+/** Cookie de corta vida con el desafío de «Entrar con Face ID o huella». */
+const PASSKEY_LOGIN_COOKIE = secure ? "__Host-nexora_pk" : "nexora_pk";
+
+export async function setPasskeyLoginCookie(token: string) {
+  (await cookies()).set(PASSKEY_LOGIN_COOKIE, token, { httpOnly: true, secure, sameSite: "strict", path: "/", maxAge: 5 * 60 });
+}
+
+export async function takePasskeyLoginCookie() {
+  const jar = await cookies();
+  const v = jar.get(PASSKEY_LOGIN_COOKIE)?.value;
+  if (v) jar.delete(PASSKEY_LOGIN_COOKIE);
+  return v;
+}
