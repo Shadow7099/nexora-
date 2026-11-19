@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { attendanceDay, employeeDeviceContext, employeeHistory, PASSKEY_MISSING_MESSAGE, punch, punchFromApp, qrContext, STALE_SESSION_HOURS } from "@/server/attendance";
-import { addRelinkedWindow, approveDevice, bindDevice, findBinding, listDevices, MAX_RELINKED_WINDOWS, revokeDevice, setPasskeyExemption } from "@/server/devices";
+import { addRelinkedWindow, approveDevice, bindDevice, findBinding, listDevices, MAX_ACTIVE_BINDINGS, revokeDevice, setPasskeyExemption } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import { login, makeCompany } from "../support/fixtures";
 
@@ -150,17 +150,19 @@ describe("dispositivo vinculado", () => {
     expect(await s.doPunch({ token: "token-inventado" })).toMatchObject({ ok: false, reason: "DEVICE_NOT_BOUND" });
   });
 
-  it("un segundo celular queda pendiente; al aprobarlo, el anterior se revoca", async () => {
+  it("un celular nuevo queda activo sin aprobación; los accesos más viejos se retiran solos", async () => {
     const s = await setup("d2");
     const second = await bindDevice(s.emp.actor, "Mozilla/5.0 (iPhone) Safari/605");
-    expect(second.status).toBe("PENDING");
-    expect(await s.doPunch({ token: second.token })).toMatchObject({ ok: false, reason: "DEVICE_NOT_BOUND", message: expect.stringContaining("pendiente") });
-    const pending = (await listDevices(s.admin.actor)).find((d) => d.status === "PENDING")!;
-    await approveDevice(s.admin.actor, pending.id);
+    expect(second.status).toBe("ACTIVE");
     // El celular nuevo también debe activar su huella o Face ID (la excepción del anterior no pasa al nuevo).
     expect(await s.doPunch({ token: second.token })).toMatchObject({ ok: false, reason: "PASSKEY_FAILED", message: PASSKEY_MISSING_MESSAGE });
-    await setPasskeyExemption(s.admin.actor, pending.id, true);
+    const b2 = (await findBinding(s.employee.id, second.token))!;
+    await setPasskeyExemption(s.admin.actor, b2.id, true);
     expect((await s.doPunch({ token: second.token })).ok).toBe(true);
+    // Más de MAX_ACTIVE_BINDINGS accesos: se retira el usado hace más tiempo (el primer celular).
+    await db.deviceBinding.updateMany({ where: { tokenHash: (await findBinding(s.employee.id, s.device.token))!.tokenHash }, data: { lastSeenAt: new Date("2026-01-01T00:00:00Z") } });
+    for (let i = 0; i < MAX_ACTIVE_BINDINGS - 1; i++) await bindDevice(s.emp.actor, "Mozilla/5.0 (Linux; Android 14) Chrome/130");
+    expect(await db.deviceBinding.count({ where: { employeeId: s.employee.id, status: "ACTIVE" } })).toBe(MAX_ACTIVE_BINDINGS);
     expect(await s.doPunch({ token: s.device.token, now: plus(120) })).toMatchObject({ ok: false, reason: "DEVICE_REVOKED" });
   });
 
@@ -230,13 +232,13 @@ describe("dispositivo vinculado", () => {
     const other = await setup("d9");
     expect(await code(addRelinkedWindow(other.emp.actor, original.id, iphone))).toBe("NOT_FOUND");
 
-    // Se guardan como máximo MAX_RELINKED_WINDOWS ventanas; las más antiguas se revocan.
-    for (let i = 0; i < MAX_RELINKED_WINDOWS; i++) await addRelinkedWindow(s.emp.actor, original.id, iphone);
+    // Se guardan como máximo MAX_ACTIVE_BINDINGS ventanas; las más antiguas se revocan.
+    for (let i = 0; i < MAX_ACTIVE_BINDINGS; i++) await addRelinkedWindow(s.emp.actor, original.id, iphone);
     const active = await db.deviceBinding.count({ where: { employeeId: s.employee.id, status: "ACTIVE", label: { endsWith: "reconocido con huella" } } });
-    expect(active).toBe(MAX_RELINKED_WINDOWS);
+    expect(active).toBe(MAX_ACTIVE_BINDINGS);
     expect((await findBinding(s.employee.id, camera))?.status).toBe("REVOKED");
     expect((await findBinding(s.employee.id, s.device.token))?.status).toBe("ACTIVE"); // el original nunca se toca
-    expect(await db.auditLog.count({ where: { companyId: s.company.id, action: "device.relink" } })).toBe(2 + MAX_RELINKED_WINDOWS);
+    expect(await db.auditLog.count({ where: { companyId: s.company.id, action: "device.relink" } })).toBe(2 + MAX_ACTIVE_BINDINGS);
 
     // Revocar el celular revoca también sus ventanas reconocidas.
     await revokeDevice(s.admin.actor, original.id);

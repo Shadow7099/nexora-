@@ -16,15 +16,14 @@ En la página de inicio, **Crear mi cuenta**: nombre del negocio, tu nombre, cor
 
 ¿Dudas antes de registrarse? El botón **¿Preguntas?** (abajo a la derecha) abre el asistente de Nexora: responde sobre precios, marcación, pre-nómina, reglas laborales y datos, y lleva al registro o al formulario de contacto.
 
-## 1. Primer ingreso (todas las cuentas)
+## 1. Primer ingreso
 
-1. Abra la dirección de Nexora y escriba su **correo** y la **contraseña temporal** que le entregaron.
-2. Cree su propia contraseña (mínimo 10 caracteres).
-3. Lea y acepte la **autorización de tratamiento de datos personales**.
+**Empleados (sin correo ni contraseña):**
+1. Abra la dirección de Nexora en su celular y escriba su **código de empleado** (por ejemplo `K7M2X-9PTQR`) en «Código de empleado» → **Entrar**. Se lo envía su empresa; no importan mayúsculas ni guion.
+2. Lea y acepte la **autorización de tratamiento de datos personales**.
+3. Listo: el celular queda activo de inmediato. El código es permanente; si lo olvidó, su administrador lo ve en su ficha.
 
-¿Olvidó la contraseña? En la pantalla de ingreso, «¿Olvidaste tu contraseña?»:
-- **Empleados:** el administrador le da una contraseña temporal nueva.
-- **Administradores:** el soporte de Nexora le da una contraseña temporal nueva.
+**Administradores:** escriba su **correo** y la **contraseña temporal** que le entregaron, cree su propia contraseña (mínimo 10 caracteres) y acepte la autorización. ¿La olvidó? El soporte de Nexora le da una temporal nueva.
 
 Después de 5 intentos fallidos la cuenta se bloquea 15 minutos. Si hay muchos intentos fallidos desde una misma red, esa red espera 15 minutos.
 
@@ -36,19 +35,19 @@ Después de 5 intentos fallidos la cuenta se bloquea 15 minutos. Si hay muchos i
 
 ### Marcar entrada y salida
 
-1. **Solo la primera vez**, escanee el QR de la entrada de la sede e ingrese con su correo y contraseña. La sesión queda guardada en el celular (no se vuelve a pedir mientras la use).
+1. **Solo la primera vez**, entre con su código de empleado (también puede escanear el QR de la sede: le pide el código y vuelve al QR). La sesión queda guardada en el celular (no se vuelve a pedir mientras la use).
    - **Las siguientes veces no hace falta escanear:** abra Nexora (la dirección principal lleva directo a su Inicio) y toque **Registrar entrada** o **Registrar salida**. Nexora usa la sede más cercana a su ubicación. Si el celular no lo ubica, use **¿No te ubica? Escanea el QR de la sede**.
    - **En iPhone:** si escanea con la cámara, se abre una ventana aparte; la primera vez pide **Confirmar con huella o Face ID** en esa ventana.
-2. **La primera vez:** toque **Vincular este celular** y luego **Activar huella o Face ID** (obligatorio). Solo podrá marcar desde ese celular. Si ya tenía otro vinculado, el nuevo queda pendiente hasta que el administrador lo apruebe y después también activa su huella o Face ID.
+2. **Si su empresa le exige huella o Face ID**, toque **Activar huella o Face ID** (solo una vez por celular). Si no se la exige, Nexora se la ofrece y usted decide; una vez activada, se la pedirá al marcar. **¿Cambió de celular?** Entre con su mismo código en el nuevo: queda activo de inmediato, sin aprobaciones.
 3. Toque **Registrar entrada** (o **Registrar salida**), en Inicio o en la pantalla del QR. El celular pide permiso de **ubicación**: debe estar dentro del área de la sede.
-4. El celular le pide su **huella o Face ID** (en algunos celulares, el PIN del celular).
+4. Si tiene la huella o Face ID activada, el celular se la pide (en algunos celulares, el PIN del celular).
 5. Verá la confirmación con la hora. **La hora la pone el servidor**, no el celular.
 
 | Antes de marcar | Entrada registrada |
 |---|---|
 | <img src="img/celular-qr-antes.jpg" alt="Pantalla del QR antes de marcar" width="240"> | <img src="img/celular-qr-entrada.jpg" alt="Entrada registrada" width="240"> |
 
-**Huella o Face ID (obligatorio):** sin ella no se puede marcar. Si no la activó al vincular, Nexora muestra **Activar huella o Face ID** en Inicio y en la pantalla del QR. Así nadie más puede marcar por usted, aunque tenga su celular. Nexora no recibe su huella ni su rostro; los verifica el celular. Si su celular no tiene huella ni Face ID, el administrador puede autorizarlo a marcar sin ella.
+**Huella o Face ID:** el administrador decide, empleado por empleado, si es obligatoria. Si lo es y no la ha activado, Nexora muestra **Activar huella o Face ID** en Inicio y en la pantalla del QR y no deja marcar sin ella. Así nadie más puede marcar por usted, aunque tenga su código o su celular. Con ella también puede entrar sin escribir el código: **Entrar con Face ID o huella**. Nexora no recibe su huella ni su rostro; los verifica el celular. Si su celular no tiene huella ni Face ID, el administrador puede autorizarlo a marcar sin ella.
 
 **Si Nexora le pide confirmar que es su celular** (por ejemplo, después de borrar los datos del navegador o al abrir el QR desde la cámara del iPhone), toque **Confirmar con huella o Face ID**. No hace falta que el administrador apruebe nada, y las demás ventanas del celular (Safari, el ícono de inicio, la cámara) siguen reconocidas: solo se confirma una vez por ventana.
 
@@ -60,7 +59,7 @@ Después de 5 intentos fallidos la cuenta se bloquea 15 minutos. Si hay muchos i
 |---|---|
 | Estás fuera del área de la sede | Acérquese a la entrada e intente de nuevo |
 | La ubicación del celular no es precisa | Active el GPS y salga a un lugar despejado |
-| Celular pendiente de aprobación | Pida al administrador que lo apruebe |
+| Este celular ya no está activo | Entró desde otro celular más reciente: toque **Usar este celular** |
 | Ya registraste una marcación hace un momento | No marque dos veces seguidas |
 
 Los intentos rechazados no crean marcaciones, pero el administrador los ve.
@@ -90,7 +89,7 @@ Si se registró con un link de invitación, **Primeros pasos** (en el menú) mue
 1. **Configuración:** tolerancia de llegada tarde, precisión mínima del GPS, si se exige celular vinculado, y si la empresa aplica la **exoneración del art. 114-1 del Estatuto Tributario** (confírmelo con su contador).
 2. **Sedes y QR → Nueva sede:** nombre, dirección, **coordenadas** (en la sede: Editar → **Usar mi ubicación actual**) y **radio permitido** (80 m por defecto).
 3. **Imprimir QR** de cada sede y péguelo en la entrada. Si un QR se filtra o se daña: **Rotar QR** (el anterior deja de funcionar al instante; imprima el nuevo).
-4. **Empleados → Nuevo empleado:** datos, sede habitual y contrato (salario, horas semanales, clase de riesgo ARL). Nexora muestra una **contraseña temporal** una sola vez: entréguesela al empleado por un canal privado.
+4. **Empleados → Nuevo empleado:** datos, sede habitual y contrato (salario, horas semanales, clase de riesgo ARL). Marque **Exigir Face ID o huella para marcar** si quiere que ese empleado la use. Nexora genera su **código de acceso**: tóquelo para copiarlo o use **Enviar por WhatsApp**. En la ficha del empleado puede verlo cuando quiera, **Cambiar código** (el anterior deja de servir, se cierran sus sesiones y se retiran sus celulares; úselo si el código se filtró) y **Exigir Face ID o huella / Hacerlo opcional**. Empleados creados antes de este cambio: en su ficha, **Generar código de acceso**.
 5. **Horarios:** plantillas de turno (si el fin es antes del inicio, termina al día siguiente) y el horario de cada empleado (semanal o rotativo de 14 días). Para un día puntual: **Cambio puntual**.
 
 ![Sedes y QR](img/escritorio-admin-sedes.jpg)

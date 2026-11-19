@@ -78,9 +78,9 @@
     "semantic_hash": "550b7ccf67b236a5ecd9b768360c29a8"
   },
   "src/app/(auth)/actions.ts": {
-    "mtime": 1795085556.2218547,
-    "seen": 1795086440.967847,
-    "ast_hash": "a6f9bdee069f049f1568e5724986b16f",
+    "mtime": 1795100810.8211348,
+    "seen": 1795101663.660789,
+    "ast_hash": "14c8f5adcc267617baebcbdf6621c3c3",
     "semantic_hash": ""
   },
   "src/app/(auth)/autorizacion/consent-form.tsx": {
@@ -108,15 +108,15 @@
     "semantic_hash": "9b1f24ff5f01d22cbf47a1f1713b9829"
   },
   "src/app/(auth)/ingresar/login-form.tsx": {
-    "mtime": 1795085751.8255208,
-    "seen": 1795086440.9680068,
-    "ast_hash": "e3ca20e04a2edde8d88293daca9caf6f",
+    "mtime": 1795100831.2559032,
+    "seen": 1795101663.6609485,
+    "ast_hash": "81bc81939019f67771a6b72415f1c5f1",
     "semantic_hash": ""
   },
   "src/app/(auth)/ingresar/page.tsx": {
-    "mtime": 1795085572.4395845,
-    "seen": 1795086440.9680095,
-    "ast_hash": "317be2c462f78dfcc5f6629dcc065618",
+    "mtime": 1795100831.254192,
+    "seen": 1795101663.660952,
+    "ast_hash": "520bcc429f8bcc1ac84e878d3b8d51af",
     "semantic_hash": ""
   },
   "src/app/(auth)/layout.tsx": {
@@ -126,9 +126,9 @@
     "semantic_hash": "57f78244ecd7c05cc944cc2f2494cba5"
   },
   "src/app/admin/actions.ts": {
-    "mtime": 1795085751.8245883,
-    "seen": 1795086440.9681807,
-    "ast_hash": "29dff2c223218c1ccd48d3ee5eaafb8a",
+    "mtime": 1795100810.8215184,
+    "seen": 1795101663.6612136,
+    "ast_hash": "b00975d66219ea801a08463cc8a1ec9b",
     "semantic_hash": ""
   },
   "src/app/admin/asistencia/page.tsx": {
@@ -150,21 +150,21 @@
     "semantic_hash": ""
   },
   "src/app/admin/empleados/[id]/employee-forms.tsx": {
-    "mtime": 1795085541.2470374,
-    "seen": 1795086440.9686182,
-    "ast_hash": "129ff36f9ea7b20f9743577e8c00ea79",
+    "mtime": 1795101307.709079,
+    "seen": 1795101663.6618192,
+    "ast_hash": "a6f2370ae15506830b0a33fca44e11c4",
     "semantic_hash": ""
   },
   "src/app/admin/empleados/[id]/page.tsx": {
-    "mtime": 1795085751.8253374,
-    "seen": 1795086440.9686205,
-    "ast_hash": "974c25a969d84d06c3a4e9233d4b0fd6",
+    "mtime": 1795100848.4900358,
+    "seen": 1795101663.6618223,
+    "ast_hash": "cc60533241b16da5753450086f6eea80",
     "semantic_hash": ""
   },
   "src/app/admin/empleados/nuevo/new-employee-form.tsx": {
-    "mtime": 1795085751.8250973,
-    "seen": 1795086440.968623,
-    "ast_hash": "1f9f8f6573772be36ef67eade67ddf2b",
+    "mtime": 1795100870.9761136,
+    "seen": 1795101663.6618254,
+    "ast_hash": "15166b1eccf8e54b6daf93f194448814",
     "semantic_hash": ""
   },
   "src/app/admin/empleados/nuevo/page.tsx": {
@@ -258,9 +258,9 @@
     "semantic_hash": "eafcbf82c1dfc09462f8f89fb75cf964"
   },
   "src/app/app/page.tsx": {
-    "mtime": 1794511869.1532664,
-    "seen": 1795085345.2740357,
-    "ast_hash": "1e6d59d88a45f58be0b76bd8b7816aec",
+    "mtime": 1795100876.8894074,
+    "seen": 1795101663.6633153,
+    "ast_hash": "731c226b9b4753e8c6512e0dd49af751",
     "semantic_hash": ""
   },
   "src/app/app/solicitudes/actions.ts": {
@@ -594,9 +594,9 @@
     "semantic_hash": "7b8c900c8cfd4665ea3817bbf95262a3"
   },
   "src/lib/validation.ts": {
-    "mtime": 1794315518.637804,
-    "seen": 1795085345.2742584,
-    "ast_hash": "b279c8af17faeae76ce8bf0dacafade1",
+    "mtime": 1795100777.1030636,
+    "seen": 1795101663.667286,
+    "ast_hash": "dbdb40093f9593b16490e3fab225bdc0",
     "semantic_hash": ""
   },
   "src/proxy.ts": {
@@ -606,9 +606,9 @@
     "semantic_hash": ""
   },
   "src/server/attendance.ts": {
-    "mtime": 1794511571.1951306,
-    "seen": 1795085345.2742634,
-    "ast_hash": "1fbda9dc12f12312e3aa92a1f34e352d",
+    "mtime": 1795101014.9351537,
+    "seen": 1795101663.667325,
+    "ast_hash": "4394f1f3239de6438f01eeed6979596d",
     "semantic_hash": ""
   },
   "src/server/audit.ts": {
@@ -648,9 +648,9 @@
     "semantic_hash": ""
   },
   "src/server/employees.ts": {
-    "mtime": 1795085751.8242579,
-    "seen": 1795086440.9735556,
-    "ast_hash": "15dad3087890f26c80fd6d5d540836bf",
+    "mtime": 1795100777.1026595,
+    "seen": 1795101663.6677427,
+    "ast_hash": "8a1f35de954d49a17f8688c65535a3dd",
     "semantic_hash": ""
   },
   "src/server/errors.ts": {
@@ -714,9 +714,9 @@
     "semantic_hash": "2d5e8ef363f804d5690d449f03d40762"
   },
   "tests/db/attendance.test.ts": {
-    "mtime": 1794511533.5578234,
-    "seen": 1795085345.2743852,
-    "ast_hash": "fdcbd00a14a7653d2abec3332dc834db",
+    "mtime": 1795100963.8167806,
+    "seen": 1795101663.6684823,
+    "ast_hash": "68cd3f4c2559d3d812e215c3d934f0a7",
     "semantic_hash": ""
   },
   "tests/db/auth.test.ts": {
@@ -738,21 +738,21 @@
     "semantic_hash": ""
   },
   "tests/db/tenancy.test.ts": {
-    "mtime": 1795085769.9946432,
-    "seen": 1795086440.9747694,
-    "ast_hash": "27cd0df8f602d750151a3c2b85b0b634",
+    "mtime": 1795100892.5418942,
+    "seen": 1795101663.6689892,
+    "ast_hash": "bb71ce0c9078cd5a05c70353f5a18165",
     "semantic_hash": ""
   },
   "tests/e2e/attendance.spec.ts": {
-    "mtime": 1795085760.1762176,
-    "seen": 1795086440.9747758,
-    "ast_hash": "ffa3b52b4cd3eba19bc77a023d6a9944",
+    "mtime": 1795101307.6877635,
+    "seen": 1795101663.6689956,
+    "ast_hash": "358580bf2ffb31b66849c60cd4d3a370",
     "semantic_hash": ""
   },
   "tests/e2e/auth.spec.ts": {
-    "mtime": 1795085801.378626,
-    "seen": 1795086440.9747787,
-    "ast_hash": "a7d05796503d3ba274315dcab217862c",
+    "mtime": 1795101075.6751714,
+    "seen": 1795101663.6689982,
+    "ast_hash": "8dbc446ef1fddbf1638fd8a939457723",
     "semantic_hash": ""
   },
   "tests/e2e/gestion.spec.ts": {
@@ -1086,9 +1086,9 @@
     "semantic_hash": ""
   },
   "tests/e2e/platform.spec.ts": {
-    "mtime": 1795085760.178951,
-    "seen": 1795086440.9748018,
-    "ast_hash": "796a9e7970e3a62a9b84c32a279de238",
+    "mtime": 1795101621.338939,
+    "seen": 1795101663.6692603,
+    "ast_hash": "6695816f51ad104cda66568f5a164eac",
     "semantic_hash": ""
   },
   "docs/MANUAL_INSTALACION.md": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "docs/SEGURIDAD.md": {
-    "mtime": 1795086435.8736985,
-    "seen": 1795086440.9755845,
-    "ast_hash": "9301ba72413e59fb4f731e7b9a8271ad",
+    "mtime": 1795101658.0892303,
+    "seen": 1795101663.6703637,
+    "ast_hash": "b31d5ffd4d815b8cecf8601128bae2bc",
     "semantic_hash": ""
   },
   "docs/img/celular-app-oscuro.jpg": {
@@ -1260,9 +1260,9 @@
     "semantic_hash": ""
   },
   "scripts/sql-produccion.py": {
-    "mtime": 1795086426.5555022,
-    "seen": 1795086440.9678438,
-    "ast_hash": "11706e649c45aacc6544f584bfa3e43e",
+    "mtime": 1795100748.2064722,
+    "seen": 1795101663.6607842,
+    "ast_hash": "70b4ba779446b1251c7e1603d6c56bef",
     "semantic_hash": ""
   },
   "src/app/(auth)/registro/page.tsx": {
@@ -1758,39 +1758,51 @@
     "semantic_hash": ""
   },
   "src/app/(auth)/activar/activate-form.tsx": {
-    "mtime": 1795085572.4451604,
-    "seen": 1795086440.96785,
-    "ast_hash": "427e89b71ba83ecf9bb732926cbdb6c4",
+    "mtime": 1795100831.2375188,
+    "seen": 1795101663.660793,
+    "ast_hash": "862bf47127b0c2d17346c42cacc72711",
     "semantic_hash": ""
   },
   "src/app/(auth)/activar/page.tsx": {
-    "mtime": 1795085572.444989,
-    "seen": 1795086440.9678524,
-    "ast_hash": "6a29cc26dfb276b9c876bee927392813",
+    "mtime": 1795100831.239484,
+    "seen": 1795101663.6607966,
+    "ast_hash": "b20511f72b330f1ff9b26d2be2380d47",
     "semantic_hash": ""
   },
   "src/app/(auth)/ingresar/passkey-login.tsx": {
-    "mtime": 1795085562.2331598,
-    "seen": 1795086440.9680119,
-    "ast_hash": "ff85c681fa8500bad224b6545489470c",
+    "mtime": 1795100831.2548847,
+    "seen": 1795101663.660956,
+    "ast_hash": "c4095f37d1a1c98659f79b1a166ace99",
     "semantic_hash": ""
   },
   "src/components/admin/activation-code.tsx": {
-    "mtime": 1795085529.9211578,
-    "seen": 1795086440.970984,
-    "ast_hash": "4bb767d92565c7cc52f4ecc742c691e5",
+    "mtime": 1795100831.2326565,
+    "seen": 1795101663.6644943,
+    "ast_hash": "97ffc9986f560165ae7220538c38aaf3",
     "semantic_hash": ""
   },
   "src/server/activation.ts": {
-    "mtime": 1795085512.969157,
-    "seen": 1795086440.973239,
-    "ast_hash": "5b3bee28f17d9fdd250a8d0ee3e1ff9f",
+    "mtime": 1795100831.2555556,
+    "seen": 1795101663.6673217,
+    "ast_hash": "3f79dcd25a9981ad4db690f43fc7189d",
     "semantic_hash": ""
   },
   "tests/e2e/activation.spec.ts": {
-    "mtime": 1795086148.4201255,
-    "seen": 1795086440.9747727,
-    "ast_hash": "29e1aba3e582f3608a3702134c1e46fd",
+    "mtime": 1795101075.6557457,
+    "seen": 1795101663.6689925,
+    "ast_hash": "09a469d2389dda648cdfca895ccb6e74",
+    "semantic_hash": ""
+  },
+  "docs/propuestas/propuesta-camara-comercio.html": {
+    "mtime": 1795094818.2040932,
+    "seen": 1795101663.6703677,
+    "ast_hash": "3d9374a18d5aad98d5f5218e30d80d8c",
+    "semantic_hash": ""
+  },
+  "docs/propuestas/Propuesta-Nexora-Camara-de-Comercio.pdf": {
+    "mtime": 1795094818.9545364,
+    "seen": 1795101663.6703706,
+    "ast_hash": "74840bff361ffdc3ed8229b72268be61",
     "semantic_hash": ""
   },
   "package-lock.json": {

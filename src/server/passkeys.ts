@@ -10,7 +10,7 @@ import {
 import { db } from "@/lib/db";
 import { audit } from "@/server/audit";
 import { requireEmployee } from "@/server/authz";
-import { addRelinkedWindow, findBinding, relinkableBinding } from "@/server/devices";
+import { addRelinkedWindow, findBinding, RELINK_SUFFIX, relinkableBinding } from "@/server/devices";
 import { AppError } from "@/server/errors";
 import type { Actor } from "@/server/sessions";
 
@@ -48,7 +48,9 @@ async function activeBinding(actor: Actor, deviceToken: string | undefined) {
 
 export async function passkeyRegistrationOptions(actor: Actor, deviceToken: string | undefined, rp: RelyingParty) {
   const binding = await activeBinding(actor, deviceToken);
-  const existing = await db.passkeyCredential.findMany({ where: { userId: actor.userId }, select: { credentialId: true, transports: true } });
+  // Solo se excluyen las de este acceso: en un celular nuevo (o una ventana que entró con el
+  // código) se puede registrar la huella aunque el empleado tenga otra en otro celular.
+  const existing = await db.passkeyCredential.findMany({ where: { userId: actor.userId, deviceBindingId: binding.id }, select: { credentialId: true, transports: true } });
   const options = await generateRegistrationOptions({
     rpName: "Nexora",
     rpID: rp.rpID,
@@ -96,14 +98,19 @@ export async function registerPasskey(actor: Actor, deviceToken: string | undefi
 }
 
 /**
- * Passkeys del celular activo del empleado. Si hay alguna, marcar exige usarla,
- * también desde las otras ventanas del mismo celular reconocidas con la huella
- * (Safari, el ícono, la ventana de la cámara), que son vínculos aparte.
+ * Passkeys que valen para este acceso. Cada celular usa la suya; las ventanas
+ * del MISMO celular reconocidas con la huella (Safari, el ícono, la ventana de
+ * la cámara: etiqueta «reconocido con huella») usan las de los celulares
+ * activos del empleado, porque la huella ya probó que es el mismo aparato.
+ * Así un celular nuevo no queda pidiendo la huella del celular anterior.
  */
 export async function passkeysForBinding(userId: string, bindingId: string) {
-  const b = await db.deviceBinding.findUnique({ where: { id: bindingId }, select: { employeeId: true, status: true } });
+  const b = await db.deviceBinding.findUnique({ where: { id: bindingId }, select: { employeeId: true, status: true, label: true } });
   if (!b || b.status !== "ACTIVE") return [];
-  return db.passkeyCredential.findMany({ where: { userId, deviceBinding: { employeeId: b.employeeId, status: "ACTIVE" } } });
+  if (b.label.endsWith(RELINK_SUFFIX)) {
+    return db.passkeyCredential.findMany({ where: { userId, deviceBinding: { employeeId: b.employeeId, status: "ACTIVE" } } });
+  }
+  return db.passkeyCredential.findMany({ where: { userId, deviceBindingId: bindingId } });
 }
 
 export async function passkeyAuthenticationOptions(actor: Actor, bindingId: string, rp: RelyingParty) {

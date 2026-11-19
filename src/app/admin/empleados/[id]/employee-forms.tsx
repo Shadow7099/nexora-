@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { KeyRound, ScanFace, Smartphone, UserCheck, UserX } from "lucide-react";
-import { addContractAction, regenerateAccessCodeAction, requirePasskeyAction, resetPasswordAction, setStatusAction, updateEmployeeAction } from "@/app/admin/actions";
+import { addContractAction, regenerateAccessCodeAction, requirePasskeyAction, setStatusAction, updateEmployeeAction } from "@/app/admin/actions";
 import { ContractFields, EmployeeFields } from "@/components/admin/employee-fields";
 import { ActivationCode } from "@/components/admin/activation-code";
 import { TempPassword } from "@/components/admin/temp-password";
@@ -50,25 +50,6 @@ export function StatusButton({ id, active }: { id: string; active: boolean }) {
         {active ? <UserX /> : <UserCheck />} {active ? "Desactivar" : "Reactivar"}
       </SubmitButton>
       <FormAlert message={state?.message} tone={state?.ok ? "success" : "danger"} />
-    </form>
-  );
-}
-
-export function ResetPasswordButton({ id }: { id: string }) {
-  const [state, action] = useActionState(resetPasswordAction.bind(null, id), null);
-  return (
-    <form
-      action={action}
-      onSubmit={(e) => {
-        if (!confirm("¿Restablecer la contraseña? Se cerrarán sus sesiones y deberá crear una nueva al ingresar.")) e.preventDefault();
-      }}
-      className="grid gap-3"
-    >
-      <SubmitButton variant="secondary">
-        <KeyRound /> Restablecer contraseña
-      </SubmitButton>
-      {state?.data?.password && <TempPassword password={state.data.password} />}
-      {state?.ok === false && <FormAlert message={state.message} />}
     </form>
   );
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { updateCompanySettings } from "@/server/company";
 import { requireActor } from "@/server/current";
-import { addContractVersion, createEmployee, resetEmployeePassword, setEmployeeStatus, updateEmployee } from "@/server/employees";
+import { addContractVersion, createEmployee, setEmployeeStatus, updateEmployee } from "@/server/employees";
 import { toActionState, type ActionState } from "@/server/errors";
 
 const admin = () => requireActor({ roles: ["COMPANY_ADMIN"] });
@@ -46,15 +46,6 @@ export async function setStatusAction(id: string, status: "ACTIVE" | "INACTIVE",
     revalidatePath(`/admin/empleados/${id}`);
     revalidatePath("/admin/empleados");
     return { ok: true, message: status === "ACTIVE" ? "Empleado reactivado." : "Empleado desactivado. Se cerraron sus sesiones." };
-  } catch (e) {
-    return toActionState(e);
-  }
-}
-
-export async function resetPasswordAction(id: string, _: ActionState): Promise<ActionState> {
-  try {
-    const password = await resetEmployeePassword(await admin(), id);
-    return { ok: true, data: { password } };
   } catch (e) {
     return toActionState(e);
   }

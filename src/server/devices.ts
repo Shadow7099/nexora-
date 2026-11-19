@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import * as z from "zod";
 import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { audit } from "@/server/audit";
 import { requireCompanyAdmin, requireEmployee } from "@/server/authz";
 import { AppError, notFound } from "@/server/errors";
@@ -63,8 +64,6 @@ export async function setPasskeyExemption(actor: Actor, id: string, allow: boole
 
 /** Marca de las ventanas del MISMO celular reconocidas con la huella (Safari, el ícono, la ventana de la cámara…). */
 export const RELINK_SUFFIX = " · reconocido con huella";
-/** Ventanas reconocidas que se mantienen a la vez; las más antiguas se revocan. */
-export const MAX_RELINKED_WINDOWS = 4;
 
 /**
  * Reconoce ESTE navegador como el mismo celular, después de verificar la
@@ -86,30 +85,44 @@ export async function addRelinkedWindow(actor: Actor, sourceBindingId: string, u
         userAgent: userAgent?.slice(0, 300), status: "ACTIVE", activatedAt: now, lastSeenAt: now,
       },
     });
-    const windows = await tx.deviceBinding.findMany({
-      where: { employeeId, status: "ACTIVE", label: { endsWith: RELINK_SUFFIX } },
-      orderBy: [{ lastSeenAt: { sort: "desc", nulls: "last" } }, { activatedAt: "desc" }],
-      select: { id: true },
-    });
-    const old = windows.slice(MAX_RELINKED_WINDOWS).map((w) => w.id);
-    if (old.length) {
-      await tx.deviceBinding.updateMany({ where: { id: { in: old } }, data: { status: "REVOKED", revokedAt: now, revokeReason: "Ventana reconocida más antigua" } });
-    }
-    await audit({ companyId, actorUserId: actor.userId, action: "device.relink", entityType: "device", entityId: b.id, after: { method: "passkey", source: source.id, label: b.label, retired: old.length } }, tx);
+    const retired = await retireOldBindings(tx, employeeId);
+    await audit({ companyId, actorUserId: actor.userId, action: "device.relink", entityType: "device", entityId: b.id, after: { method: "passkey", source: source.id, label: b.label, retired } }, tx);
   });
   return token;
 }
 
+/** Accesos (celular o ventana) activos a la vez por empleado; los más viejos se retiran solos. */
+export const MAX_ACTIVE_BINDINGS = 4;
+
 /**
- * Vincula el celular actual. El primer celular de un empleado queda activo de
- * inmediato; un celular adicional queda pendiente hasta que el administrador lo
- * apruebe (así, robar la contraseña no basta para marcar desde otro equipo).
+ * Deja activos solo los accesos más recientes del empleado. Así un celular
+ * nuevo desplaza al viejo sin aprobación, pero Safari, el ícono y la cámara del
+ * MISMO iPhone (que guardan cookies por separado) no se anulan entre sí.
+ * Se retira el acceso usado hace más tiempo.
+ */
+export async function retireOldBindings(tx: Prisma.TransactionClient, employeeId: string, reason = "Reemplazado por un acceso más reciente") {
+  // Los accesos con huella o Face ID registrada no se retiran solos: la passkey
+  // queda atada a ese acceso y retirarlo la dejaría inservible. Usarlos exige
+  // la huella del dueño; «Cambiar código» sí los retira.
+  const active = await tx.deviceBinding.findMany({
+    where: { employeeId, status: "ACTIVE", passkeys: { none: {} } },
+    orderBy: [{ lastSeenAt: { sort: "desc", nulls: "last" } }, { activatedAt: "desc" }],
+    select: { id: true },
+  });
+  const old = active.slice(MAX_ACTIVE_BINDINGS).map((b) => b.id);
+  if (old.length) await tx.deviceBinding.updateMany({ where: { id: { in: old } }, data: { status: "REVOKED", revokedAt: new Date(), revokeReason: reason } });
+  return old.length;
+}
+
+/**
+ * Vincula el navegador actual. La sesión ya prueba que es el empleado (entró
+ * con su código o su Face ID), así que queda activo de inmediato, sin
+ * aprobación del administrador.
  */
 export async function bindDevice(actor: Actor, userAgent?: string | null) {
   const { companyId, employeeId } = requireEmployee(actor);
-  const hasActive = (await db.deviceBinding.count({ where: { employeeId, status: "ACTIVE" } })) > 0;
   const token = randomBytes(32).toString("base64url");
-  const status = hasActive ? "PENDING" : "ACTIVE";
+  const status = "ACTIVE" as const;
   const binding = await db.$transaction(async (tx) => {
     const b = await tx.deviceBinding.create({
       data: {
@@ -119,11 +132,13 @@ export async function bindDevice(actor: Actor, userAgent?: string | null) {
         label: deviceLabel(userAgent),
         userAgent: userAgent?.slice(0, 300),
         status,
-        activatedAt: status === "ACTIVE" ? new Date() : null,
+        activatedAt: new Date(),
+        lastSeenAt: new Date(),
       },
     });
+    await retireOldBindings(tx, employeeId);
     await audit(
-      { companyId, actorUserId: actor.userId, action: status === "ACTIVE" ? "device.bind" : "device.request", entityType: "device", entityId: b.id, after: { label: b.label } },
+      { companyId, actorUserId: actor.userId, action: "device.bind", entityType: "device", entityId: b.id, after: { label: b.label } },
       tx,
     );
     return b;

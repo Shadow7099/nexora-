@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { audit } from "@/server/audit";
 import { requireCompanyAdmin } from "@/server/authz";
-import { deviceLabel, hashDeviceToken, RELINK_SUFFIX, MAX_RELINKED_WINDOWS } from "@/server/devices";
+import { deviceLabel, hashDeviceToken, RELINK_SUFFIX, retireOldBindings } from "@/server/devices";
 import { AppError, notFound } from "@/server/errors";
 import { decryptSecret, encryptSecret } from "@/lib/secrets";
 import type { RelyingParty } from "@/server/passkeys";
@@ -18,8 +18,9 @@ import { createSession, hashIp, IP_WINDOW_MINUTES, MAX_FAILED_PER_IP, revokeUser
 /**
  * Entrada del empleado SIN correo ni contraseña:
  *  - Cada empleado tiene un código de acceso PERMANENTE (10 caracteres). Con él
- *    entra desde /ingresar o /activar. Si lo usa en otro celular, ese celular
- *    reemplaza al anterior (y las sesiones viejas se cierran).
+ *    entra desde /ingresar. Ese celular queda activo de inmediato; se mantienen
+ *    los accesos más recientes y los más viejos se retiran solos (un celular
+ *    nuevo desplaza al anterior sin aprobación del administrador).
  *  - El administrador lo ve cuando quiera (se guarda cifrado) y puede cambiarlo.
  *  - Face ID o huella: el administrador decide por empleado si se exige para
  *    marcar; si no, el empleado puede activarla por su cuenta.
@@ -139,23 +140,17 @@ export async function loginWithCode(
   if (!known) {
     deviceToken = randomBytes(32).toString("base64url");
     const t = deviceToken;
-    const replaced = await db.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
       const now = new Date();
-      const retired = await tx.deviceBinding.updateMany({
-        where: { employeeId: e.id, status: { in: ["ACTIVE", "PENDING"] } },
-        data: { status: "REVOKED", revokedAt: now, revokeReason: "Reemplazado al entrar con el código en otro celular" },
-      });
       const b = await tx.deviceBinding.create({
         data: {
           companyId: e.companyId, employeeId: e.id, tokenHash: hashDeviceToken(t), label: deviceLabel(userAgent),
           userAgent: userAgent?.slice(0, 300), status: "ACTIVE", activatedAt: now, lastSeenAt: now,
         },
       });
-      await audit({ companyId: e.companyId, actorUserId: e.userId, action: "device.bind", entityType: "device", entityId: b.id, after: { method: "access_code", label: b.label, replaced: retired.count }, userAgent }, tx);
-      return retired.count;
+      const retired = await retireOldBindings(tx, e.id);
+      await audit({ companyId: e.companyId, actorUserId: e.userId, action: "device.bind", entityType: "device", entityId: b.id, after: { method: "access_code", label: b.label, retired }, userAgent }, tx);
     });
-    // El celular anterior pierde la sesión.
-    if (replaced > 0) await revokeUserSessions(e.userId);
   }
   await db.user.update({ where: { id: e.userId }, data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date(), mustChangePassword: false } });
   const s = await createSession(e.userId, "EMPLOYEE", userAgent);
@@ -255,15 +250,7 @@ export async function passkeyLogin(
           status: "ACTIVE", activatedAt: now, lastSeenAt: now,
         },
       });
-      const windows = await tx.deviceBinding.findMany({
-        where: { employeeId: employee.id, status: "ACTIVE", label: { endsWith: RELINK_SUFFIX } },
-        orderBy: [{ lastSeenAt: { sort: "desc", nulls: "last" } }, { activatedAt: "desc" }],
-        select: { id: true },
-      });
-      const old = windows.slice(MAX_RELINKED_WINDOWS).map((w) => w.id);
-      if (old.length) {
-        await tx.deviceBinding.updateMany({ where: { id: { in: old } }, data: { status: "REVOKED", revokedAt: now, revokeReason: "Ventana reconocida más antigua" } });
-      }
+      await retireOldBindings(tx, employee.id);
       await audit({ companyId: employee.companyId, actorUserId: u.id, action: "device.relink", entityType: "device", entityId: b.id, after: { method: "passkey_login", source: binding.id } }, tx);
     });
   }

@@ -3,12 +3,12 @@
  * - un empleado no puede consultar información ajena;
  * - un administrador de una empresa no puede acceder a otra.
  */
-import { getAccessCode, loginWithCode, regenerateAccessCode } from "@/server/activation";
+import { getAccessCode, loginWithCode, regenerateAccessCode, setRequirePasskey } from "@/server/activation";
 import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { getCompanySettings, listCompanies, updateCompanySettings } from "@/server/company";
 import {
-  addContractVersion, createEmployee, getEmployee, listEmployees, resetEmployeePassword, setEmployeeStatus, updateEmployee,
+  addContractVersion, createEmployee, getEmployee, listEmployees, setEmployeeStatus, updateEmployee,
 } from "@/server/employees";
 import { adminOverview, employeeHome } from "@/server/overview";
 import { AppError } from "@/server/errors";
@@ -41,7 +41,10 @@ describe("aislamiento entre empresas", () => {
     expect(await code(getEmployee(actor, b.employee.id))).toBe("NOT_FOUND");
     expect(await code(updateEmployee(actor, b.employee.id, newEmployeeInput(a.site.id)))).toBe("NOT_FOUND");
     expect(await code(setEmployeeStatus(actor, b.employee.id, "INACTIVE"))).toBe("NOT_FOUND");
-    expect(await code(resetEmployeePassword(actor, b.employee.id))).toBe("NOT_FOUND");
+    // El código de acceso y la exigencia de Face ID de otra empresa: ni se ven ni se cambian.
+    expect(await code(getAccessCode(actor, b.employee.id))).toBe("NOT_FOUND");
+    expect(await code(regenerateAccessCode(actor, b.employee.id))).toBe("NOT_FOUND");
+    expect(await code(setRequirePasskey(actor, b.employee.id, true))).toBe("NOT_FOUND");
     expect(await code(addContractVersion(actor, b.employee.id, newEmployeeInput(a.site.id, { startDate: "2026-12-01" })))).toBe("NOT_FOUND");
     const untouched = await db.employee.findUniqueOrThrow({ where: { id: b.employee.id }, include: { user: true } });
     expect(untouched.status).toBe("ACTIVE");
@@ -125,10 +128,12 @@ describe("gestión de empleados", () => {
     // Mismo celular: no crea otro vínculo.
     const again = await loginWithCode(r.accessCode, token1, "ua", "10.0.0.1");
     expect(again.ok && again.deviceToken).toBe(null);
-    // Otro celular: lo reemplaza sin aprobación.
+    // Otro celular: queda activo sin aprobación (Safari y el ícono del mismo iPhone también cuentan como accesos).
     expect((await loginWithCode(r.accessCode, undefined, "ua2", "10.0.0.1")).ok).toBe(true);
-    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(1);
-    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "REVOKED" } })).toBe(1);
+    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(2);
+    // Con más de 4 accesos, los usados hace más tiempo se retiran solos.
+    for (let i = 0; i < 4; i++) await loginWithCode(r.accessCode, undefined, `ua-extra-${i}`, "10.0.0.1");
+    expect(await db.deviceBinding.count({ where: { employeeId: r.employeeId, status: "ACTIVE" } })).toBe(4);
     // Cambiar el código: el anterior deja de servir.
     const code2 = await regenerateAccessCode(actor, r.employeeId);
     expect(code2).not.toBe(r.accessCode);
@@ -171,13 +176,13 @@ describe("gestión de empleados", () => {
     expect(await code(addContractVersion(actor, a.employee.id, newEmployeeInput(a.site.id, { startDate: "2026-10-15" })))).toBe("VALIDATION");
   });
 
-  it("resetear la clave cierra sesiones y obliga a cambiarla", async () => {
+  it("cambiar el código cierra las sesiones del empleado y retira sus celulares", async () => {
     const a = await makeCompany("eF");
     const { actor } = await login(a.admin.email);
     const emp = await login(a.empUser.email);
-    const temp = await resetEmployeePassword(actor, a.employee.id);
+    await regenerateAccessCode(actor, a.employee.id);
     const { validateSessionToken } = await import("@/server/sessions");
     expect(await validateSessionToken(emp.token)).toBeNull();
-    expect((await login(a.empUser.email, temp)).actor.mustChangePassword).toBe(true);
+    expect(await db.deviceBinding.count({ where: { employeeId: a.employee.id, status: "ACTIVE" } })).toBe(0);
   });
 });

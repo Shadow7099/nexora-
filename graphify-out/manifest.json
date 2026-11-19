@@ -126,9 +126,9 @@
     "semantic_hash": "57f78244ecd7c05cc944cc2f2494cba5"
   },
   "src/app/admin/actions.ts": {
-    "mtime": 1795100810.8215184,
-    "seen": 1795101663.6612136,
-    "ast_hash": "b00975d66219ea801a08463cc8a1ec9b",
+    "mtime": 1795108612.6870337,
+    "seen": 1795109630.3813558,
+    "ast_hash": "e23e99af0cbdc64a31d2f25143d33a3a",
     "semantic_hash": ""
   },
   "src/app/admin/asistencia/page.tsx": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "src/app/admin/empleados/[id]/employee-forms.tsx": {
-    "mtime": 1795101307.709079,
-    "seen": 1795101663.6618192,
-    "ast_hash": "a6f2370ae15506830b0a33fca44e11c4",
+    "mtime": 1795108612.6875687,
+    "seen": 1795109630.3816874,
+    "ast_hash": "1ac7c549d2bea7c510b293978eafc4dd",
     "semantic_hash": ""
   },
   "src/app/admin/empleados/[id]/page.tsx": {
@@ -426,9 +426,9 @@
     "semantic_hash": "c61188e30ff8ef2a0fadb0c69662bff5"
   },
   "src/components/employee/punch-panel.tsx": {
-    "mtime": 1794511445.0114152,
-    "seen": 1795085345.2741673,
-    "ast_hash": "eea6c4c6f3a0f14f3c0f51809fc203cd",
+    "mtime": 1795108612.687941,
+    "seen": 1795109630.3839085,
+    "ast_hash": "7c8603d65b45fcb4126f2dac90d4a262",
     "semantic_hash": ""
   },
   "src/components/employee/request-forms.tsx": {
@@ -642,15 +642,15 @@
     "semantic_hash": ""
   },
   "src/server/devices.ts": {
-    "mtime": 1794510662.626502,
-    "seen": 1795085345.2743332,
-    "ast_hash": "a261a725b9168712bcbb68920a52a295",
+    "mtime": 1795108757.2950597,
+    "seen": 1795109630.385005,
+    "ast_hash": "75fc9ecbf78429d4028486c0893929cf",
     "semantic_hash": ""
   },
   "src/server/employees.ts": {
-    "mtime": 1795100777.1026595,
-    "seen": 1795101663.6677427,
-    "ast_hash": "8a1f35de954d49a17f8688c65535a3dd",
+    "mtime": 1795108612.6865122,
+    "seen": 1795109630.3850064,
+    "ast_hash": "0905949c4a78c7fe7d555e1c9a22682e",
     "semantic_hash": ""
   },
   "src/server/errors.ts": {
@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "src/server/passkeys.ts": {
-    "mtime": 1795085520.9010212,
-    "seen": 1795086440.9739335,
-    "ast_hash": "071672f09a4a9832acf4cf82103807fc",
+    "mtime": 1795109290.705331,
+    "seen": 1795109630.3852127,
+    "ast_hash": "6c2eb54cbe37ebf519bbb46b2671e12e",
     "semantic_hash": ""
   },
   "src/server/schedule-data.ts": {
@@ -714,9 +714,9 @@
     "semantic_hash": "2d5e8ef363f804d5690d449f03d40762"
   },
   "tests/db/attendance.test.ts": {
-    "mtime": 1795100963.8167806,
-    "seen": 1795101663.6684823,
-    "ast_hash": "68cd3f4c2559d3d812e215c3d934f0a7",
+    "mtime": 1795108757.2957315,
+    "seen": 1795109630.3854032,
+    "ast_hash": "ec61f81a400a25e3286ebd940654dddd",
     "semantic_hash": ""
   },
   "tests/db/auth.test.ts": {
@@ -738,15 +738,15 @@
     "semantic_hash": ""
   },
   "tests/db/tenancy.test.ts": {
-    "mtime": 1795100892.5418942,
-    "seen": 1795101663.6689892,
-    "ast_hash": "bb71ce0c9078cd5a05c70353f5a18165",
+    "mtime": 1795108757.2961693,
+    "seen": 1795109630.3857,
+    "ast_hash": "8c52b7caeb30cc657106326c82a30979",
     "semantic_hash": ""
   },
   "tests/e2e/attendance.spec.ts": {
-    "mtime": 1795101307.6877635,
-    "seen": 1795101663.6689956,
-    "ast_hash": "358580bf2ffb31b66849c60cd4d3a370",
+    "mtime": 1795109341.081456,
+    "seen": 1795109630.3857036,
+    "ast_hash": "9c2102064920d701bb7a0a18ae2146d5",
     "semantic_hash": ""
   },
   "tests/e2e/auth.spec.ts": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "docs/MANUAL_USUARIO.md": {
-    "mtime": 1795010025.960388,
-    "seen": 1795085345.2745278,
-    "ast_hash": "59d80c11d2dfb81ea4761a36fe659f8e",
+    "mtime": 1795108826.2048712,
+    "seen": 1795109630.386417,
+    "ast_hash": "3f5366919d2587ebd3e84fe0c4515163",
     "semantic_hash": ""
   },
   "docs/PRUEBAS.md": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "docs/SEGURIDAD.md": {
-    "mtime": 1795101658.0892303,
-    "seen": 1795101663.6703637,
-    "ast_hash": "b31d5ffd4d815b8cecf8601128bae2bc",
+    "mtime": 1795109626.8862636,
+    "seen": 1795109630.386488,
+    "ast_hash": "178dfc1b045b42b32c090216b1539b75",
     "semantic_hash": ""
   },
   "docs/img/celular-app-oscuro.jpg": {
@@ -1524,9 +1524,9 @@
     "semantic_hash": ""
   },
   "src/lib/chat-knowledge.ts": {
-    "mtime": 1794510865.846147,
-    "seen": 1795085345.2742205,
-    "ast_hash": "63854bd20620582ed6c623f8237e659b",
+    "mtime": 1795108826.2051733,
+    "seen": 1795109630.38441,
+    "ast_hash": "7ab3a901d928a155cb7a10482093d40e",
     "semantic_hash": ""
   },
   "src/lib/chat-match.ts": {
@@ -1782,15 +1782,15 @@
     "semantic_hash": ""
   },
   "src/server/activation.ts": {
-    "mtime": 1795100831.2555556,
-    "seen": 1795101663.6673217,
-    "ast_hash": "3f79dcd25a9981ad4db690f43fc7189d",
+    "mtime": 1795108592.721573,
+    "seen": 1795109630.3847852,
+    "ast_hash": "7aabe70973869016b0e222d988d9f84c",
     "semantic_hash": ""
   },
   "tests/e2e/activation.spec.ts": {
-    "mtime": 1795101075.6557457,
-    "seen": 1795101663.6689925,
-    "ast_hash": "09a469d2389dda648cdfca895ccb6e74",
+    "mtime": 1795108834.3456492,
+    "seen": 1795109630.3857021,
+    "ast_hash": "67e12217e7f5810c1f2de4baa05777d4",
     "semantic_hash": ""
   },
   "docs/propuestas/propuesta-camara-comercio.html": {

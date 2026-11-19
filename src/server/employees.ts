@@ -272,15 +272,3 @@ export async function setEmployeeStatus(actor: Actor, id: string, status: "ACTIV
   if (status === "INACTIVE") await revokeUserSessions(employee.userId);
 }
 
-export async function resetEmployeePassword(actor: Actor, id: string) {
-  const companyId = requireCompanyAdmin(actor);
-  const employee = await getEmployee(actor, id);
-  const password = temporaryPassword();
-  await db.user.update({
-    where: { id: employee.userId },
-    data: { passwordHash: await hashPassword(password), mustChangePassword: true, failedLogins: 0, lockedUntil: null },
-  });
-  await revokeUserSessions(employee.userId);
-  await audit({ companyId, actorUserId: actor.userId, action: "employee.password_reset", entityType: "employee", entityId: employee.id });
-  return password;
-}

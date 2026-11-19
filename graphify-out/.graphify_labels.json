@@ -1,5 +1,4 @@
 {
-  "4": "localDate",
   "8": "lib/payroll.ts",
   "9": "package.json",
   "10": "dependencies",
@@ -10,7 +9,6 @@
   "22": "apple-icon.tsx",
   "24": "next.config.ts",
   "25": "empty.ts",
-  "27": "holidays.ts",
   "31": "guarantees.test.ts",
   "33": "AGENTS.md",
   "34": "CLAUDE.md",

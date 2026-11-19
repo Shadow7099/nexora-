@@ -68,7 +68,7 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
         <DeviceRelink
           onFallback={
             <Button variant="ghost" loading={binding} onClick={() => startBinding(async () => { await bindDeviceAction(); router.refresh(); })}>
-              Es un celular nuevo (requiere aprobación)
+              Usar este celular
             </Button>
           }
         />
@@ -88,18 +88,18 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
                   Si abriste el QR con la cámara del celular, se abrió una ventana aparte que no recuerda tu celular ya vinculado. Abre Nexora en tu
                   navegador (Safari o Chrome), donde ya ingresaste, y toca <strong className="font-medium text-fg">Marcar entrada</strong>: la cámara se abre ahí mismo.
                 </p>
-                <p className="mt-2 text-sm text-fg-muted">¿Cambiaste de celular? Vincúlalo aquí y tu administrador lo aprueba.</p>
+                <p className="mt-2 text-sm text-fg-muted">¿Cambiaste de celular? Actívalo aquí: queda listo de inmediato.</p>
               </>
             ) : (
               <>
                 <p className="font-medium">Vincula este celular</p>
-                <p className="mt-1 text-sm text-fg-muted">Solo podrás marcar desde tu propio celular, confirmando con tu huella o Face ID. Si es tu primer celular, queda listo de inmediato.</p>
+                <p className="mt-1 text-sm text-fg-muted">Marcarás desde tu propio celular. Queda listo de inmediato.</p>
               </>
             )}
           </div>
         </div>
         <Button size="lg" variant={hasOtherDevice ? "secondary" : "primary"} loading={binding} onClick={() => startBinding(async () => { await bindDeviceAction(); router.refresh(); })}>
-          {hasOtherDevice ? "Vincular como celular nuevo" : "Vincular este celular"}
+          {hasOtherDevice ? "Usar este celular" : "Vincular este celular"}
         </Button>
       </div>
     );
@@ -108,7 +108,20 @@ export function PunchPanel({ publicCode, next, timezone, requireDevice, device, 
     return <Notice icon={Smartphone} title="Celular pendiente de aprobación" text="Tu administrador debe aprobar este celular nuevo. Cuando lo haga, podrás marcar desde aquí." />;
   }
   if (requireDevice && device?.status === "REVOKED") {
-    return <Notice icon={AlertCircle} title="Este celular fue desvinculado" text="Pide ayuda a tu administrador para vincular tu celular de nuevo." />;
+    return (
+      <div className="grid gap-4 rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 size-5 text-warning" aria-hidden />
+          <div>
+            <p className="font-medium">Este celular ya no está activo</p>
+            <p className="mt-1 text-sm text-fg-muted">Entraste desde otro celular más reciente. Si quieres marcar desde este, actívalo de nuevo.</p>
+          </div>
+        </div>
+        <Button size="lg" loading={binding} onClick={() => startBinding(async () => { await bindDeviceAction(); router.refresh(); })}>
+          Usar este celular
+        </Button>
+      </div>
+    );
   }
 
   if (requireDevice && device?.status === "ACTIVE" && needsPasskeySetup) {

@@ -200,40 +200,33 @@ test("con huella activada, la marcación se confirma con passkey", async ({ page
   expect(bindings[1]!.label).toMatch(/reconocido con huella$/);
 });
 
-test("un celular nuevo queda pendiente hasta que el administrador lo aprueba", async ({ browser, page }, info) => {
+test("un celular nuevo queda activo sin aprobación y activa su propia huella o Face ID", async ({ browser, page }, info) => {
   test.setTimeout(60_000);
   const who = PEOPLE[info.project.name as keyof typeof PEOPLE].devices;
-  // Primer celular: queda activo de inmediato.
+  // Primer celular: activo y con su huella.
   await login(page, who);
   await bindThisPhone(page);
 
-  // Segundo celular (otro navegador = otro dispositivo): queda pendiente.
+  // Segundo celular (otro navegador = otro dispositivo, con su propio lector de huella).
   const phone2 = await browser.newContext({ geolocation: CENTRO, permissions: ["geolocation"] });
   const p2 = await phone2.newPage();
+  await addVirtualAuthenticator(phone2, p2);
   await login(p2, who);
   await p2.goto(`/m/${qrCentro}`);
-  // Sin la huella o Face ID del celular anterior, solo puede pedir vincularlo como nuevo.
+  // No tiene la huella del celular anterior: lo usa como celular nuevo, sin pedir aprobación a nadie.
   await expect(p2.getByText("Confirma que es tu celular")).toBeVisible();
-  await p2.getByRole("button", { name: "Es un celular nuevo (requiere aprobación)" }).click();
-  await expect(p2.getByText("Celular pendiente de aprobación")).toBeVisible();
-
-  const adminCtx = await browser.newContext();
-  const admin = await adminCtx.newPage();
-  await login(admin, "admin");
-  await admin.goto("/admin/asistencia");
-  await admin.locator("li", { hasText: new RegExp(`^${who}`, "i") }).getByRole("button", { name: "Aprobar" }).click();
-  await expect(admin.getByText("Celular aprobado.")).toBeVisible();
-
-  // Aprobado el nuevo, activa su propia huella o Face ID y marca; el anterior queda desvinculado.
-  await p2.reload();
+  await p2.getByRole("button", { name: "Usar este celular" }).click();
+  // Se le exige Face ID: lo activa en ESTE celular (no le pide el del anterior) y marca.
   await expect(p2.getByText("Activa tu huella o Face ID para marcar")).toBeVisible();
-  await addVirtualAuthenticator(phone2, p2);
   await p2.getByRole("button", { name: "Activar huella o Face ID" }).click();
   await expect(p2.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
+  await p2.getByRole("button", { name: /Registrar (entrada|salida)/ }).click();
+  await expect(p2.getByText(/(Entrada|Salida) registrada/)).toBeVisible();
+
+  // El celular anterior, con su propia huella, sigue funcionando.
   await page.reload();
-  await expect(page.getByText("Este celular fue desvinculado")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Registrar (entrada|salida)/ })).toBeVisible();
   await phone2.close();
-  await adminCtx.close();
 });
 
 test("desde el inicio del empleado, «Escanea el QR de la sede» abre la cámara, lee el QR y lleva a la marcación", async ({ playwright }, info) => {

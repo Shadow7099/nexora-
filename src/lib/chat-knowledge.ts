@@ -113,7 +113,7 @@ export const INTENTS: Intent[] = [
     key: "login",
     keywords: ["ingresar", "iniciar sesion", "entrar", "olvide", "contrasena", "clave", "login"],
     answer:
-      "Si ya tienes cuenta, ingresa con tu correo y contraseña. ¿Olvidaste la contraseña? Si eres empleado, tu administrador te da una temporal; si eres administrador, escríbenos y te ayudamos.",
+      "Si eres empleado, entras solo con el código que te da tu empresa (sin correo ni contraseña) y, si quieres o tu empresa lo pide, con tu Face ID o huella. Si eres administrador, ingresa con tu correo y contraseña; si la olvidaste, escríbenos y te ayudamos.",
     links: [LOGIN, CONTACT],
   },
 ];

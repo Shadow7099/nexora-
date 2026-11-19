@@ -1,8 +1,8 @@
 /**
  * Empleado sin correo ni contraseña: el administrador lo crea y recibe un código
  * de acceso permanente; el empleado entra solo con ese código. El administrador
- * decide si se le exige Face ID o huella. Un celular nuevo reemplaza al anterior
- * sin aprobaciones. La huella la simula el autenticador virtual de Chrome.
+ * decide si se le exige Face ID o huella. Un celular nuevo queda activo sin
+ * aprobaciones; «Cambiar código» deja fuera a todos. La huella la simula el autenticador virtual de Chrome.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
@@ -98,14 +98,13 @@ test("entrar solo con el código; Face ID según el administrador; celular nuevo
   await p1.getByRole("button", { name: "Entrar con Face ID o huella" }).click();
   await expect(p1).toHaveURL(/\/app$/);
 
-  // 7. Celular nuevo con el mismo código: reemplaza al anterior sin aprobación.
+  // 7. Celular nuevo con el mismo código: queda activo de inmediato, sin aprobación
+  // (y como se le exige Face ID, debe activarlo en ese celular).
   const phone2 = await browser.newContext();
   const p2 = await phone2.newPage();
   await virtualAuthenticator(phone2, p2);
   await codeLogin(p2, code, false);
   await expect(p2.getByText("Activa tu huella o Face ID para marcar")).toBeVisible();
-  await p1.goto("/app");
-  await expect(p1).toHaveURL(/\/ingresar/);
 
   // 8. Cambiar el código: el anterior deja de servir.
   await admin.reload();
@@ -114,8 +113,11 @@ test("entrar solo con el código; Face ID según el administrador; celular nuevo
   await expect(admin.getByText("Código cambiado.")).toBeVisible();
   const code2 = (await admin.getByTestId("access-code").textContent())!.trim();
   expect(code2).not.toBe(code);
-  await p2.goto("/app");
-  await expect(p2).toHaveURL(/\/ingresar/);
+  // Todos sus celulares quedan fuera, también el que tenía Face ID.
+  for (const p of [p1, p2]) {
+    await p.goto("/app");
+    await expect(p).toHaveURL(/\/ingresar/);
+  }
   await p2.getByLabel("Código de empleado").fill(code);
   await p2.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(p2.getByText("Código incorrecto")).toBeVisible();
