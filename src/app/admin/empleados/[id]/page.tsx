@@ -12,7 +12,8 @@ import { isPasskeyExempt, listDevices, NO_PASSKEY_SUFFIX, RELINK_SUFFIX } from "
 import { getEmployee, listSiteOptions } from "@/server/employees";
 import { getAccessCode } from "@/server/activation";
 import { DeviceActions, PasskeyExemption } from "@/components/admin/device-actions";
-import { AppError } from "@/server/errors";
+import { AppError, isMissingTable } from "@/server/errors";
+import { ModulePending } from "@/components/layout/module-pending";
 import { EditEmployeeForm, AccessCodePanel, NewContractForm, PasskeyRequirement, StatusButton } from "./employee-forms";
 
 export const metadata: Metadata = { title: "Empleado" };
@@ -23,14 +24,19 @@ const shortDate = (d: Date) => new Intl.DateTimeFormat("es-CO", { day: "numeric"
 export default async function EmployeePage({ params }: PageProps<"/admin/empleados/[id]">) {
   const actor = await requireActor({ roles: ["COMPANY_ADMIN"] });
   const { id } = await params;
-  let e;
+  let loaded;
+  let pending = false;
   try {
-    e = await getEmployee(actor, id);
+    const e = await getEmployee(actor, id);
+    const [sites, devices, accessCode] = await Promise.all([listSiteOptions(actor), listDevices(actor, e.id), getAccessCode(actor, e.id)]);
+    loaded = { e, sites, devices, accessCode };
   } catch (err) {
     if (err instanceof AppError && err.code === "NOT_FOUND") notFound();
-    throw err;
+    if (!isMissingTable(err)) throw err;
+    pending = true;
   }
-  const [sites, devices, accessCode] = await Promise.all([listSiteOptions(actor), listDevices(actor, e.id), getAccessCode(actor, e.id)]);
+  if (pending || !loaded) return (<><PageHeader title="Empleado" /><ModulePending name="La ficha del empleado (códigos de acceso)" /></>);
+  const { e, sites, devices, accessCode } = loaded;
   // La huella o Face ID es del celular: cuenta para todas sus ventanas activas.
   const groupPasskey = devices.some((d) => d.status === "ACTIVE" && d._count.passkeys > 0);
   const current = e.contracts.find((c) => !c.endDate) ?? e.contracts[0];

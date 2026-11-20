@@ -30,5 +30,7 @@ export function toActionState(e: unknown): ActionState {
 
 /** La tabla aún no existe (migración pendiente en esta base): la pantalla lo explica en vez de fallar. */
 export function isMissingTable(e: unknown) {
-  return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2021";
+  // P2021: falta una tabla; P2022: falta una columna (el SQL de producción aún no se ejecutó).
+  const code = typeof e === "object" && e !== null ? (e as { code?: string }).code : undefined;
+  return code === "P2021" || code === "P2022";
 }
