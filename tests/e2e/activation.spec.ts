@@ -5,6 +5,19 @@
  * aprobaciones; «Cambiar código» deja fuera a todos. La huella la simula el autenticador virtual de Chrome.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { Client } from "pg";
+
+const E2E_DB = process.env.E2E_DATABASE_URL ?? "postgresql://nexora:nexora@localhost:5432/nexora_e2e_test";
+async function siteCoords(name: string) {
+  const c = new Client({ connectionString: E2E_DB });
+  await c.connect();
+  try {
+    const r = await c.query<{ latitude: string; longitude: string }>("SELECT latitude, longitude FROM site WHERE name = $1 LIMIT 1", [name]);
+    return { latitude: Number(r.rows[0]!.latitude), longitude: Number(r.rows[0]!.longitude), accuracy: 10 };
+  } finally {
+    await c.end();
+  }
+}
 
 const DEMO_PASSWORD = "Nexora-Demo-2026";
 
@@ -63,8 +76,8 @@ test("entrar solo con el código; Face ID según el administrador; celular nuevo
   expect(code).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
   await expect(admin.getByRole("link", { name: "Enviar por WhatsApp" })).toHaveAttribute("href", /wa\.me/);
 
-  // 2. Código equivocado: no entra.
-  const phone1 = await browser.newContext();
+  // 2. Código equivocado: no entra. (El celular está en la sede: la ubicación se simula.)
+  const phone1 = await browser.newContext({ geolocation: await siteCoords("Acacías"), permissions: ["geolocation"] });
   const p1 = await phone1.newPage();
   await virtualAuthenticator(phone1, p1);
   await p1.goto("/ingresar");
@@ -72,10 +85,12 @@ test("entrar solo con el código; Face ID según el administrador; celular nuevo
   await p1.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(p1.getByText("Código incorrecto")).toBeVisible();
 
-  // 3. Con su código entra de una vez; Face ID es opcional (se le ofrece, no se le exige).
+  // 3. Con su código entra de una vez y marca con su ubicación: no se le pide cara ni huella.
   await codeLogin(p1, code.toLowerCase());
-  await expect(p1.getByText("Protege tus marcaciones con tu huella o Face ID")).toBeVisible();
   await expect(p1.getByText("Activa tu huella o Face ID para marcar")).toHaveCount(0);
+  await expect(p1.getByText("Protege tus marcaciones con tu huella o Face ID")).toHaveCount(0);
+  await p1.getByRole("button", { name: "Registrar entrada" }).click();
+  await expect(p1.getByText("Entrada registrada")).toBeVisible();
 
   // 4. El código es permanente: después de cerrar sesión vuelve a entrar con el mismo.
   await p1.context().clearCookies();

@@ -89,12 +89,15 @@ export async function employeeDeviceContext(actor: Actor, deviceToken: string | 
     openSession(employeeId),
     db.employee.findUniqueOrThrow({ where: { id: employeeId }, select: { firstName: true, requirePasskey: true, company: { select: { requireDeviceBinding: true, timezone: true } } } }),
   ]);
-  const passkeys = binding?.status === "ACTIVE" ? await passkeysForBinding(actor.userId, binding.id) : [];
-  const canRelink = !binding && !!(await relinkableBinding(actor.userId, employeeId));
+  // Huella o Face ID: SOLO si el administrador se la exige a este empleado (y no autorizó el
+  // celular a marcar sin ella). Si no se la exige, marca con su código, su celular y la ubicación.
   const passkeyExempt = binding?.status === "ACTIVE" && isPasskeyExempt(binding.label);
-  // Solo si el administrador se lo exige a ESTE empleado (y no autorizó el celular a marcar sin ella).
-  const needsPasskeySetup = employee.company.requireDeviceBinding && employee.requirePasskey && binding?.status === "ACTIVE" && passkeys.length === 0 && !passkeyExempt;
-  const canAddPasskey = !employee.requirePasskey && binding?.status === "ACTIVE" && passkeys.length === 0;
+  const required = employee.company.requireDeviceBinding && employee.requirePasskey && !passkeyExempt;
+  const passkeys = required && binding?.status === "ACTIVE" ? await passkeysForBinding(actor.userId, binding.id) : [];
+  const canRelink = required && !binding && !!(await relinkableBinding(actor.userId, employeeId));
+  const needsPasskeySetup = required && binding?.status === "ACTIVE" && passkeys.length === 0;
+  // Ofrecer activarla de forma voluntaria: apagado por ahora (se activará más adelante).
+  const canAddPasskey = false;
   // Ya tiene un celular activo pero este navegador no lo recuerda (p. ej. la ventana que abre la cámara del iPhone).
   const hasOtherDevice = !binding && (await db.deviceBinding.count({ where: { employeeId, status: "ACTIVE" } })) > 0;
   const stale = open && Date.now() - open.startAt.getTime() > STALE_SESSION_HOURS * 3600_000;
@@ -233,17 +236,19 @@ export async function punch(
   }
   const activeBinding = binding?.status === "ACTIVE" ? binding : null;
 
-  // 3. Huella o Face ID (passkey): si el empleado la tiene, siempre se usa; si no la tiene,
-  //    solo se exige cuando el administrador se la pide a este empleado (salvo celular autorizado sin ella).
+  // 3. Huella o Face ID (passkey): solo cuando el administrador se la exige a este empleado
+  //    (salvo celular autorizado sin ella). Si no, basta el celular vinculado y la ubicación.
   let verification: "PASSKEY" | "DEVICE_TOKEN" = "DEVICE_TOKEN";
-  if (activeBinding) {
+  const passkeyRequired = !!activeBinding && company.requireDeviceBinding && !isPasskeyExempt(activeBinding.label)
+    && (await db.employee.findUniqueOrThrow({ where: { id: employeeId }, select: { requirePasskey: true } })).requirePasskey;
+  if (activeBinding && passkeyRequired) {
     const hasPasskey = (await passkeysForBinding(actor.userId, activeBinding.id)).length > 0;
     if (hasPasskey) {
       if (!(await verifyPasskeyAssertion(actor, activeBinding.id, ctx.passkeyResponse, ctx.rp))) {
         return logAttempt(actor, "PASSKEY_FAILED", site.id, { bindingId: activeBinding.id }, ctx.userAgent);
       }
       verification = "PASSKEY";
-    } else if (company.requireDeviceBinding && (await db.employee.findUniqueOrThrow({ where: { id: employeeId }, select: { requirePasskey: true } })).requirePasskey && !isPasskeyExempt(activeBinding.label)) {
+    } else {
       await logAttempt(actor, "PASSKEY_FAILED", site.id, { bindingId: activeBinding.id, missing: true }, ctx.userAgent);
       return { ok: false, reason: "PASSKEY_FAILED", message: PASSKEY_MISSING_MESSAGE };
     }

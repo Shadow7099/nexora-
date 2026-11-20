@@ -178,13 +178,15 @@ describe("dispositivo vinculado", () => {
     expect((await s.doPunch({ token: null })).ok).toBe(true);
   });
 
-  it("con passkey activada en el celular, marcar sin ella se rechaza", async () => {
-    const s = await setup("d5");
+  it("con passkey activada y exigida, marcar sin ella se rechaza; si el administrador no la exige, no se pide", async () => {
+    const s = await setup("d5", { passkeyExempt: false });
     const binding = (await listDevices(s.admin.actor))[0]!;
     await db.passkeyCredential.create({
       data: { userId: s.empUser.id, deviceBindingId: binding.id, credentialId: `cred-${randomUUID()}`, publicKey: Buffer.from([1, 2, 3]) },
     });
     expect(await s.doPunch()).toMatchObject({ ok: false, reason: "PASSKEY_FAILED" });
+    await db.employee.update({ where: { id: s.employee.id }, data: { requirePasskey: false } });
+    expect((await s.doPunch()).ok).toBe(true);
   });
 
   it("huella o Face ID obligatoria: sin ella no se marca, salvo que el administrador autorice ese celular", async () => {
@@ -331,10 +333,10 @@ describe("marcar desde la app, sin escanear el QR", () => {
     expect(await fromApp({ token: "otro-navegador", now: plus(11 * 60) })).toMatchObject({ ok: false, reason: "DEVICE_NOT_BOUND" });
   });
 
-  it("si el administrador no exige Face ID a este empleado, marca solo con su celular y se le ofrece activarlo", async () => {
+  it("si el administrador no exige Face ID a este empleado, marca solo con su celular y la ubicación (no se le pide)", async () => {
     const s = await setup("app-opt", { passkeyExempt: false, requirePasskey: false });
     const ctx = await employeeDeviceContext(s.emp.actor, s.device.token);
-    expect(ctx).toMatchObject({ needsPasskeySetup: false, canAddPasskey: true });
+    expect(ctx).toMatchObject({ needsPasskeySetup: false, canAddPasskey: false, passkeyRequired: false });
     expect(await punchFromApp(s.emp.actor, { idempotencyKey: randomUUID(), position: at(10) }, { deviceToken: s.device.token, rp, now: t0 })).toMatchObject({ ok: true, type: "IN" });
   });
 

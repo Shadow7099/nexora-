@@ -606,9 +606,9 @@
     "semantic_hash": ""
   },
   "src/server/attendance.ts": {
-    "mtime": 1795101014.9351537,
-    "seen": 1795101663.667325,
-    "ast_hash": "4394f1f3239de6438f01eeed6979596d",
+    "mtime": 1795194487.1070993,
+    "seen": 1795194889.8122096,
+    "ast_hash": "77b48a3a6cd5bba5b3fdfcf62a3380c0",
     "semantic_hash": ""
   },
   "src/server/audit.ts": {
@@ -714,9 +714,9 @@
     "semantic_hash": "2d5e8ef363f804d5690d449f03d40762"
   },
   "tests/db/attendance.test.ts": {
-    "mtime": 1795108757.2957315,
-    "seen": 1795109630.3854032,
-    "ast_hash": "ec61f81a400a25e3286ebd940654dddd",
+    "mtime": 1795194525.7955394,
+    "seen": 1795194889.8128314,
+    "ast_hash": "54336d9cc2910b5b316a7ae6e723a750",
     "semantic_hash": ""
   },
   "tests/db/auth.test.ts": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "docs/MANUAL_USUARIO.md": {
-    "mtime": 1795192943.8454542,
-    "seen": 1795192947.69337,
-    "ast_hash": "1ac7de7c542cdd3f5923fb15ae0ecbfe",
+    "mtime": 1795194886.5535076,
+    "seen": 1795194889.813717,
+    "ast_hash": "5ce00bec7fc0c7b3dcecd4e3277e2e46",
     "semantic_hash": ""
   },
   "docs/PRUEBAS.md": {
@@ -1788,9 +1788,9 @@
     "semantic_hash": ""
   },
   "tests/e2e/activation.spec.ts": {
-    "mtime": 1795108834.3456492,
-    "seen": 1795109630.3857021,
-    "ast_hash": "67e12217e7f5810c1f2de4baa05777d4",
+    "mtime": 1795194580.3686557,
+    "seen": 1795194889.8131015,
+    "ast_hash": "343a84e357fe6a72c512a0fd6b28779e",
     "semantic_hash": ""
   },
   "docs/propuestas/propuesta-camara-comercio.html": {
