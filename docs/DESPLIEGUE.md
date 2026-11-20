@@ -74,3 +74,7 @@ Vercel → Deployments → el despliegue anterior → **Promote to Production**.
 ## 6. Respaldos
 
 Supabase hace respaldos diarios en los planes pagos (el gratuito no garantiza recuperación). Antes del piloto con datos reales, pase al plan Pro o programe un `pg_dump` periódico con la cadena de conexión directa.
+
+## Aprendizaje diario de la IA (Vercel Cron)
+
+`vercel.json` programa `/api/cron/aprendizaje-ia` todos los días a las 12:40 UTC (7:40 a. m. en Colombia). Para que corra, crea en Vercel la variable **`CRON_SECRET`** (Production, tipo Sensitive) con un valor aleatorio largo; Vercel la envía sola en la cabecera `Authorization`. Sin ella, la ruta responde 503 y no hace nada.

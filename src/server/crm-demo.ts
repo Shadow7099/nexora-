@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/server/audit";
 import { requireCompanyAdmin } from "@/server/authz";
 import { analyzeConversation } from "@/server/crm-ai";
+import { createAppointment, handleBookingAction, offerDays } from "@/server/booking";
 import { AppError, notFound } from "@/server/errors";
 import { recordInbound, type AdReferral, type Channel } from "@/server/messages";
 import { ingestComment, suggestCommentReply } from "@/server/social-comments";
@@ -105,6 +106,15 @@ export async function loadDemo(actor: Actor, now = new Date()) {
   }
   // La IA analiza los chats que esperan respuesta (en la demostración nunca envía sola al cargar).
   for (const id of conversationIds) await analyzeConversation(companyId, id, { force: true, allowAutoSend: false }, undefined, now).catch(() => null);
+  // Agenda: @valen.moda quiere una cita → la IA le ofreció los días con botones; Natalia ya vino.
+  const byName = async (name: string) => db.conversation.findFirst({ where: { companyId, demo: true, customer: { name } } });
+  const valen = await byName("@valen.moda");
+  if (valen) await offerDays(valen, { origin: "AI", userId: null }, "¡Hola! Claro que sí 😊", now).catch(() => null);
+  const natalia = await byName("Natalia Ruiz");
+  if (natalia) {
+    const { appointment } = await createAppointment(companyId, { customerId: natalia.customerId, startsAt: new Date(now.getTime() - 26 * 3_600_000), conversationId: natalia.id, source: "CHAT" });
+    await db.appointment.update({ where: { id: appointment.id }, data: { status: "ATTENDED" } });
+  }
   for (const c of COMMENTS) {
     const id = await ingestComment(companyId, {
       channel: c.channel, externalId: `${c.id}:${companyId}`, authorId: c.authorId, authorName: c.author, body: c.body, postText: c.post,
@@ -123,11 +133,13 @@ export async function clearDemo(actor: Actor) {
   const customerIds = [...new Set(convs.map((c) => c.customerId))];
   await db.$transaction(async (tx) => {
     await tx.message.deleteMany({ where: { companyId, conversationId: { in: convs.map((c) => c.id) } } });
+    await tx.appointment.deleteMany({ where: { companyId, conversationId: { in: convs.map((c) => c.id) } } });
     await tx.conversation.deleteMany({ where: { companyId, demo: true } });
     await tx.socialComment.deleteMany({ where: { companyId, demo: true } });
     // Solo los clientes creados por la demostración (y sin ventas ni otros chats).
     const demoCustomers = await tx.customer.findMany({ where: { companyId, id: { in: customerIds }, source: DEMO_SOURCE, sales: { none: {} }, conversations: { none: {} } }, select: { id: true } });
     const ids = demoCustomers.map((c) => c.id);
+    await tx.appointment.deleteMany({ where: { companyId, customerId: { in: ids } } });
     await tx.crmActivity.deleteMany({ where: { companyId, customerId: { in: ids } } });
     await tx.deal.deleteMany({ where: { companyId, customerId: { in: ids } } });
     await tx.customer.deleteMany({ where: { companyId, id: { in: ids } } });
@@ -141,7 +153,7 @@ const simSchema = z.string().trim().min(1, { error: "Escribe el mensaje del clie
  * Solo en chats de demostración: escribe como si fuera el cliente, para ver a
  * la IA trabajar (sugerir o, con la respuesta automática encendida, responder sola).
  */
-export async function simulateCustomer(actor: Actor, conversationId: string, raw: unknown, now = new Date()) {
+export async function simulateCustomer(actor: Actor, conversationId: string, raw: unknown, now = new Date(), action?: string) {
   const companyId = requireCompanyAdmin(actor);
   const t = simSchema.safeParse(raw);
   if (!t.success) throw new AppError("VALIDATION", t.error.issues[0]!.message);
@@ -149,7 +161,9 @@ export async function simulateCustomer(actor: Actor, conversationId: string, raw
   const c = await db.conversation.findFirst({ where: { id: conversationId, companyId } });
   if (!c) throw notFound("La conversación");
   if (!c.demo) throw new AppError("FORBIDDEN", "Solo se puede simular en los chats de demostración.");
-  await recordInbound(companyId, { channel: c.channel as Channel, externalUser: c.externalUser, body: t.data, externalId: `demo:${crypto.randomUUID()}`, at: now, demo: true });
+  await recordInbound(companyId, { channel: c.channel as Channel, externalUser: c.externalUser, body: t.data, kind: action ? "button" : "text", externalId: `demo:${crypto.randomUUID()}`, at: now, demo: true });
+  // Tocó un botón de la agenda (como lo haría en WhatsApp): lo responde la agenda.
+  if (action && /^ag_[a-z0-9_:.TZ-]{0,60}$/i.test(action) && (await handleBookingAction(companyId, c.id, action, new Date(now.getTime() + 1)))) return { booking: true as const };
   // Un instante después: la respuesta de la IA queda después del mensaje del cliente.
   return analyzeConversation(companyId, c.id, { force: true, allowAutoSend: true }, undefined, new Date(now.getTime() + 1));
 }

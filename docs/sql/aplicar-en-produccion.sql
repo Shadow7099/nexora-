@@ -920,6 +920,92 @@ ALTER TABLE "social_comment" ADD CONSTRAINT "social_comment_channel_check" CHECK
 END
 $migracion$;
 
+-- ── 20261127000000_agenda_learning ──
+DO $migracion$
+BEGIN
+  IF to_regclass('public.appointment') IS NULL THEN
+    EXECUTE '-- AlterTable
+ALTER TABLE "crm_ai_config" ADD COLUMN     "auto_learn" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "booking_enabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "booking_site_id" UUID,
+ADD COLUMN     "last_learn_at" TIMESTAMPTZ(3),
+ADD COLUMN     "slot_capacity" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "slot_minutes" INTEGER NOT NULL DEFAULT 60;
+
+-- AlterTable
+ALTER TABLE "message" ADD COLUMN     "buttons" JSONB;
+
+-- CreateTable
+CREATE TABLE "appointment" (
+    "id" UUID NOT NULL,
+    "company_id" UUID NOT NULL,
+    "customer_id" UUID NOT NULL,
+    "site_id" UUID,
+    "conversation_id" UUID,
+    "starts_at" TIMESTAMPTZ(3) NOT NULL,
+    "duration_min" INTEGER NOT NULL DEFAULT 60,
+    "status" TEXT NOT NULL DEFAULT ''BOOKED'',
+    "source" TEXT NOT NULL DEFAULT ''MANUAL'',
+    "notes" TEXT,
+    "created_by_id" UUID,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "appointment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "crm_ai_version" (
+    "id" UUID NOT NULL,
+    "company_id" UUID NOT NULL,
+    "knowledge" TEXT NOT NULL,
+    "instructions" TEXT NOT NULL,
+    "escalation" TEXT NOT NULL,
+    "source" TEXT NOT NULL,
+    "summary" TEXT,
+    "metrics" JSONB,
+    "changes" JSONB,
+    "created_by_id" UUID,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "crm_ai_version_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "appointment_company_id_starts_at_idx" ON "appointment"("company_id", "starts_at");
+
+-- CreateIndex
+CREATE INDEX "appointment_company_id_customer_id_idx" ON "appointment"("company_id", "customer_id");
+
+-- CreateIndex
+CREATE INDEX "crm_ai_version_company_id_created_at_idx" ON "crm_ai_version"("company_id", "created_at");
+
+-- AddForeignKey
+ALTER TABLE "appointment" ADD CONSTRAINT "appointment_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "appointment" ADD CONSTRAINT "appointment_customer_id_company_id_fkey" FOREIGN KEY ("customer_id", "company_id") REFERENCES "customer"("id", "company_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "crm_ai_version" ADD CONSTRAINT "crm_ai_version_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+ALTER TABLE "appointment" ADD CONSTRAINT "appointment_status_check" CHECK ("status" IN (''BOOKED'', ''CONFIRMED'', ''ATTENDED'', ''NO_SHOW'', ''CANCELLED''));
+ALTER TABLE "appointment" ADD CONSTRAINT "appointment_duration_check" CHECK ("duration_min" BETWEEN 5 AND 600);
+ALTER TABLE "crm_ai_config" ADD CONSTRAINT "crm_ai_config_slots_check" CHECK ("slot_minutes" BETWEEN 10 AND 480 AND "slot_capacity" BETWEEN 1 AND 50);
+
+-- Cerradas a la API pública de Supabase como el resto.
+ALTER TABLE "appointment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "crm_ai_version" ENABLE ROW LEVEL SECURITY;
+';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20261127000000_agenda_learning') THEN
+    INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+    VALUES (gen_random_uuid()::text, '09a2af111ce4ecc11b797182c68d861e1197f209779af68ccdaa6a04e3e44032', now(), '20261127000000_agenda_learning', NULL, NULL, now(), 1);
+  END IF;
+END
+$migracion$;
+
 -- Comprobación: debe mostrar todas las tablas.
-SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation, to_regclass('public.social_comment') AS social_comment,
+SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation, to_regclass('public.social_comment') AS social_comment, to_regclass('public.appointment') AS appointment,
   (SELECT count(*) FROM information_schema.columns WHERE table_name = 'employee' AND column_name = 'access_code_hash') AS codigo_acceso;

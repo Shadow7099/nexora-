@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, EyeOff, FlaskConical, Lock, Pause, Play, RefreshCw, Send, Sparkles, Trash2, Upload } from "lucide-react";
+import { CalendarCheck, CalendarPlus, Check, EyeOff, FlaskConical, History, Lock, Pause, Play, RefreshCw, Send, Sparkles, Trash2, Undo2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import {
+  appointmentStatusAction, autoLearnAction, bookAction, bookingConfigAction, learnNowAction, offerDaysAction, revertVersionAction,
   autoReplyAction, clearDemoAction, ignoreCommentAction, loadDemoAction, replyCommentAction, resolveHumanAction, simulateCustomerAction, suggestCommentAction,
   answerGapAction, createTemplateAction, deleteTemplateAction, pauseAiAction, reanalyzeAction, saveAiConfigAction, sendReplyAction, sendTemplateAction, submitTemplateAction, syncTemplatesAction,
 } from "@/app/admin/crm/mensajes/actions";
@@ -438,3 +439,144 @@ export function CommentCard({ c, typeLabel, canPrivate }: {
 }
 
 
+
+/**
+ * Botones que se enviaron con un mensaje (días u horas de la agenda). En los
+ * chats de demostración se pueden tocar como si fueras el cliente.
+ */
+export function MessageButtons({ conversationId, buttons, demo }: { conversationId: string; buttons: { id: string; title: string }[]; demo: boolean }) {
+  const [state, dispatch, pending] = useActionState(simulateCustomerAction.bind(null, conversationId), null);
+  return (
+    <span className="mt-2 grid gap-1">
+      {buttons.map((b) => demo ? (
+        <form key={b.id} onSubmit={submitWith(dispatch)}>
+          <input type="hidden" name="text" value={b.title} />
+          <input type="hidden" name="action" value={b.id} />
+          <button type="submit" disabled={pending} className="w-full rounded-lg bg-surface/95 px-3 py-1.5 text-center text-xs font-medium text-primary shadow-card hover:bg-surface disabled:opacity-60" title="Demostración: tócalo como si fueras el cliente">{b.title}</button>
+        </form>
+      ) : (
+        <span key={b.id} className="rounded-lg bg-surface/90 px-3 py-1.5 text-center text-xs font-medium text-primary">{b.title}</span>
+      ))}
+      {state && !state.ok && <span role="alert" className="text-[11px] text-danger">{state.message}</span>}
+    </span>
+  );
+}
+
+/** Agendar desde el chat: ofrecer horarios con botones (el cliente elige) o agendar uno directamente. */
+export function BookingPanel({ conversationId, options, siteName, canReply, next }: { conversationId: string; options: { value: string; label: string }[]; siteName: string | null; canReply: boolean; next: string | null }) {
+  const { state, pending, run } = useRun();
+  const [book, dispatchBook, booking] = useActionState(bookAction.bind(null, conversationId), null);
+  return (
+    <details className="group rounded-xl border border-border bg-surface p-3 text-sm">
+      <summary className="flex cursor-pointer list-none items-center gap-2 font-medium">
+        <CalendarPlus className="size-4 text-primary" aria-hidden /> Agendar cita{siteName ? ` · ${siteName}` : ""}
+        {next && <span className="ml-auto rounded-full bg-success-soft px-2 py-0.5 text-[11px] text-success">Próxima: {next}</span>}
+      </summary>
+      <div className="mt-3 grid gap-3">
+        <div className="grid gap-1">
+          <Button size="sm" variant="secondary" className="justify-self-start" loading={pending} disabled={!canReply} onClick={() => run(() => offerDaysAction(conversationId))}><CalendarCheck aria-hidden /> Enviar horarios con botones</Button>
+          <p className="text-xs text-fg-muted">{canReply ? "El cliente toca el día y luego la hora; la cita queda creada sola." : "La ventana de 24 h está cerrada: agenda directamente abajo."}</p>
+          <Result state={state} />
+        </div>
+        <form onSubmit={submitWith(dispatchBook)} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <Field id={`slot-${conversationId}`} label="O agéndala tú">
+            <Select id={`slot-${conversationId}`} name="startsAt" defaultValue="">
+              <option value="" disabled>Elige un horario libre</option>
+              {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </Select>
+          </Field>
+          <SubmitButton size="sm" loading={booking} disabled={!options.length}>Agendar</SubmitButton>
+          <FormAlert message={book?.message} tone={book?.ok ? "success" : "danger"} />
+        </form>
+      </div>
+    </details>
+  );
+}
+
+export function AppointmentActions({ id, status }: { id: string; status: string }) {
+  const { state, pending, run } = useRun();
+  const next: [string, string][] = status === "BOOKED" ? [["CONFIRMED", "Confirmar"], ["ATTENDED", "Asistió"], ["NO_SHOW", "No asistió"], ["CANCELLED", "Cancelar"]]
+    : status === "CONFIRMED" ? [["ATTENDED", "Asistió"], ["NO_SHOW", "No asistió"], ["CANCELLED", "Cancelar"]]
+    : [["BOOKED", "Reabrir"]];
+  return (
+    <div className="grid gap-1">
+      <div className="flex flex-wrap gap-1">
+        {next.map(([s, l]) => <Button key={s} size="sm" variant={s === "ATTENDED" || s === "CONFIRMED" ? "secondary" : "ghost"} disabled={pending} onClick={() => run(() => appointmentStatusAction(id, s))}>{l}</Button>)}
+      </div>
+      <Result state={state} />
+    </div>
+  );
+}
+
+/** Agenda: sede, largo de cada cita y cupos por horario. */
+export function BookingConfigForm({ sites, values }: { sites: { id: string; name: string }[]; values: { enabled: boolean; siteId: string | null; slotMinutes: number; capacity: number } }) {
+  const [state, dispatch, pending] = useActionState(bookingConfigAction, null);
+  return (
+    <form onSubmit={submitWith(dispatch)} className="grid gap-3 text-sm">
+      <label className="flex items-start gap-3"><input type="checkbox" name="enabled" defaultChecked={values.enabled} className="mt-0.5 size-4 accent-[var(--primary)]" /><span><span className="font-medium">Agenda por botones en el chat</span><span className="block text-fg-muted">La IA ofrece los horarios cuando el cliente quiere una cita (con la respuesta automática) y el equipo puede enviarlos desde el chat.</span></span></label>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field id="bk-site" label="Sede">
+          <Select id="bk-site" name="siteId" defaultValue={values.siteId ?? ""}>
+            <option value="">La primera con horario</option>
+            {sites.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </Select>
+        </Field>
+        <Field id="bk-min" label="Duración de cada cita (min)"><Input id="bk-min" name="slotMinutes" type="number" min={10} max={480} step={5} defaultValue={values.slotMinutes} /></Field>
+        <Field id="bk-cap" label="Citas a la misma hora"><Input id="bk-cap" name="capacity" type="number" min={1} max={50} defaultValue={values.capacity} /></Field>
+      </div>
+      <p className="text-xs text-fg-muted">Los horarios salen del horario de atención de la sede (Sedes). Si no tiene, se usa lunes a sábado de 8 a. m. a 6 p. m.</p>
+      <SubmitButton size="sm" loading={pending} className="justify-self-start">Guardar agenda</SubmitButton>
+      <FormAlert message={state?.message} tone={state?.ok ? "success" : "danger"} />
+    </form>
+  );
+}
+
+type Version = { id: string; source: string; at: string; summary: string | null; changes: { seccion: string; operacion: string; antes: string; despues: string; motivo: string; aplicado?: boolean }[] };
+
+/** Aprendizaje diario: encendido/apagado, «Analizar ahora» e historial de versiones para volver atrás. */
+export function LearningPanel({ autoLearn, lastLearnAt, versions, sourceLabel, sectionLabel }: { autoLearn: boolean; lastLearnAt: string | null; versions: Version[]; sourceLabel: Record<string, string>; sectionLabel: Record<string, string> }) {
+  const { state, pending, run } = useRun();
+  const latest = versions.find((v) => v.source === "learn");
+  return (
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 text-sm [overflow-wrap:anywhere]">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant={autoLearn ? "primary" : "secondary"} disabled={pending} onClick={() => run(() => autoLearnAction(!autoLearn))}>Aprende sola: {autoLearn ? "ENCENDIDO" : "APAGADO"}</Button>
+        <Button size="sm" variant="secondary" loading={pending} onClick={() => run(learnNowAction)}><Sparkles aria-hidden /> Analizar la semana ahora</Button>
+      </div>
+      <p className="text-fg-muted">Cada mañana (7:40 a. m.) la IA revisa los chats de los últimos 7 días: compara los que terminaron en cita o venta con los que no y ajusta sola sus conocimientos e instrucciones para responder mejor y agendar más. Cada cambio queda en el historial y puedes volver atrás.{lastLearnAt ? ` Último análisis: ${lastLearnAt}` : ""}</p>
+      <Result state={state} />
+      {latest?.summary && (
+        <div className="grid gap-2 rounded-xl border border-accent/30 bg-accent-soft/30 p-3">
+          <p className="font-medium">Último informe · {latest.at}</p>
+          <p className="whitespace-pre-line">{latest.summary}</p>
+          {latest.changes.length > 0 && (
+            <ul className="grid gap-2">
+              {latest.changes.map((c, i) => (
+                <li key={i} className="rounded-lg bg-surface p-2 text-xs">
+                  <strong>{sectionLabel[c.seccion] ?? c.seccion} · {c.operacion === "agregar" ? "Agregó" : c.operacion === "quitar" ? "Quitó" : "Corrigió"}</strong> {c.aplicado === false && <span className="text-fg-subtle">(no se aplicó)</span>}
+                  {c.antes && <span className="block text-danger line-through">{c.antes}</span>}
+                  {c.despues && <span className="block text-success">{c.despues}</span>}
+                  <span className="block text-fg-muted">{c.motivo}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {versions.length > 0 && (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+          <p className="flex items-center gap-2 font-medium"><History className="size-4" aria-hidden /> Historial de versiones</p>
+          <ul className="divide-y divide-border rounded-xl border border-border">
+            {versions.map((v, i) => (
+              <li key={v.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                <span className="min-w-0 flex-1"><span className="font-medium">{sourceLabel[v.source] ?? v.source}</span> <span className="text-xs text-fg-subtle">· {v.at}</span>{v.summary && <span className="block truncate text-xs text-fg-muted">{v.summary}</span>}</span>
+                {i > 0 && <Button size="sm" variant="ghost" disabled={pending} onClick={() => confirm("¿Volver a esta versión? Lo que sabe la IA quedará como estaba entonces (también se puede deshacer).") && run(() => revertVersionAction(v.id))}><Undo2 aria-hidden /> Volver a esta</Button>}
+                {i === 0 && <span className="text-xs text-success">Actual</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -92,9 +92,43 @@ test("demostración del CRM en el celular: anuncios, avisos, IA en el chat, come
   await noOverflow(page);
   await shot(page, "5-anuncios");
 
+  // Agenda con botones: @valen.moda recibió los días; toca un día y una hora como lo haría en WhatsApp.
+  await page.goto("/admin/crm/mensajes?q=valen");
+  await page.getByRole("link", { name: /@valen\.moda/ }).last().click();
+  const chat = page.locator("ol[aria-label='Mensajes']");
+  await expect(chat.getByText("¿Qué día te queda mejor para tu cita")).toBeVisible();
+  await shot(page, "6-botones-dias");
+  await chat.locator("li").last().getByRole("button").first().click();
+  await expect(chat.getByText(/Estas son las horas libres del/)).toBeVisible();
+  await chat.locator("li").last().getByRole("button").first().click();
+  await expect(chat.getByText(/Tu cita quedó para el/)).toBeVisible();
+  await noOverflow(page);
+  await shot(page, "7-cita-confirmada");
+
+  // Agenda: la cita aparece y se marca.
+  await page.goto("/admin/crm/agenda");
+  const cita = page.locator("li", { hasText: "@valen.moda" });
+  await expect(cita.getByText("Agendada")).toBeVisible();
+  await expect(cita.getByText(/Botones del chat/)).toBeVisible();
+  await noOverflow(page);
+  await shot(page, "8-agenda");
+  await cita.getByRole("button", { name: "Confirmar" }).click();
+  await expect(cita.getByText("Confirmada")).toBeVisible();
+
+  // Aprendizaje diario: analizar ahora deja el informe y la versión en el historial.
+  await page.goto("/admin/crm/mensajes?tab=ia");
+  await page.getByRole("button", { name: "Analizar la semana ahora" }).click();
+  await expect(page.getByText(/Listo: (la IA aplicó|no encontró)/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Último informe/)).toBeVisible();
+  await expect(page.getByText("Aprendizaje diario").first()).toBeVisible();
+  await noOverflow(page);
+  await shot(page, "9-aprendizaje");
+
   // Se borra entera.
   await page.goto("/admin/crm/mensajes");
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Borrar demostración" }).click();
-  await expect(page.getByText("Demostración borrada.")).toBeVisible();
+  // Sin chats de demostración (otras pruebas pueden tener chats reales en esta empresa).
+  await expect(page.getByRole("button", { name: "Borrar demostración" })).toHaveCount(0);
+  await expect(page.getByText("Demo", { exact: true })).toHaveCount(0);
 });

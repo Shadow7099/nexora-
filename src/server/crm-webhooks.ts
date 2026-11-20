@@ -6,6 +6,7 @@ import { ingestLead, leadSchema } from "@/server/crm";
 import { integrationCredentials } from "@/server/integrations";
 import { recordEcho, recordInbound, updateMessageStatus, type AdReferral, type Channel } from "@/server/messages";
 import { ingestComment } from "@/server/social-comments";
+import { handleBookingAction } from "@/server/booking";
 import { templateStatusFromWebhook } from "@/server/wa-templates";
 
 /**
@@ -65,7 +66,7 @@ const metaMessaging = z.object({
   recipient: z.object({ id: z.string() }),
   timestamp: z.number().optional(),
   referral: metaReferral.optional(),
-  message: z.object({ mid: z.string(), text: z.string().optional(), is_echo: z.boolean().optional(), attachments: z.array(z.object({ type: z.string() })).optional(), referral: metaReferral.optional() }).optional(),
+  message: z.object({ mid: z.string(), text: z.string().optional(), is_echo: z.boolean().optional(), attachments: z.array(z.object({ type: z.string() })).optional(), referral: metaReferral.optional(), quick_reply: z.object({ payload: z.string() }).optional() }).optional(),
 });
 export function adFromMetaReferral(r: z.infer<typeof metaReferral> | undefined): AdReferral | null {
   if (!r || r.ad_id == null || (r.source && r.source !== "ADS")) return null;
@@ -131,7 +132,11 @@ export async function handleMetaEvent(token: string, rawBody: string, signature:
     const name = known ? null : await profileName(ev.sender.id, channel, i.secrets.pageAccessToken!, f);
     const ad = adFromMetaReferral(ev.message.referral ?? ev.referral);
     const r = await recordInbound(i.companyId, { channel, externalUser: ev.sender.id, name, body, kind: ev.message.text ? "text" : "attachment", externalId: `${channel.toLowerCase()}:${ev.message.mid}`, at, ad });
-    if (!r.duplicate) analyze.add(r.conversationId);
+    if (r.duplicate) continue;
+    // Tocó un botón de la agenda: lo responde la agenda (no la IA).
+    const action = ev.message.quick_reply?.payload ?? "";
+    if (action && (await handleBookingAction(i.companyId, r.conversationId, action, new Date(), f).catch((e) => (console.error("agenda", e instanceof Error ? e.message : e), false)))) continue;
+    analyze.add(r.conversationId);
   }
 
   // Comentarios en publicaciones y anuncios → «Comentarios de redes» (la IA sugiere la respuesta).
@@ -214,8 +219,8 @@ const waEvent = z.object({
         messages: z.array(z.object({
           id: z.string(), from: z.string(), type: z.string(), timestamp: z.string().optional(),
           text: z.object({ body: z.string() }).optional(),
-          button: z.object({ text: z.string() }).optional(),
-          interactive: z.object({ button_reply: z.object({ title: z.string() }).optional(), list_reply: z.object({ title: z.string() }).optional() }).optional(),
+          button: z.object({ text: z.string(), payload: z.string().optional() }).optional(),
+          interactive: z.object({ button_reply: z.object({ id: z.string().optional(), title: z.string() }).optional(), list_reply: z.object({ id: z.string().optional(), title: z.string() }).optional() }).optional(),
           // Llegó desde un anuncio o publicación de Facebook/Instagram con botón de WhatsApp.
           referral: z.object({ source_id: z.union([z.string(), z.number()]).optional(), source_type: z.string().optional(), source_url: z.string().optional(), headline: z.string().optional(), body: z.string().optional() }).passthrough().optional(),
         })).optional(),
@@ -253,7 +258,11 @@ export async function handleWhatsappEvent(token: string, rawBody: string, signat
         at: m.timestamp ? new Date(Number(m.timestamp) * 1000) : undefined,
         ad: m.referral?.source_id != null ? { id: String(m.referral.source_id), title: m.referral.headline || m.referral.body || null, url: m.referral.source_url ?? null, sourceType: m.referral.source_type } : null,
       });
-      if (!r.duplicate) analyze.add(r.conversationId);
+      if (r.duplicate) continue;
+      // Tocó un botón de la agenda (día u hora): lo responde la agenda, no la IA.
+      const action = m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id ?? m.button?.payload ?? "";
+      if (action && (await handleBookingAction(i.companyId, r.conversationId, action).catch((e) => (console.error("agenda", e instanceof Error ? e.message : e), false)))) continue;
+      analyze.add(r.conversationId);
     }
     for (const st of v.statuses ?? []) {
       const status = WA_STATUS[st.status as keyof typeof WA_STATUS];

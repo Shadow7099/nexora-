@@ -68,7 +68,7 @@ test("bandeja: llega un WhatsApp, se lee y la respuesta rechazada por Meta se mu
   await page.getByRole("link", { name: /^IA de mensajes/ }).click();
   await expect(page.getByText("Para usar la IA, guarda tu llave de Claude")).toBeVisible();
   await page.getByLabel("Lo que la IA sabe de tu negocio").fill("Domicilios en Villavicencio: $5.000.");
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(page.getByText("Configuración de la IA guardada.")).toBeVisible();
   await noOverflow(page);
   await page.screenshot({ path: `test-results/shots/${tag}-mensajes-ia.png`, fullPage: true });

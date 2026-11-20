@@ -145,7 +145,7 @@ export async function getConversation(actor: Actor, id: string, now = new Date()
     canReply: !!windowEndsAt && windowEndsAt > now, windowEndsAt, demo: c.demo,
     ad: c.adId ? { id: c.adId, title: c.adTitle, url: c.adUrl, sourceType: c.adSourceType, at: c.adAt } : null,
     ai: { tag: c.aiTag, summary: c.aiSummary, suggestion: c.aiSuggestion, needsHuman: c.needsHuman, humanReason: c.humanReason, at: c.aiAt, error: c.aiError, paused: c.aiPaused },
-    messages: messages.reverse().map((m) => ({ id: m.id, direction: m.direction, origin: m.origin, body: m.body, kind: m.kind, status: m.status, error: m.error, at: m.createdAt, by: m.sentBy?.name ?? null })),
+    messages: messages.reverse().map((m) => ({ id: m.id, direction: m.direction, origin: m.origin, body: m.body, kind: m.kind, status: m.status, error: m.error, at: m.createdAt, by: m.sentBy?.name ?? null, buttons: Array.isArray(m.buttons) ? (m.buttons as ReplyButton[]) : null })),
   };
 }
 
@@ -153,14 +153,33 @@ export async function getConversation(actor: Actor, id: string, now = new Date()
 
 const replySchema = z.string().trim().min(1, { error: "Escribe el mensaje." }).max(2000, { error: "Máximo 2.000 caracteres." });
 
-async function sendViaApi(companyId: string, channel: Channel, to: string, text: string, f: typeof fetch) {
+/** Botón de respuesta: id (lo que vuelve cuando el cliente lo toca) y el texto que ve. */
+export type ReplyButton = { id: string; title: string };
+
+/**
+ * Cuerpo de WhatsApp: hasta 3 opciones como botones (título de 20 caracteres);
+ * más de 3, como lista (hasta 10 filas de 24 caracteres).
+ */
+export function whatsappInteractive(text: string, buttons: ReplyButton[]) {
+  if (buttons.length <= 3) {
+    return { type: "button", body: { text: text.slice(0, 1024) }, action: { buttons: buttons.map((b) => ({ type: "reply", reply: { id: b.id.slice(0, 256), title: b.title.slice(0, 20) } })) } };
+  }
+  return {
+    type: "list", body: { text: text.slice(0, 1024) },
+    action: { button: "Ver opciones", sections: [{ title: "Elige una", rows: buttons.slice(0, 10).map((b) => ({ id: b.id.slice(0, 200), title: b.title.slice(0, 24) })) }] },
+  };
+}
+
+async function sendViaApi(companyId: string, channel: Channel, to: string, text: string, f: typeof fetch, buttons?: ReplyButton[]) {
   if (channel === "WHATSAPP") {
     const c = await integrationCredentials(companyId, "WHATSAPP");
     if (!c?.secrets.accessToken) throw new AppError("CONFLICT", "Conecta WhatsApp en Integraciones para responder desde aquí.");
     const r = await f(`https://graph.facebook.com/${META_VERSION}/${encodeURIComponent(c.config.phoneNumberId!)}/messages`, {
       method: "POST",
       headers: { Authorization: `Bearer ${c.secrets.accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { body: text, preview_url: false } }),
+      body: JSON.stringify(buttons?.length
+        ? { messaging_product: "whatsapp", recipient_type: "individual", to, type: "interactive", interactive: whatsappInteractive(text, buttons) }
+        : { messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { body: text, preview_url: false } }),
       signal: AbortSignal.timeout(15_000),
     });
     const d = (await r.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message?: string } };
@@ -171,7 +190,11 @@ async function sendViaApi(companyId: string, channel: Channel, to: string, text:
   const r = await f(`https://graph.facebook.com/${META_VERSION}/${encodeURIComponent(c.config.pageId!)}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${c.secrets.pageAccessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ recipient: { id: to }, messaging_type: "RESPONSE", message: { text } }),
+    body: JSON.stringify({
+      recipient: { id: to }, messaging_type: "RESPONSE",
+      // Messenger e Instagram: respuestas rápidas (hasta 13, título de 20 caracteres).
+      message: buttons?.length ? { text, quick_replies: buttons.slice(0, 13).map((b) => ({ content_type: "text", title: b.title.slice(0, 20), payload: b.id })) } : { text },
+    }),
     signal: AbortSignal.timeout(15_000),
   });
   const d = (await r.json().catch(() => ({}))) as { message_id?: string; error?: { message?: string } };
@@ -185,7 +208,7 @@ type ConversationRow = { id: string; companyId: string; channel: string; externa
  * Envía un texto a la conversación por la API del canal y lo guarda (enviado o
  * fallido). Lo usan las personas (sendReply) y la IA cuando responde sola.
  */
-export async function sendToConversation(c: ConversationRow, text: string, by: { origin: "NEXORA" | "AI"; userId: string | null }, f: typeof fetch = fetch, now = new Date()) {
+export async function sendToConversation(c: ConversationRow, text: string, by: { origin: "NEXORA" | "AI"; userId: string | null }, f: typeof fetch = fetch, now = new Date(), buttons?: ReplyButton[]) {
   if (!c.lastInboundAt || now.getTime() - c.lastInboundAt.getTime() > REPLY_WINDOW_MS) {
     throw new AppError("CONFLICT", "Pasaron más de 24 horas desde el último mensaje del cliente: Meta no permite responder con texto libre. Usa una plantilla aprobada para retomar la conversación.");
   }
@@ -195,7 +218,7 @@ export async function sendToConversation(c: ConversationRow, text: string, by: {
     result = { id: `demo:${crypto.randomUUID()}` };
   } else {
     try {
-      result = await sendViaApi(c.companyId, c.channel as Channel, c.externalUser, text, f);
+      result = await sendViaApi(c.companyId, c.channel as Channel, c.externalUser, text, f, buttons);
     } catch (e) {
       if (e instanceof AppError) throw e;
       result = { error: "No se pudo conectar con la plataforma. Intenta de nuevo." };
@@ -206,7 +229,7 @@ export async function sendToConversation(c: ConversationRow, text: string, by: {
   const ok = externalId != null;
   const msg = await db.$transaction(async (tx) => {
     const m = await tx.message.create({
-      data: { companyId: c.companyId, conversationId: c.id, direction: "OUT", body: text, status: ok ? (c.demo ? "DELIVERED" : "SENT") : "FAILED", origin: by.origin, error: failure?.slice(0, 300) ?? null, externalId, sentById: by.userId, createdAt: now },
+      data: { companyId: c.companyId, conversationId: c.id, direction: "OUT", body: text, kind: buttons?.length ? "interactive" : "text", ...(buttons?.length ? { buttons } : {}), status: ok ? (c.demo ? "DELIVERED" : "SENT") : "FAILED", origin: by.origin, error: failure?.slice(0, 300) ?? null, externalId, sentById: by.userId, createdAt: now },
     });
     if (ok) await tx.conversation.update({ where: { id: c.id }, data: { lastMessageAt: now, lastPreview: preview(text), ...(by.origin === "NEXORA" ? { aiSuggestion: null } : {}) } });
     await audit({ companyId: c.companyId, actorUserId: by.userId, action: ok ? (by.origin === "AI" ? "message.ai_send" : "message.send") : "message.fail", entityType: "conversation", entityId: c.id, after: { channel: c.channel, length: text.length } }, tx);
@@ -240,15 +263,16 @@ export async function resolveHuman(actor: Actor, conversationId: string) {
 export async function inboxAlerts(actor: Actor, now = new Date()) {
   const companyId = requireCompanyAdmin(actor);
   const startOfDay = new Date(`${now.toLocaleDateString("en-CA", { timeZone: "America/Bogota" })}T00:00:00-05:00`);
-  const [unread, needsHuman, adsToday, latestAd, gaps, comments] = await Promise.all([
+  const [unread, needsHuman, adsToday, latestAd, gaps, comments, appointmentsToday] = await Promise.all([
     db.conversation.count({ where: { companyId, unread: { gt: 0 } } }),
     db.conversation.count({ where: { companyId, needsHuman: true } }),
     db.conversation.count({ where: { companyId, adAt: { gte: startOfDay } } }),
     db.conversation.findFirst({ where: { companyId, adAt: { gte: startOfDay } }, orderBy: { adAt: "desc" }, select: { id: true, adTitle: true, adId: true, channel: true, customer: { select: { name: true } } } }),
     db.aiGap.count({ where: { companyId, status: "PENDING" } }),
     db.socialComment.count({ where: { companyId, status: "PENDING" } }),
+    db.appointment.count({ where: { companyId, createdAt: { gte: startOfDay }, source: { in: ["CHAT", "AI"] } } }),
   ]);
-  return { unread, needsHuman, adsToday, latestAd, gaps, comments };
+  return { unread, needsHuman, adsToday, latestAd, gaps, comments, appointmentsToday };
 }
 
 /**
@@ -267,26 +291,29 @@ export async function adsReport(actor: Actor, raw: { desde?: string; hasta?: str
   });
   const customers = [...new Set(convs.map((c) => c.customerId))];
   const deals = customers.length ? await db.deal.findMany({ where: { companyId, customerId: { in: customers } }, select: { customerId: true, stage: true, value: true } }) : [];
+  const appts = customers.length ? await db.appointment.groupBy({ by: ["customerId"], where: { companyId, customerId: { in: customers }, status: { not: "CANCELLED" } }, _count: { _all: true } }) : [];
+  const apptsBy = new Map(appts.map((a) => [a.customerId, a._count._all]));
   const byCustomer = new Map<string, { won: number; value: number; open: number }>();
   for (const d of deals) {
     const x = byCustomer.get(d.customerId) ?? { won: 0, value: 0, open: 0 };
     if (d.stage === "WON") { x.won += 1; x.value += Number(d.value ?? 0); } else if (d.stage !== "LOST") x.open += 1;
     byCustomer.set(d.customerId, x);
   }
-  const rows = new Map<string, { adId: string; title: string | null; sourceType: string | null; channels: Set<string>; chats: number; customers: Set<string>; open: number; won: number; value: number }>();
+  const rows = new Map<string, { adId: string; title: string | null; sourceType: string | null; channels: Set<string>; chats: number; customers: Set<string>; open: number; won: number; value: number; appointments: number }>();
   for (const c of convs) {
-    const r = rows.get(c.adId!) ?? { adId: c.adId!, title: c.adTitle, sourceType: c.adSourceType, channels: new Set(), chats: 0, customers: new Set(), open: 0, won: 0, value: 0 };
+    const r = rows.get(c.adId!) ?? { adId: c.adId!, title: c.adTitle, sourceType: c.adSourceType, channels: new Set(), chats: 0, customers: new Set(), open: 0, won: 0, value: 0, appointments: 0 };
     r.chats += 1;
     r.channels.add(c.channel);
     r.title ??= c.adTitle;
     if (!r.customers.has(c.customerId)) {
       r.customers.add(c.customerId);
+      r.appointments += apptsBy.get(c.customerId) ?? 0;
       const d = byCustomer.get(c.customerId);
       if (d) { r.open += d.open; r.won += d.won; r.value += d.value; }
     }
     rows.set(c.adId!, r);
   }
-  const list = [...rows.values()].map((r) => ({ adId: r.adId, title: r.title, sourceType: r.sourceType, channels: [...r.channels] as Channel[], chats: r.chats, customers: r.customers.size, open: r.open, won: r.won, value: r.value })).sort((a, b) => b.chats - a.chats);
-  const total = list.reduce((a, r) => ({ chats: a.chats + r.chats, customers: a.customers + r.customers, won: a.won + r.won, value: a.value + r.value }), { chats: 0, customers: 0, won: 0, value: 0 });
+  const list = [...rows.values()].map((r) => ({ adId: r.adId, title: r.title, sourceType: r.sourceType, channels: [...r.channels] as Channel[], chats: r.chats, customers: r.customers.size, appointments: r.appointments, open: r.open, won: r.won, value: r.value })).sort((a, b) => b.chats - a.chats);
+  const total = list.reduce((a, r) => ({ chats: a.chats + r.chats, customers: a.customers + r.customers, appointments: a.appointments + r.appointments, won: a.won + r.won, value: a.value + r.value }), { chats: 0, customers: 0, appointments: 0, won: 0, value: 0 });
   return { from, to, rows: list, total };
 }

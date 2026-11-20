@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, BellRing, Bot, Camera, CheckCheck, ExternalLink, FlaskConical, Megaphone, MessageCircle, MessagesSquare, Search, Sparkles, UserRound } from "lucide-react";
-import { AiConfigForm, AiPanelActions, AutoRefresh, AutoReplyToggle, ChatAiToggle, CommentCard, Composer, DemoControls, GapItem, ResolveButton, ScrollToEnd, SimulateCustomer, SyncTemplatesButton, TemplateActions, TemplateForm, TemplateSender } from "@/components/admin/inbox";
+import { AlertTriangle, ArrowLeft, BellRing, CalendarCheck, Bot, Camera, CheckCheck, ExternalLink, FlaskConical, Megaphone, MessageCircle, MessagesSquare, Search, Sparkles, UserRound } from "lucide-react";
+import { AiConfigForm, AiPanelActions, AutoRefresh, AutoReplyToggle, BookingConfigForm, BookingPanel, LearningPanel, MessageButtons, ChatAiToggle, CommentCard, Composer, DemoControls, GapItem, ResolveButton, ScrollToEnd, SimulateCustomer, SyncTemplatesButton, TemplateActions, TemplateForm, TemplateSender } from "@/components/admin/inbox";
 import { PageHeader } from "@/components/layout/admin-shell";
 import { ModulePending } from "@/components/layout/module-pending";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,9 @@ import { requireActor } from "@/server/current";
 import { AppError, isMissingTable } from "@/server/errors";
 import { adsReport, CHANNEL_LABEL, getConversation, inboxAlerts, listConversations, type Channel } from "@/server/messages";
 import { hasDemo } from "@/server/crm-demo";
+import { nextAppointment, slotOptions } from "@/server/booking";
+import { listVersions, SECTION_LABEL, SOURCE_LABEL } from "@/server/crm-learning";
+import { listSiteOptions } from "@/server/employees";
 import { COMMENT_STATUS_LABEL, COMMENT_TYPE_LABEL, listComments, PRIVATE_REPLY_DAYS } from "@/server/social-comments";
 import { listTemplates, STATUS_LABEL } from "@/server/wa-templates";
 
@@ -45,7 +48,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/admin/crm/
   // Primero los datos (try/catch), después la pantalla.
   type Data =
     | { tab: "chats"; d: ChatsData } | { tab: "comentarios"; d: Awaited<ReturnType<typeof listComments>> } | { tab: "anuncios"; d: Awaited<ReturnType<typeof adsReport>> }
-    | { tab: "ia"; d: Awaited<ReturnType<typeof getAiConfig>> } | { tab: "plantillas"; d: Awaited<ReturnType<typeof listTemplates>> };
+    | { tab: "ia"; d: AiData } | { tab: "plantillas"; d: Awaited<ReturnType<typeof listTemplates>> };
   let alerts: Awaited<ReturnType<typeof inboxAlerts>>;
   let data: Data;
   try {
@@ -54,7 +57,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/admin/crm/
       tab === "chats" ? { tab, d: await loadChats(actor, sp) }
       : tab === "comentarios" ? { tab, d: await listComments(actor, sp.estado) }
       : tab === "anuncios" ? { tab, d: await adsReport(actor, { desde: sp.desde, hasta: sp.hasta }) }
-      : tab === "ia" ? { tab, d: await getAiConfig(actor) }
+      : tab === "ia" ? { tab, d: await loadAi(actor) }
       : { tab: "plantillas", d: await listTemplates(actor) };
   } catch (e) {
     if (!isMissingTable(e)) throw e;
@@ -90,6 +93,13 @@ export default async function InboxPage({ searchParams }: PageProps<"/admin/crm/
 }
 
 type ChatsData = Awaited<ReturnType<typeof loadChats>>;
+type AiData = Awaited<ReturnType<typeof loadAi>>;
+
+async function loadAi(actor: Actor) {
+  const [ai, learning, sites] = await Promise.all([getAiConfig(actor), listVersions(actor), listSiteOptions(actor)]);
+  const c = ai.config as Partial<{ bookingEnabled: boolean; bookingSiteId: string | null; slotMinutes: number; slotCapacity: number }>;
+  return { ...ai, learning, sites, booking: { enabled: c.bookingEnabled ?? true, siteId: c.bookingSiteId ?? null, slotMinutes: c.slotMinutes ?? 60, capacity: c.slotCapacity ?? 1 } };
+}
 
 async function loadChats(actor: Actor, sp: Record<string, string | undefined>) {
   // Primero la conversación abierta (la marca como leída) y después la lista.
@@ -103,8 +113,8 @@ async function loadChats(actor: Actor, sp: Record<string, string | undefined>) {
   }
   const list = await listConversations(actor, sp);
   const templates = conv && !conv.canReply && conv.channel === "WHATSAPP" ? (await listTemplates(actor)).filter((t) => t.status === "APPROVED") : [];
-  const [ai, demo] = await Promise.all([getAiConfig(actor), hasDemo(actor)]);
-  return { list, conv, templates, autoReply: ai.config.enabled && ai.config.mode === "AUTO", claudeConnected: ai.claudeConnected, demo };
+  const [ai, demo, slots, next] = await Promise.all([getAiConfig(actor), hasDemo(actor), conv ? slotOptions(actor) : null, conv ? nextAppointment(actor, conv.customer.id) : null]);
+  return { list, conv, templates, autoReply: ai.config.enabled && ai.config.mode === "AUTO", claudeConnected: ai.claudeConnected, demo, slots, next };
 }
 
 function Chats({ data, sp, alerts }: { data: ChatsData; sp: Record<string, string | undefined>; alerts: Awaited<ReturnType<typeof inboxAlerts>> }) {
@@ -113,6 +123,7 @@ function Chats({ data, sp, alerts }: { data: ChatsData; sp: Record<string, strin
   const notices = [
     alerts.needsHuman > 0 && { tone: "danger", icon: UserRound, href: "/admin/crm/mensajes?ver=atender", text: `${alerts.needsHuman} chat${alerts.needsHuman === 1 ? "" : "s"} ${alerts.needsHuman === 1 ? "pide" : "piden"} que lo${alerts.needsHuman === 1 ? "" : "s"} atienda una persona` },
     alerts.adsToday > 0 && { tone: "primary", icon: Megaphone, href: "/admin/crm/mensajes?ver=anuncios", text: `${alerts.adsToday} chat${alerts.adsToday === 1 ? "" : "s"} nuevo${alerts.adsToday === 1 ? "" : "s"} hoy por anuncios${alerts.latestAd ? ` · el último: ${alerts.latestAd.customer.name} desde «${alerts.latestAd.adTitle ?? `anuncio ${alerts.latestAd.adId}`}» (${CHANNEL_LABEL[alerts.latestAd.channel as Channel]})` : ""}` },
+    alerts.appointmentsToday > 0 && { tone: "primary", icon: CalendarCheck, href: "/admin/crm/agenda", text: `${alerts.appointmentsToday} cita${alerts.appointmentsToday === 1 ? "" : "s"} nueva${alerts.appointmentsToday === 1 ? "" : "s"} hoy desde el chat` },
     alerts.comments > 0 && { tone: "warning", icon: MessagesSquare, href: "/admin/crm/mensajes?tab=comentarios", text: `${alerts.comments} comentario${alerts.comments === 1 ? "" : "s"} de redes por responder` },
     alerts.gaps > 0 && { tone: "warning", icon: Sparkles, href: "/admin/crm/mensajes?tab=ia", text: `La IA necesita ${alerts.gaps} dato${alerts.gaps === 1 ? "" : "s"} para responder sola sin pasar chats a una persona` },
   ].filter(Boolean) as { tone: "danger" | "primary" | "warning"; icon: typeof UserRound; href: string; text: string }[];
@@ -256,6 +267,7 @@ function Chats({ data, sp, alerts }: { data: ChatsData; sp: Record<string, strin
                     <span className="sr-only">{m.direction === "IN" ? "Cliente: " : "Nosotros: "}</span>
                     {m.kind === "template" && <span className="mb-1 block text-[11px] opacity-80">Plantilla</span>}
                     {m.body}
+                    {m.buttons && m.buttons.length > 0 && <MessageButtons conversationId={conv.id} buttons={m.buttons} demo={conv.demo && m.direction === "OUT"} />}
                     <span className={cn("mt-1 flex items-center justify-end gap-1 text-[11px]", m.direction === "IN" ? "text-fg-subtle" : m.status === "FAILED" ? "text-danger" : "text-primary-fg/80")}>
                       {m.direction === "OUT" && m.origin === "AI" && <Bot className="size-3" aria-label="Enviado por la IA" />}
                       {m.direction === "OUT" && ORIGIN_LABEL[m.origin] ? `${ORIGIN_LABEL[m.origin]} · ` : m.by ? `${m.by} · ` : ""}
@@ -271,6 +283,7 @@ function Chats({ data, sp, alerts }: { data: ChatsData; sp: Record<string, strin
 
             <footer className="grid gap-3 border-t border-border p-3">
               {conv.demo && <SimulateCustomer conversationId={conv.id} />}
+              {data.slots && <BookingPanel conversationId={conv.id} options={data.slots.options} siteName={data.slots.site?.name ?? null} canReply={conv.canReply} next={data.next} />}
               {conv.canReply ? (
                 <Composer conversationId={conv.id} suggestion={conv.ai.suggestion} />
               ) : conv.channel === "WHATSAPP" ? (
@@ -289,9 +302,22 @@ function Chats({ data, sp, alerts }: { data: ChatsData; sp: Record<string, strin
   );
 }
 
-function AiTab({ d }: { d: Awaited<ReturnType<typeof getAiConfig>> }) {
+function AiTab({ d }: { d: AiData }) {
+  const fmt = (x: Date) => x.toLocaleString("es-CO", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" });
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <Card className="lg:col-span-2">
+        <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-accent" aria-hidden /> Aprendizaje diario de la IA</CardTitle></CardHeader>
+        <CardContent>
+          <LearningPanel
+            autoLearn={d.learning.autoLearn}
+            lastLearnAt={d.learning.lastLearnAt ? fmt(d.learning.lastLearnAt) : null}
+            versions={d.learning.versions.map((v) => ({ id: v.id, source: v.source, at: fmt(v.at), summary: v.summary, changes: v.changes }))}
+            sourceLabel={SOURCE_LABEL}
+            sectionLabel={SECTION_LABEL}
+          />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Bot className="size-4 text-accent" aria-hidden /> IA de mensajes</CardTitle></CardHeader>
         <CardContent>
@@ -302,6 +328,10 @@ function AiTab({ d }: { d: Awaited<ReturnType<typeof getAiConfig>> }) {
           )}
           <AiConfigForm values={{ ...d.config, mode: d.config.mode }} claudeConnected={d.claudeConnected} />
         </CardContent>
+      </Card>
+      <Card className="lg:col-span-2">
+        <CardHeader><CardTitle className="flex items-center gap-2"><CalendarCheck className="size-4 text-primary" aria-hidden /> Agenda por botones</CardTitle></CardHeader>
+        <CardContent><BookingConfigForm sites={d.sites} values={d.booking} /></CardContent>
       </Card>
       <Card className={cn(d.gaps.length > 0 && "border-warning/50")}>
         <CardHeader><CardTitle>Lo que le falta a la IA {d.gaps.length > 0 && <Badge tone="warning">{d.gaps.length}</Badge>}</CardTitle></CardHeader>
@@ -401,7 +431,7 @@ function AdsTab({ d }: { d: Awaited<ReturnType<typeof adsReport>> }) {
         <Button type="submit" variant="secondary">Ver</Button>
       </form>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {([["Chats por anuncios", String(d.total.chats)], ["Clientes", String(d.total.customers)], ["Ventas ganadas", `${d.total.won} (${pct(d.total.won, d.total.customers)})`], ["Valor ganado", cop(d.total.value)]] as const).map(([l, v]) => (
+        {([["Chats por anuncios", String(d.total.chats)], ["Citas", `${d.total.appointments} (${pct(d.total.appointments, d.total.customers)})`], ["Ventas ganadas", `${d.total.won} (${pct(d.total.won, d.total.customers)})`], ["Valor ganado", cop(d.total.value)]] as const).map(([l, v]) => (
           <Card key={l} className="p-4"><p className="text-xs text-fg-muted">{l}</p><p className="mt-1 text-xl font-semibold tabular-nums">{v}</p></Card>
         ))}
       </div>
@@ -418,8 +448,9 @@ function AdsTab({ d }: { d: Awaited<ReturnType<typeof adsReport>> }) {
                 <Card className="grid gap-2 p-4 text-sm">
                   <p className="font-medium">{r.title ?? `Anuncio ${r.adId}`}</p>
                   <p className="text-xs text-fg-subtle">{r.channels.map((c) => CHANNEL_LABEL[c]).join(", ")} · {r.sourceType === "post" ? "Publicación" : "Anuncio"} {r.adId}</p>
-                  <dl className="grid grid-cols-3 gap-2 text-center">
+                  <dl className="grid grid-cols-4 gap-2 text-center">
                     <div className="rounded-lg bg-bg-subtle p-2"><dt className="text-[11px] text-fg-muted">Chats</dt><dd className="font-semibold">{r.chats}</dd></div>
+                    <div className="rounded-lg bg-bg-subtle p-2"><dt className="text-[11px] text-fg-muted">Citas</dt><dd className="font-semibold">{r.appointments}</dd></div>
                     <div className="rounded-lg bg-bg-subtle p-2"><dt className="text-[11px] text-fg-muted">Ventas</dt><dd className="font-semibold">{r.won}</dd></div>
                     <div className="rounded-lg bg-bg-subtle p-2"><dt className="text-[11px] text-fg-muted">Valor</dt><dd className="font-semibold">{cop(r.value)}</dd></div>
                   </dl>
@@ -431,7 +462,7 @@ function AdsTab({ d }: { d: Awaited<ReturnType<typeof adsReport>> }) {
           <Card className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="bg-bg-subtle text-left text-xs text-fg-muted">
-                <tr><th className="px-4 py-2 font-medium">Anuncio</th><th className="px-3 py-2 font-medium">Canal</th><th className="px-3 py-2 text-right font-medium">Chats</th><th className="px-3 py-2 text-right font-medium">Clientes</th><th className="px-3 py-2 text-right font-medium">En curso</th><th className="px-3 py-2 text-right font-medium">Ventas</th><th className="px-3 py-2 text-right font-medium">Conversión</th><th className="px-4 py-2 text-right font-medium">Valor ganado</th></tr>
+                <tr><th className="px-4 py-2 font-medium">Anuncio</th><th className="px-3 py-2 font-medium">Canal</th><th className="px-3 py-2 text-right font-medium">Chats</th><th className="px-3 py-2 text-right font-medium">Clientes</th><th className="px-3 py-2 text-right font-medium">Citas</th><th className="px-3 py-2 text-right font-medium">En curso</th><th className="px-3 py-2 text-right font-medium">Ventas</th><th className="px-3 py-2 text-right font-medium">Conversión</th><th className="px-4 py-2 text-right font-medium">Valor ganado</th></tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {d.rows.map((r) => (
@@ -440,6 +471,7 @@ function AdsTab({ d }: { d: Awaited<ReturnType<typeof adsReport>> }) {
                     <td className="px-3 py-3 text-fg-muted">{r.channels.map((c) => CHANNEL_LABEL[c]).join(", ")}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.chats}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.customers}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{r.appointments}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.open}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.won}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{pct(r.won, r.customers)}</td>

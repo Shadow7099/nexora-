@@ -234,6 +234,8 @@ model Company {
   aiGaps             AiGap[]
   waTemplates        WaTemplate[]
   socialComments     SocialComment[]
+  appointments       Appointment[]
+  aiVersions         CrmAiVersion[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -1115,6 +1117,7 @@ model Customer {
 
   company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
   sales         Sale[]
+  appointments  Appointment[]
   deals         Deal[]
   activities    CrmActivity[]
   conversations Conversation[]
@@ -1347,6 +1350,8 @@ model Message {
   error          String?
   /// Id del mensaje en la plataforma (para no duplicar y para actualizar su estado).
   externalId     String?          @map("external_id")
+  /// Botones que se enviaron con el mensaje ([{id, title}]) o el botón que tocó el cliente ({id}).
+  buttons        Json?
   sentById       String?          @map("sent_by_id") @db.Uuid
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -1375,6 +1380,14 @@ model CrmAiConfig {
   instructions String   @default("")
   /// Cuándo pasar el chat a una persona además de las reglas fijas.
   escalation   String   @default("")
+  /// Aprendizaje diario: cada mañana la IA revisa los chats de los últimos 7 días y ajusta sus conocimientos.
+  autoLearn     Boolean   @default(true) @map("auto_learn")
+  lastLearnAt   DateTime? @map("last_learn_at") @db.Timestamptz(3)
+  /// Agenda por botones en el chat (el cliente toca el día y la hora).
+  bookingEnabled Boolean  @default(true) @map("booking_enabled")
+  bookingSiteId  String?  @map("booking_site_id") @db.Uuid
+  slotMinutes    Int      @default(60) @map("slot_minutes")
+  slotCapacity   Int      @default(1) @map("slot_capacity")
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -1490,4 +1503,55 @@ model SocialComment {
   @@unique([companyId, externalId])
   @@index([companyId, status, postedAt])
   @@map("social_comment")
+}
+
+// ─────────────────────────── Agenda de citas del CRM ───────────────────────────
+
+// Cita con un cliente (agendada desde el chat con botones, por la IA o a mano).
+model Appointment {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  companyId      String    @map("company_id") @db.Uuid
+  customerId     String    @map("customer_id") @db.Uuid
+  siteId         String?   @map("site_id") @db.Uuid
+  conversationId String?   @map("conversation_id") @db.Uuid
+  startsAt       DateTime  @map("starts_at") @db.Timestamptz(3)
+  durationMin    Int       @default(60) @map("duration_min")
+  /// BOOKED, CONFIRMED, ATTENDED, NO_SHOW, CANCELLED
+  status         String    @default("BOOKED")
+  /// CHAT (botones), AI (la IA), MANUAL
+  source         String    @default("MANUAL")
+  notes          String?
+  createdById    String?   @map("created_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@index([companyId, startsAt])
+  @@index([companyId, customerId])
+  @@map("appointment")
+}
+
+// Versión de lo que sabe la IA de mensajes (cada cambio: a mano, al enseñarle,
+// en el aprendizaje diario o al volver atrás). Permite volver a cualquier versión.
+model CrmAiVersion {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  knowledge    String
+  instructions String
+  escalation   String
+  /// manual, teach, learn (aprendizaje diario), revert
+  source       String
+  /// Informe del aprendizaje: qué vio y qué cambió.
+  summary      String?
+  metrics      Json?
+  changes      Json?
+  createdById  String?  @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@index([companyId, createdAt])
+  @@map("crm_ai_version")
 }

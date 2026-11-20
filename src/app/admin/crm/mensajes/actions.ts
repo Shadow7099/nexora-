@@ -164,9 +164,10 @@ export async function clearDemoAction(): Promise<ActionState> {
 export async function simulateCustomerAction(conversationId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const { simulateCustomer } = await import("@/server/crm-demo");
   try {
-    const r = await simulateCustomer(await admin(), conversationId, fd.get("text"));
+    const action = typeof fd.get("action") === "string" ? String(fd.get("action")) : undefined;
+    const r = await simulateCustomer(await admin(), conversationId, fd.get("text"), new Date(), action);
     refresh();
-    return { ok: true, message: "sent" in r && r.sent ? "La IA respondió sola." : "La IA dejó su respuesta sugerida." };
+    return { ok: true, message: "booking" in r ? "La agenda respondió al botón." : "sent" in r && r.sent ? "La IA respondió sola." : "La IA dejó su respuesta sugerida." };
   } catch (e) {
     return { ...toActionState(e), data: { text: String(fd.get("text") ?? "") } };
   }
@@ -191,4 +192,62 @@ export async function ignoreCommentAction(commentId: string): Promise<ActionStat
 export async function suggestCommentAction(commentId: string): Promise<ActionState> {
   const s = await import("@/server/social-comments");
   return run(async () => s.suggestCommentAction(await admin(), commentId), "Sugerencia actualizada.");
+}
+
+// ───────────────────── Agenda con botones y aprendizaje diario ─────────────────────
+
+export async function offerDaysAction(conversationId: string): Promise<ActionState> {
+  const { offerDaysFromChat } = await import("@/server/booking");
+  return run(async () => offerDaysFromChat(await admin(), conversationId), "Horarios enviados: el cliente elige el día y la hora con botones.");
+}
+
+export async function bookAction(conversationId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const { bookManually } = await import("@/server/booking");
+  try {
+    await bookManually(await admin(), { conversationId, startsAt: fd.get("startsAt"), notes: fd.get("notes") });
+    refresh();
+    revalidatePath("/admin/crm/agenda");
+    return { ok: true, message: "Cita agendada y avisada en el chat." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function appointmentStatusAction(id: string, status: string): Promise<ActionState> {
+  const { setAppointmentStatus } = await import("@/server/booking");
+  try {
+    await setAppointmentStatus(await admin(), id, status);
+    revalidatePath("/admin/crm/agenda");
+    return { ok: true, message: "Cita actualizada." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function bookingConfigAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const { saveBookingConfig } = await import("@/server/booking");
+  return run(async () => saveBookingConfig(await admin(), { enabled: fd.get("enabled"), siteId: fd.get("siteId"), slotMinutes: fd.get("slotMinutes"), capacity: fd.get("capacity") }), "Agenda guardada.");
+}
+
+export async function learnNowAction(): Promise<ActionState> {
+  const { learnNow } = await import("@/server/crm-learning");
+  try {
+    const r = await learnNow(await admin());
+    refresh();
+    if ("skipped" in r) return { ok: false, message: "No hay chats de los últimos 7 días para analizar." };
+    const n = r.changes.filter((c) => c.aplicado).length;
+    return { ok: true, message: n ? `Listo: la IA aplicó ${n} mejora${n === 1 ? "" : "s"}.` : "Listo: no encontró nada que cambiar." };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function autoLearnAction(on: boolean): Promise<ActionState> {
+  const { setAutoLearn } = await import("@/server/crm-learning");
+  return run(async () => setAutoLearn(await admin(), on), on ? "Aprendizaje diario encendido." : "Aprendizaje diario apagado.");
+}
+
+export async function revertVersionAction(versionId: string): Promise<ActionState> {
+  const { revertToVersion } = await import("@/server/crm-learning");
+  return run(async () => revertToVersion(await admin(), versionId), "Listo: la IA volvió a esa versión.");
 }

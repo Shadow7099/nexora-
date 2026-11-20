@@ -450,9 +450,9 @@
     "semantic_hash": "8cb1098d63d60243e3cd7e33571482cc"
   },
   "src/components/layout/nav.ts": {
-    "mtime": 1795009489.8572104,
-    "seen": 1795085345.274184,
-    "ast_hash": "e820847ed30c6925008e40cb3f853730",
+    "mtime": 1795191592.607454,
+    "seen": 1795192947.6910233,
+    "ast_hash": "851027ab338bcaeb54e8a3e843e634a1",
     "semantic_hash": ""
   },
   "src/components/layout/phase-notice.tsx": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "docs/DESPLIEGUE.md": {
-    "mtime": 1794962299.3598044,
-    "seen": 1795085345.274523,
-    "ast_hash": "58eea6052af42106e8874bdabd1029ea",
+    "mtime": 1795192943.8466744,
+    "seen": 1795192947.693353,
+    "ast_hash": "15a6c59ee9c0969a1172ee572d91cb57",
     "semantic_hash": ""
   },
   "docs/PENDIENTES.md": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "docs/MANUAL_USUARIO.md": {
-    "mtime": 1795190853.3684106,
-    "seen": 1795190859.047373,
-    "ast_hash": "ae5651012f5c5ecdcfcccf3fa234d9fb",
+    "mtime": 1795192943.8454542,
+    "seen": 1795192947.69337,
+    "ast_hash": "1ac7de7c542cdd3f5923fb15ae0ecbfe",
     "semantic_hash": ""
   },
   "docs/PRUEBAS.md": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "docs/SEGURIDAD.md": {
-    "mtime": 1795190853.3689892,
-    "seen": 1795190859.0474224,
-    "ast_hash": "b136dfba4830fae50e5e2a916f66d66c",
+    "mtime": 1795192943.8461742,
+    "seen": 1795192947.693436,
+    "ast_hash": "874a2eb576a90207cdabac6cac39b501",
     "semantic_hash": ""
   },
   "docs/img/celular-app-oscuro.jpg": {
@@ -1260,9 +1260,9 @@
     "semantic_hash": ""
   },
   "scripts/sql-produccion.py": {
-    "mtime": 1795189603.4014866,
-    "seen": 1795190859.043053,
-    "ast_hash": "7f32c30592a51028169610e8c8135e0b",
+    "mtime": 1795191216.6100526,
+    "seen": 1795192947.6881423,
+    "ast_hash": "ff3c1d03d6015036c498a874e64dd5c8",
     "semantic_hash": ""
   },
   "src/app/(auth)/registro/page.tsx": {
@@ -1314,15 +1314,15 @@
     "semantic_hash": ""
   },
   "src/app/admin/crm/mensajes/actions.ts": {
-    "mtime": 1795189845.6668544,
-    "seen": 1795190859.0436153,
-    "ast_hash": "5b59c70d6019f168a31c71cb35105a3a",
+    "mtime": 1795191478.5682604,
+    "seen": 1795192947.6887877,
+    "ast_hash": "2da39870d76c747ad83bfb4d9ff65a9e",
     "semantic_hash": ""
   },
   "src/app/admin/crm/mensajes/page.tsx": {
-    "mtime": 1795190451.3040621,
-    "seen": 1795190859.043617,
-    "ast_hash": "da01a5f13d1d0737021850ba0975f52e",
+    "mtime": 1795192134.6946902,
+    "seen": 1795192947.6887903,
+    "ast_hash": "d505c922f11144c2a3414ff8ed3f447f",
     "semantic_hash": ""
   },
   "src/app/admin/crm/page.tsx": {
@@ -1452,9 +1452,9 @@
     "semantic_hash": ""
   },
   "src/components/admin/inbox.tsx": {
-    "mtime": 1795190451.3047798,
-    "seen": 1795190859.0450296,
-    "ast_hash": "6175dd392253cc4940c8620a1b4a6297",
+    "mtime": 1795192372.2786093,
+    "seen": 1795192947.6904109,
+    "ast_hash": "77ebc77723fa3d31865bdf1eb9a4208c",
     "semantic_hash": ""
   },
   "src/components/admin/integration-card.tsx": {
@@ -1566,15 +1566,15 @@
     "semantic_hash": ""
   },
   "src/server/crm-ai.ts": {
-    "mtime": 1795189777.157635,
-    "seen": 1795190859.0461957,
-    "ast_hash": "6f970c3634f27a968975b32b44ac7fde",
+    "mtime": 1795191406.1838477,
+    "seen": 1795192947.6918795,
+    "ast_hash": "4fc26f9e83194e8e55921230837a02f0",
     "semantic_hash": ""
   },
   "src/server/crm-webhooks.ts": {
-    "mtime": 1795189743.2011743,
-    "seen": 1795190859.0461996,
-    "ast_hash": "f65e21d50d0b7e5ebf485b9ba78ef297",
+    "mtime": 1795191332.379377,
+    "seen": 1795192947.6918855,
+    "ast_hash": "e52e3a51808710d720ed13d093bbfcfa",
     "semantic_hash": ""
   },
   "src/server/crm.ts": {
@@ -1602,9 +1602,9 @@
     "semantic_hash": ""
   },
   "src/server/messages.ts": {
-    "mtime": 1795189641.230855,
-    "seen": 1795190859.0463262,
-    "ast_hash": "712f37273569c9cad6fd6d73208766f2",
+    "mtime": 1795191454.5173326,
+    "seen": 1795192947.6920552,
+    "ast_hash": "05cd63ad1c951cca6658b576dd6ae15d",
     "semantic_hash": ""
   },
   "src/server/sales.ts": {
@@ -1674,9 +1674,9 @@
     "semantic_hash": ""
   },
   "tests/e2e/inbox.spec.ts": {
-    "mtime": 1795190816.6443515,
-    "seen": 1795190859.0469189,
-    "ast_hash": "cf6a57d039ecd6c2a00930928f42c097",
+    "mtime": 1795192671.0478795,
+    "seen": 1795192947.6928096,
+    "ast_hash": "d3878a87e84fb88b85a0b27572433d5f",
     "semantic_hash": ""
   },
   "tests/e2e/integrations.spec.ts": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": ""
   },
   "src/server/crm-demo.ts": {
-    "mtime": 1795190181.0022535,
-    "seen": 1795190859.0461974,
-    "ast_hash": "1e8521a43a35c0d5c08ad7e8e27d7164",
+    "mtime": 1795191739.7680495,
+    "seen": 1795192947.6918821,
+    "ast_hash": "45adda89ded2454ecad82f8f00717075",
     "semantic_hash": ""
   },
   "src/server/social-comments.ts": {
@@ -1824,9 +1824,45 @@
     "semantic_hash": ""
   },
   "tests/e2e/crm-demo.spec.ts": {
-    "mtime": 1795190502.6132295,
-    "seen": 1795190859.0468874,
-    "ast_hash": "c0b3955cd8d98787bd4a1e8454fa4555",
+    "mtime": 1795192671.0501976,
+    "seen": 1795192947.692772,
+    "ast_hash": "72ade5c639b4a3aa4a7cfcaaccf2798e",
+    "semantic_hash": ""
+  },
+  "src/app/admin/crm/agenda/page.tsx": {
+    "mtime": 1795191592.6131692,
+    "seen": 1795192947.688661,
+    "ast_hash": "2f829ded33b6185ae93ed473a2c525be",
+    "semantic_hash": ""
+  },
+  "src/app/api/cron/aprendizaje-ia/route.ts": {
+    "mtime": 1795191421.3253684,
+    "seen": 1795192947.689614,
+    "ast_hash": "1d1e9f2dff99b082adf3123c78b05056",
+    "semantic_hash": ""
+  },
+  "src/server/booking.ts": {
+    "mtime": 1795191554.3589559,
+    "seen": 1795192947.6918051,
+    "ast_hash": "ed4b4b067f8d249f32269301c9b0646f",
+    "semantic_hash": ""
+  },
+  "src/server/crm-learning.ts": {
+    "mtime": 1795192372.2778242,
+    "seen": 1795192947.6918836,
+    "ast_hash": "3a9f22bde4011ddac9a306e23cb246c0",
+    "semantic_hash": ""
+  },
+  "tests/db/agenda-learning.test.ts": {
+    "mtime": 1795191961.4460146,
+    "seen": 1795192947.6923673,
+    "ast_hash": "1987ee30bb132759c4ebafaacb3da24a",
+    "semantic_hash": ""
+  },
+  "vercel.json": {
+    "mtime": 1795191421.3270662,
+    "seen": 1795192947.6932206,
+    "ast_hash": "78c281b5f94ecece90a5fb6fd85ceafa",
     "semantic_hash": ""
   },
   "package-lock.json": {

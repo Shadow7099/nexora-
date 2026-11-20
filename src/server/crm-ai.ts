@@ -7,6 +7,8 @@ import { requireCompanyAdmin } from "@/server/authz";
 import { AppError, notFound } from "@/server/errors";
 import { integrationCredentials } from "@/server/integrations";
 import { REPLY_WINDOW_MS, sendToConversation } from "@/server/messages";
+import { offerDays } from "@/server/booking";
+import { recordVersion } from "@/server/crm-learning";
 import type { Actor } from "@/server/sessions";
 
 /**
@@ -99,7 +101,11 @@ export async function saveAiConfig(actor: Actor, input: unknown) {
     throw new AppError("CONFLICT", "Para activar la IA, primero guarda tu llave de Claude en Integraciones.");
   }
   await db.$transaction(async (tx) => {
+    const before = await tx.crmAiConfig.findUnique({ where: { companyId } });
     await tx.crmAiConfig.upsert({ where: { companyId }, create: { companyId, ...v }, update: v });
+    if (!before || before.knowledge !== v.knowledge || before.instructions !== v.instructions || before.escalation !== v.escalation) {
+      await recordVersion(tx, companyId, v, "manual", { userId: actor.userId });
+    }
     await audit({ companyId, actorUserId: actor.userId, action: "crm_ai.config", entityType: "company", entityId: companyId, after: { enabled: v.enabled, mode: v.mode } }, tx);
   });
 }
@@ -118,7 +124,8 @@ export async function answerGap(actor: Actor, id: string, answer: unknown, dismi
       const cfg = await tx.crmAiConfig.findUnique({ where: { companyId } });
       const line = `- ${gap.missing}: ${text}`;
       const knowledge = cfg?.knowledge ? `${cfg.knowledge.trimEnd()}\n${line}` : line;
-      await tx.crmAiConfig.upsert({ where: { companyId }, create: { companyId, knowledge }, update: { knowledge: knowledge.slice(-20_000) } });
+      const saved = await tx.crmAiConfig.upsert({ where: { companyId }, create: { companyId, knowledge }, update: { knowledge: knowledge.slice(-20_000) } });
+      await recordVersion(tx, companyId, saved, "teach", { summary: `Aprendió: ${gap.missing}`, userId: actor.userId });
     }
     await audit({ companyId, actorUserId: actor.userId, action: dismiss ? "crm_ai.gap_dismiss" : "crm_ai.gap_answer", entityType: "ai_gap", entityId: id }, tx);
   });
@@ -279,7 +286,9 @@ export async function analyzeConversation(companyId: string, conversationId: str
   const autoSend = opts.allowAutoSend && cfg?.enabled && cfg.mode === "AUTO" && !conv.aiPaused && !out.atender_persona && windowOpen && out.respuesta.trim();
   if (autoSend) {
     try {
-      await sendToConversation(conv, out.respuesta.trim(), { origin: "AI", userId: null }, f, now);
+      // Quiere una cita y la agenda está activa: la IA responde y ofrece los días con botones.
+      if (out.etiqueta === "cita" && (cfg?.bookingEnabled ?? true)) await offerDays(conv, { origin: "AI", userId: null }, out.respuesta.trim(), now, f);
+      else await sendToConversation(conv, out.respuesta.trim(), { origin: "AI", userId: null }, f, now);
       await db.conversation.update({ where: { id: conv.id }, data: { aiSuggestion: null } });
       return { analyzed: true as const, sent: true as const, output: out };
     } catch (e) {
