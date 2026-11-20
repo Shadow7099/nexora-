@@ -33,6 +33,9 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
   } catch (err) {
     if (err instanceof AppError && err.code === "NOT_FOUND") notFound();
     if (!isMissingTable(err)) throw err;
+    // Qué falta exactamente en la base (nombre de la tabla o columna, sin datos), para el soporte.
+    const m = err as { code?: string; message?: string; meta?: Record<string, unknown> };
+    console.error("ficha-empleado: falta en la base", m.code, JSON.stringify(m.meta ?? {}).slice(0, 300), String(m.message ?? "").match(/The (?:column|table) `[^`]+`/)?.[0] ?? "");
     pending = true;
   }
   if (pending || !loaded) return (<><PageHeader title="Empleado" /><ModulePending name="La ficha del empleado (códigos de acceso)" /></>);
