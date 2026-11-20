@@ -22,10 +22,12 @@ export class SecretsKeyMissing extends Error {
 }
 
 function key(): Buffer {
-  const raw = process.env.NEXORA_SECRETS_KEY;
+  // Tolera espacios, saltos de línea o comillas pegados por error alrededor del valor.
+  const raw = process.env.NEXORA_SECRETS_KEY?.trim().replace(/^["']|["']$/g, "").trim();
   if (!raw) throw new SecretsKeyMissing();
-  const k = Buffer.from(raw, "base64");
-  if (k.length !== 32) throw new Error("NEXORA_SECRETS_KEY debe ser de 32 bytes en base64 (openssl rand -base64 32).");
+  // 32 bytes: en base64 (44 caracteres, p. ej. openssl rand -base64 32) o en hexadecimal (64 caracteres).
+  const k = /^[0-9a-fA-F]{64}$/.test(raw) ? Buffer.from(raw, "hex") : Buffer.from(raw, "base64");
+  if (k.length !== 32) throw new Error(`NEXORA_SECRETS_KEY debe ser de 32 bytes: 44 caracteres en base64 o 64 en hexadecimal (el valor guardado tiene ${raw.length} caracteres).`);
   return k;
 }
 
