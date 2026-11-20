@@ -151,11 +151,11 @@ export default async function EmployeePage({ params }: PageProps<"/admin/emplead
                             {d.lastSeenAt ? ` · última marcación ${formatTime(d.lastSeenAt)}, ${formatDate(d.lastSeenAt)}` : ""}
                           </p>
                           {exempt && <Badge tone="warning" className="mt-1">Autorizado a marcar sin huella ni Face ID</Badge>}
-                          {d.status === "ACTIVE" && !groupPasskey && !exempt && (
+                          {d.status === "ACTIVE" && e.requirePasskey && !groupPasskey && !exempt && (
                             <p className="mt-1 text-xs text-warning">Sin huella ni Face ID: no podrá marcar hasta activarla.</p>
                           )}
                           <DeviceActions id={d.id} pending={d.status === "PENDING"} />
-                          {d.status === "ACTIVE" && !otherWindow && (exempt || !groupPasskey) && <PasskeyExemption id={d.id} exempt={exempt} />}
+                          {d.status === "ACTIVE" && !otherWindow && e.requirePasskey && (exempt || !groupPasskey) && <PasskeyExemption id={d.id} exempt={exempt} />}
                         </li>
                       );
                     })}
