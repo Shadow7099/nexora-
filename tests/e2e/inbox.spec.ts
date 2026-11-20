@@ -63,7 +63,9 @@ test("bandeja: llega un WhatsApp, se lee y la respuesta rechazada por Meta se mu
   await page.screenshot({ path: `test-results/shots/${tag}-mensajes.png`, fullPage: true });
 
   // IA: sin llave de Claude no se puede activar.
-  await page.getByRole("link", { name: "IA de mensajes" }).click();
+  // En el celular las pestañas se ocultan dentro de un chat: primero se vuelve a la lista.
+  if (await page.getByRole("link", { name: "Volver a las conversaciones" }).isVisible()) await page.getByRole("link", { name: "Volver a las conversaciones" }).click();
+  await page.getByRole("link", { name: /^IA de mensajes/ }).click();
   await expect(page.getByText("Para usar la IA, guarda tu llave de Claude")).toBeVisible();
   await page.getByLabel("Lo que la IA sabe de tu negocio").fill("Domicilios en Villavicencio: $5.000.");
   await page.getByRole("button", { name: "Guardar" }).click();

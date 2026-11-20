@@ -233,6 +233,7 @@ model Company {
   crmAiConfig        CrmAiConfig?
   aiGaps             AiGap[]
   waTemplates        WaTemplate[]
+  socialComments     SocialComment[]
   invitation         CompanyInvitation?
 
   @@map("company")
@@ -1310,6 +1311,15 @@ model Conversation {
   aiError       String?        @map("ai_error")
   /// La IA no responde sola en este chat (una persona lo tomó).
   aiPaused      Boolean        @default(false) @map("ai_paused")
+  /// Anuncio de Meta por el que llegó el chat (botón «Enviar mensaje» de un anuncio o publicación).
+  adId          String?        @map("ad_id")
+  adTitle       String?        @map("ad_title")
+  adUrl         String?        @map("ad_url")
+  /// "ad" (anuncio pagado) o "post" (publicación orgánica).
+  adSourceType  String?        @map("ad_source_type")
+  adAt          DateTime?      @map("ad_at") @db.Timestamptz(3)
+  /// Chat de demostración (cargado para mostrar la bandeja sin conectar nada): no se envía a ninguna plataforma.
+  demo          Boolean        @default(false)
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
 
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
@@ -1319,6 +1329,7 @@ model Conversation {
   @@unique([id, companyId])
   @@unique([companyId, channel, externalUser])
   @@index([companyId, lastMessageAt])
+  @@index([companyId, adId])
   @@map("conversation")
 }
 
@@ -1440,4 +1451,43 @@ model PasskeyLogin {
 
   @@index([expiresAt])
   @@map("passkey_login")
+}
+
+// ─────────────────────────── Comentarios de redes ───────────────────────────
+
+// Comentario en una publicación o anuncio de Facebook o Instagram de la empresa.
+// La IA lo clasifica y sugiere la respuesta; una persona responde en público,
+// por privado (abre un chat) o lo descarta.
+model SocialComment {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  /// FACEBOOK o INSTAGRAM
+  channel      String
+  externalId   String    @map("external_id")
+  parentId     String?   @map("parent_id")
+  postId       String?   @map("post_id")
+  postText     String?   @map("post_text")
+  postUrl      String?   @map("post_url")
+  authorId     String?   @map("author_id")
+  authorName   String?   @map("author_name")
+  body         String
+  /// PENDING, REPLIED (en público), PRIVATE (por mensaje privado), IGNORED
+  status       String    @default("PENDING")
+  /// interes, elogio, negativo, otro
+  aiType       String?   @map("ai_type")
+  aiSuggestion String?   @map("ai_suggestion")
+  aiPrivate    String?   @map("ai_private")
+  aiError      String?   @map("ai_error")
+  reply        String?
+  repliedAt    DateTime? @map("replied_at") @db.Timestamptz(3)
+  repliedById  String?   @map("replied_by_id") @db.Uuid
+  demo         Boolean   @default(false)
+  postedAt     DateTime  @map("posted_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, externalId])
+  @@index([companyId, status, postedAt])
+  @@map("social_comment")
 }

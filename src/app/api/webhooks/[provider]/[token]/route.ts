@@ -1,5 +1,6 @@
 import { after, NextResponse, type NextRequest } from "next/server";
 import { analyzeConversation } from "@/server/crm-ai";
+import { suggestCommentReply } from "@/server/social-comments";
 import { handleGenericLead, handleMetaEvent, handleWhatsappEvent, verifySubscription, type WebhookResult } from "@/server/crm-webhooks";
 
 /**
@@ -29,11 +30,14 @@ export async function POST(req: NextRequest, { params }: RouteContext<"/api/webh
     if (provider === "meta" || provider === "whatsapp") {
       const r = provider === "meta" ? await handleMetaEvent(token, raw, signature) : await handleWhatsappEvent(token, raw, signature);
       // La IA lee los chats con mensajes nuevos DESPUÉS de responderle a Meta (Meta exige respuesta rápida).
-      if (r.analyze?.conversationIds.length) {
-        const { companyId, conversationIds } = r.analyze;
+      if (r.analyze && (r.analyze.conversationIds.length || r.analyze.commentIds?.length)) {
+        const { companyId, conversationIds, commentIds = [] } = r.analyze;
         after(async () => {
           for (const id of conversationIds) {
             await analyzeConversation(companyId, id, { allowAutoSend: true }).catch((e) => console.error("ia", id, e instanceof Error ? e.message : e));
+          }
+          for (const id of commentIds) {
+            await suggestCommentReply(companyId, id).catch((e) => console.error("ia comentario", id, e instanceof Error ? e.message : e));
           }
         });
       }

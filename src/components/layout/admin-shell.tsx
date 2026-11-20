@@ -16,8 +16,11 @@ export function AdminShell({
   user,
   logout,
   nav: navProp = "admin",
+  badges = {},
   children,
 }: {
+  /** Avisos por sección (p. ej. chats sin leer en Mensajes): número junto al nombre. */
+  badges?: Record<string, number>;
   user: ShellUser;
   /** Acción de servidor para cerrar sesión (ausente en la vista previa del diseño). */
   logout?: () => Promise<void>;
@@ -67,6 +70,9 @@ export function AdminShell({
           >
             <Icon className={cn("size-4", active ? "text-primary" : "text-fg-subtle")} aria-hidden />
             {label}
+            {(badges[href] ?? 0) > 0 && (
+              <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-fg" aria-label={`${badges[href]} avisos`}>{badges[href]}</span>
+            )}
             {preview && (
               <span className="ml-auto rounded bg-bg-subtle px-1.5 text-[10px] font-medium text-fg-subtle ring-1 ring-border" title={`Se completa en la fase ${phase}`}>
                 Pronto
@@ -114,8 +120,9 @@ export function AdminShell({
 
       <div className="min-w-0">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-bg/80 px-4 backdrop-blur-md sm:px-6">
-          <button className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle lg:hidden" onClick={() => setOpen(true)} aria-label="Abrir menú" aria-expanded={open}>
+          <button className="relative grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle lg:hidden" onClick={() => setOpen(true)} aria-label="Abrir menú" aria-expanded={open}>
             <Menu className="size-5" />
+            {Object.values(badges).some((n) => n > 0) && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger" aria-hidden />}
           </button>
           <span className="lg:hidden">
             <Logo withWordmark={false} />

@@ -151,6 +151,12 @@ En **Mensajes** están todas las conversaciones, unidas a la ficha de cada clien
   - **Lo que le falta a la IA:** las preguntas que no pudo responder por falta de un dato. Respóndelas una vez y se agregan a lo que sabe.
   - Nunca inventa precios, existencias ni políticas: si no lo sabe, dice que lo confirma.
 - **Plantillas de WhatsApp:** escribe la plantilla (con variables {{1}}, {{2}}… y su ejemplo), **Enviar a Meta** y espera la aprobación (el estado se actualiza solo o con «Sincronizar con Meta»). Aprobada, aparece en los chats de más de 24 h para retomarlos.
+- **Avisos:** arriba de los chats ves cuántos chats piden una persona, cuántos llegaron hoy por anuncios (y desde cuál), los comentarios de redes por responder y los datos que le faltan a la IA. En el menú, **Mensajes** muestra el número de pendientes.
+- **De qué anuncio llegó:** si el cliente tocó «Enviar mensaje» o el botón de WhatsApp de un anuncio o publicación de Facebook o Instagram, el chat lo muestra («Llegó por un anuncio: …», con **Ver anuncio**) y la oportunidad del CRM se llama como el anuncio. El filtro **Llegaron por anuncios** los reúne.
+- **IA en el chat:** **IA activa · Pausar** en el encabezado de cada chat; **Respuesta automática de la IA: Encender/Apagar** para todos los chats; **Marcar resuelto** cuando ya atendiste un chat que pedía una persona.
+- **Comentarios de redes:** comentarios de tus publicaciones y anuncios de Facebook e Instagram, clasificados por la IA (interés, elogio, queja) con su respuesta sugerida. **Responder en público**, **Responder por privado** (abre el chat en Chats; Meta lo permite dentro de 7 días) o **No responder**. En tu app de Meta suscribe los campos **feed** (página) y **comments** (Instagram).
+- **Anuncios:** chats, clientes, ventas ganadas y valor que trajo cada anuncio en las fechas que elijas; toca uno para ver sus chats.
+- **Demostración:** **Ver demostración** carga chats (varios llegados por anuncios), comentarios y el análisis de la IA para mostrar el CRM sin conectar nada. En esos chats puedes **escribir como el cliente** para ver a la IA sugerir o responder sola. Nada sale a ninguna plataforma; **Borrar demostración** lo quita todo.
 - **Conectar:** en Integraciones, WhatsApp (con la clave secreta de la app) y Facebook e Instagram. En tu app de Meta suscribe «messages» (WhatsApp y página) y, para plantillas, «message_template_status_update».
 
 ### Ventas

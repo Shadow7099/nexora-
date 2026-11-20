@@ -124,6 +124,46 @@ export async function answerGap(actor: Actor, id: string, answer: unknown, dismi
   });
 }
 
+/**
+ * Interruptor de la bandeja: «Respuesta automática» encendida (la IA responde
+ * sola, salvo los chats que piden una persona o están en pausa) o apagada (la
+ * IA solo sugiere). En ambos casos la IA queda activa.
+ */
+export async function setAutoReply(actor: Actor, on: boolean) {
+  const companyId = requireCompanyAdmin(actor);
+  const mode = on ? "AUTO" : "SUGGEST";
+  await db.$transaction(async (tx) => {
+    await tx.crmAiConfig.upsert({ where: { companyId }, create: { companyId, enabled: true, mode }, update: { enabled: true, mode } });
+    await audit({ companyId, actorUserId: actor.userId, action: "crm_ai.auto_reply", entityType: "company", entityId: companyId, after: { mode } }, tx);
+  });
+}
+
+/**
+ * Análisis sin Claude, solo para los chats de demostración: reglas simples por
+ * palabras clave, para mostrar cómo se ve la IA sin conectar nada.
+ */
+export function demoAnalysis(lastMessage: string, customerName: string): AiOutput {
+  const t = lastMessage.toLowerCase();
+  const first = customerName.split(" ")[0] ?? "";
+  const hi = first && !first.startsWith("Cliente") ? `¡Hola, ${first}! ` : "¡Hola! ";
+  if (/(reclam|queja|mal servicio|no me ha llegado|devoluci|cobraron|estafa|p[eé]simo)/.test(t)) {
+    return { etiqueta: "reclamo", resumen: "El cliente reporta un problema y está molesto.", respuesta: `${hi}Lamento mucho lo que pasó. Ya reviso tu caso y una persona del equipo te confirma la solución en unos minutos.`, atender_persona: true, motivo: "Reclamo: debe atenderlo una persona.", falta_informacion: "" };
+  }
+  if (/(transferencia|pagu[eé]|pago|nequi|comprobante|consign)/.test(t)) {
+    return { etiqueta: "pago", resumen: "El cliente envió o pregunta por un pago.", respuesta: `${hi}¡Gracias! Ya validamos tu pago y te confirmamos en un momento.`, atender_persona: true, motivo: "Hay que confirmar un pago.", falta_informacion: "" };
+  }
+  if (/(precio|cu[aá]nto|vale|valor|costo|promoci)/.test(t)) {
+    return { etiqueta: "precio", resumen: "Pregunta precios del producto que vio en el anuncio.", respuesta: `${hi}Con gusto 😊 ¿Me confirmas la referencia o la talla que te interesa? Así te paso el precio exacto y la disponibilidad.`, atender_persona: false, motivo: "", falta_informacion: "Lista de precios de los productos del anuncio" };
+  }
+  if (/(cita|agendar|visita|horario|abren|atienden)/.test(t)) {
+    return { etiqueta: "cita", resumen: "Quiere agendar una visita.", respuesta: `${hi}¡Claro! ¿Qué día y a qué hora te queda mejor para visitarnos? Te dejo la cita reservada.`, atender_persona: false, motivo: "", falta_informacion: "Horario de atención los domingos" };
+  }
+  if (/(pedido|domicilio|env[ií]o|quiero|comprar|me lo llevo)/.test(t)) {
+    return { etiqueta: "pedido", resumen: "Quiere hacer un pedido.", respuesta: `${hi}¡Perfecto! Para tomar tu pedido, ¿me compartes tu dirección y el barrio? Te confirmo el valor del domicilio.`, atender_persona: false, motivo: "", falta_informacion: "" };
+  }
+  return { etiqueta: "consulta", resumen: "Consulta general.", respuesta: `${hi}Gracias por escribirnos. ¿En qué te podemos ayudar hoy?`, atender_persona: false, motivo: "", falta_informacion: "" };
+}
+
 export async function setConversationAiPaused(actor: Actor, conversationId: string, paused: boolean) {
   const companyId = requireCompanyAdmin(actor);
   const r = await db.conversation.updateMany({ where: { id: conversationId, companyId }, data: { aiPaused: paused } });
@@ -181,7 +221,7 @@ export async function analyzeConversation(companyId: string, conversationId: str
   if (!conv) throw notFound("La conversación");
   if (!cfg?.enabled && !opts.force) return { skipped: "disabled" as const };
   const claude = await integrationCredentials(companyId, "CLAUDE");
-  if (!claude?.secrets.apiKey) {
+  if (!claude?.secrets.apiKey && !conv.demo) {
     await db.conversation.update({ where: { id: conv.id }, data: { aiError: "Falta la llave de Claude en Integraciones.", aiAt: now } });
     return { skipped: "no_key" as const };
   }
@@ -209,7 +249,8 @@ export async function analyzeConversation(companyId: string, conversationId: str
 
   let out: AiOutput | null;
   try {
-    out = await askClaude(claude.secrets.apiKey, system, transcript, f);
+    // Demostración sin llave de Claude: reglas simples. Con llave, la IA real (también en la demostración).
+    out = claude?.secrets.apiKey ? await askClaude(claude.secrets.apiKey, system, transcript, f) : demoAnalysis(messages.at(-1)!.body, conv.customer.name);
   } catch (e) {
     const msg = e instanceof Anthropic.AuthenticationError ? "Anthropic no aceptó la llave de Claude." : e instanceof Anthropic.RateLimitError ? "Claude está saturado; se intentará con el próximo mensaje." : e instanceof Anthropic.APIError ? `Claude respondió con error ${e.status ?? ""}.` : "No se pudo analizar el chat.";
     await db.conversation.update({ where: { id: conv.id }, data: { aiError: msg, aiAt: now } });

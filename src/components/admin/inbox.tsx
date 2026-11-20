@@ -1,9 +1,10 @@
 "use client";
 
-import { Pause, Play, RefreshCw, Send, Sparkles, Trash2, Upload } from "lucide-react";
+import { Check, EyeOff, FlaskConical, Lock, Pause, Play, RefreshCw, Send, Sparkles, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import {
+  autoReplyAction, clearDemoAction, ignoreCommentAction, loadDemoAction, replyCommentAction, resolveHumanAction, simulateCustomerAction, suggestCommentAction,
   answerGapAction, createTemplateAction, deleteTemplateAction, pauseAiAction, reanalyzeAction, saveAiConfigAction, sendReplyAction, sendTemplateAction, submitTemplateAction, syncTemplatesAction,
 } from "@/app/admin/crm/mensajes/actions";
 import { Button } from "@/components/ui/button";
@@ -100,9 +101,7 @@ export function AiPanelActions({ conversationId, paused }: { conversationId: str
     <div className="grid gap-1">
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="ghost" loading={pending} onClick={() => run(() => reanalyzeAction(conversationId))}><RefreshCw aria-hidden /> Volver a analizar</Button>
-        <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => pauseAiAction(conversationId, !paused))}>
-          {paused ? <><Play aria-hidden /> Reactivar la IA en este chat</> : <><Pause aria-hidden /> Pausar la IA en este chat</>}
-        </Button>
+        {paused && <span className="self-center text-xs text-warning">La IA no responde sola en este chat.</span>}
       </div>
       {state?.message && <p role={state.ok ? "status" : "alert"} className={state.ok ? "text-xs text-success" : "text-xs text-danger"}>{state.message}</p>}
     </div>
@@ -288,3 +287,154 @@ export function SyncTemplatesButton() {
     </div>
   );
 }
+
+/** Ejecuta una acción del servidor y muestra su resultado debajo del botón. */
+function useRun() {
+  const [state, setState] = useState<ActionState>(null);
+  const [pending, setPending] = useState(false);
+  const run = (fn: () => Promise<ActionState>) => {
+    setPending(true);
+    startTransition(async () => {
+      setState(await fn());
+      setPending(false);
+    });
+  };
+  return { state, pending, run };
+}
+const Result = ({ state }: { state: ActionState }) =>
+  state?.message ? <p role={state.ok ? "status" : "alert"} className={state.ok ? "text-xs text-success" : "text-xs text-danger"}>{state.message}</p> : null;
+
+/** Interruptor general (como en Ámbar): la IA responde sola o solo sugiere. */
+export function AutoReplyToggle({ on, claudeConnected }: { on: boolean; claudeConnected: boolean }) {
+  const { state, pending, run } = useRun();
+  return (
+    <div className={cn("grid gap-2 rounded-xl border p-3 text-sm sm:flex sm:items-center sm:justify-between", on ? "border-success/40 bg-success-soft/50" : "border-border bg-surface")}>
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 font-medium"><Sparkles className="size-4 text-accent" aria-hidden /> Respuesta automática de la IA: <span className={on ? "text-success" : "text-fg-muted"}>{on ? "ENCENDIDA" : "APAGADA"}</span></p>
+        <p className="mt-0.5 text-xs text-fg-muted">
+          {on ? "La IA contesta sola los chats activos. Nunca responde sola los que piden una persona ni los que pausaste." : "La IA solo deja la respuesta sugerida; una persona la revisa y la envía."}
+          {!claudeConnected && " Sin llave de Claude, la IA solo trabaja en los chats de demostración."}
+        </p>
+        <Result state={state} />
+      </div>
+      <Button size="sm" variant={on ? "secondary" : "primary"} loading={pending} onClick={() => (!on && !confirm("¿Encender la respuesta automática? La IA contestará sola en los chats que no estén en pausa.") ? undefined : run(() => autoReplyAction(!on)))}>
+        {on ? "Apagar" : "Encender"}
+      </Button>
+    </div>
+  );
+}
+
+/** En el encabezado del chat: «IA activa · Pausar» / «IA pausada · Reactivar». */
+export function ChatAiToggle({ conversationId, paused }: { conversationId: string; paused: boolean }) {
+  const { state, pending, run } = useRun();
+  return (
+    <div className="grid justify-items-end gap-1">
+      <Button size="sm" variant={paused ? "secondary" : "primary"} loading={pending} onClick={() => run(() => pauseAiAction(conversationId, !paused))} title={paused ? "La IA no contesta sola en este chat" : "La IA contesta en este chat"}>
+        {paused ? <><Play aria-hidden /> IA pausada · Reactivar</> : <><Pause aria-hidden /> IA activa · Pausar</>}
+      </Button>
+      <Result state={state} />
+    </div>
+  );
+}
+
+export function ResolveButton({ conversationId }: { conversationId: string }) {
+  const { state, pending, run } = useRun();
+  return (
+    <span className="grid gap-1">
+      <Button size="sm" loading={pending} onClick={() => run(() => resolveHumanAction(conversationId))}><Check aria-hidden /> Marcar resuelto</Button>
+      <Result state={state} />
+    </span>
+  );
+}
+
+/** Cargar o borrar la demostración (chats, anuncios, comentarios e IA) para mostrar el CRM sin conectar nada. */
+export function DemoControls({ hasDemo, compact = false }: { hasDemo: boolean; compact?: boolean }) {
+  const { state, pending, run } = useRun();
+  return (
+    <div className={cn("grid gap-2", !compact && "justify-items-center text-center")}>
+      <div className="flex flex-wrap gap-2">
+        <Button size={compact ? "sm" : "md"} variant={hasDemo ? "secondary" : "primary"} loading={pending} onClick={() => run(loadDemoAction)}>
+          <FlaskConical aria-hidden /> {hasDemo ? "Reiniciar demostración" : "Ver demostración"}
+        </Button>
+        {hasDemo && <Button size={compact ? "sm" : "md"} variant="ghost" disabled={pending} onClick={() => confirm("¿Borrar todos los chats y comentarios de demostración?") && run(clearDemoAction)}><Trash2 aria-hidden /> Borrar demostración</Button>}
+      </div>
+      <Result state={state} />
+    </div>
+  );
+}
+
+/** Solo en chats de demostración: escribir como el cliente para ver a la IA trabajar. */
+export function SimulateCustomer({ conversationId }: { conversationId: string }) {
+  const [state, dispatch, pending] = useActionState(simulateCustomerAction.bind(null, conversationId), null);
+  const [text, setText] = useState("");
+  const [seen, setSeen] = useState(state);
+  if (state !== seen) {
+    setSeen(state);
+    if (state?.ok) setText("");
+  }
+  return (
+    <form onSubmit={submitWith(dispatch)} className="grid gap-2 rounded-xl border border-dashed border-accent/50 bg-accent-soft/30 p-3" aria-label="Demostración: escribir como el cliente">
+      <p className="flex items-center gap-2 text-xs font-medium text-accent"><FlaskConical className="size-3.5" aria-hidden /> Demostración: escribe como si fueras el cliente</p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label htmlFor={`sim-${conversationId}`} className="sr-only">Mensaje del cliente</label>
+        <input id={`sim-${conversationId}`} name="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ej.: ¿Cuánto vale el domicilio?" className={cn(textareaClass, "h-10 min-w-0 flex-1 basis-48")} />
+        <SubmitButton size="sm" variant="secondary" loading={pending}>Enviar como cliente</SubmitButton>
+      </div>
+      <Result state={state} />
+    </form>
+  );
+}
+
+const TYPE_TONE: Record<string, string> = { interes: "text-success", elogio: "text-accent", negativo: "text-danger", otro: "text-fg-muted" };
+
+/** Comentario de Facebook o Instagram con la respuesta sugerida por la IA. */
+export function CommentCard({ c, typeLabel, canPrivate }: {
+  c: { id: string; channel: string; authorName: string | null; body: string; postText: string | null; postUrl: string | null; at: string; status: string; aiType: string | null; aiSuggestion: string | null; aiPrivate: string | null; aiError: string | null; reply: string | null; demo: boolean };
+  typeLabel: string | null; canPrivate: boolean;
+}) {
+  const [pub, dispatchPub, p1] = useActionState(replyCommentAction.bind(null, c.id, "publico"), null);
+  const [priv, dispatchPriv, p2] = useActionState(replyCommentAction.bind(null, c.id, "privado"), null);
+  const { state, pending, run } = useRun();
+  const done = pub?.ok || priv?.ok;
+  return (
+    <article className="grid gap-2 rounded-xl border border-border bg-surface p-4 text-sm shadow-card">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex flex-wrap items-center gap-2 font-medium">
+          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", c.channel === "FACEBOOK" ? "bg-primary-soft text-primary" : "bg-accent-soft text-accent")}>{c.channel === "FACEBOOK" ? "Facebook" : "Instagram"}</span>
+          {c.authorName ?? "Persona"}
+          {typeLabel && <span className={cn("text-xs", TYPE_TONE[c.aiType ?? "otro"])}>● {typeLabel}</span>}
+          {c.demo && <span className="text-[11px] text-fg-subtle">Demostración</span>}
+        </p>
+        <span className="text-xs text-fg-subtle">{c.at}</span>
+      </header>
+      <p className="whitespace-pre-line">{c.body}</p>
+      {(c.postText || c.postUrl) && <p className="text-xs text-fg-muted">En la publicación: {c.postText ? `«${c.postText.slice(0, 120)}»` : ""} {c.postUrl && <a href={c.postUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">Ver publicación</a>}</p>}
+      {c.status !== "PENDING" || done ? (
+        <p className="rounded-lg bg-success-soft px-3 py-2 text-success" role="status">{done ? (pub ?? priv)?.message : c.status === "IGNORED" ? "Descartado." : `Respuesta: ${c.reply}`}</p>
+      ) : (
+        <>
+          {c.aiError && <p className="text-xs text-warning">{c.aiError}</p>}
+          <form onSubmit={submitWith(dispatchPub)} className="grid gap-1">
+            <label htmlFor={`pub-${c.id}`} className="text-xs font-medium text-fg-muted">Respuesta pública <Sparkles className="inline size-3 text-accent" aria-label="sugerida por la IA" /></label>
+            <textarea id={`pub-${c.id}`} name="text" rows={2} defaultValue={pub?.data?.text ?? c.aiSuggestion ?? ""} key={`pub-${c.aiSuggestion}`} className={textareaClass} />
+            <SubmitButton size="sm" loading={p1} className="justify-self-start"><Send aria-hidden /> Responder en público</SubmitButton>
+            {pub && !pub.ok && <p role="alert" className="text-xs text-danger">{pub.message}</p>}
+          </form>
+          <form onSubmit={submitWith(dispatchPriv)} className="grid gap-1">
+            <label htmlFor={`priv-${c.id}`} className="text-xs font-medium text-fg-muted">Mensaje privado (abre el chat en Chats)</label>
+            <textarea id={`priv-${c.id}`} name="text" rows={2} defaultValue={priv?.data?.text ?? c.aiPrivate ?? ""} key={`priv-${c.aiPrivate}`} placeholder="Opcional: primer mensaje directo a la persona" className={textareaClass} />
+            <SubmitButton size="sm" variant="secondary" loading={p2} disabled={!canPrivate} className="justify-self-start" title={canPrivate ? undefined : "Pasaron más de 7 días: Meta ya no deja escribirle por privado."}><Lock aria-hidden /> Responder por privado</SubmitButton>
+            {priv && !priv.ok && <p role="alert" className="text-xs text-danger">{priv.message}</p>}
+          </form>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="ghost" loading={pending} onClick={() => run(() => suggestCommentAction(c.id))}><Sparkles aria-hidden /> Sugerir con IA</Button>
+            <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => ignoreCommentAction(c.id))}><EyeOff aria-hidden /> No responder</Button>
+          </div>
+          <Result state={state} />
+        </>
+      )}
+    </article>
+  );
+}
+
+

@@ -854,6 +854,72 @@ CREATE UNIQUE INDEX "employee_access_code_hash_key" ON "employee"("access_code_h
 END
 $migracion$;
 
+-- ── 20261126000000_crm_ads_comments ──
+DO $migracion$
+BEGIN
+  IF to_regclass('public.social_comment') IS NULL THEN
+    EXECUTE '-- AlterTable
+ALTER TABLE "conversation" ADD COLUMN     "ad_at" TIMESTAMPTZ(3),
+ADD COLUMN     "ad_id" TEXT,
+ADD COLUMN     "ad_source_type" TEXT,
+ADD COLUMN     "ad_title" TEXT,
+ADD COLUMN     "ad_url" TEXT,
+ADD COLUMN     "demo" BOOLEAN NOT NULL DEFAULT false;
+
+-- CreateTable
+CREATE TABLE "social_comment" (
+    "id" UUID NOT NULL,
+    "company_id" UUID NOT NULL,
+    "channel" TEXT NOT NULL,
+    "external_id" TEXT NOT NULL,
+    "parent_id" TEXT,
+    "post_id" TEXT,
+    "post_text" TEXT,
+    "post_url" TEXT,
+    "author_id" TEXT,
+    "author_name" TEXT,
+    "body" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT ''PENDING'',
+    "ai_type" TEXT,
+    "ai_suggestion" TEXT,
+    "ai_private" TEXT,
+    "ai_error" TEXT,
+    "reply" TEXT,
+    "replied_at" TIMESTAMPTZ(3),
+    "replied_by_id" UUID,
+    "demo" BOOLEAN NOT NULL DEFAULT false,
+    "posted_at" TIMESTAMPTZ(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "social_comment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "social_comment_company_id_status_posted_at_idx" ON "social_comment"("company_id", "status", "posted_at");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "social_comment_company_id_external_id_key" ON "social_comment"("company_id", "external_id");
+
+-- CreateIndex
+CREATE INDEX "conversation_company_id_ad_id_idx" ON "conversation"("company_id", "ad_id");
+
+-- AddForeignKey
+ALTER TABLE "social_comment" ADD CONSTRAINT "social_comment_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+-- Cerrada a la API pública de Supabase como el resto.
+ALTER TABLE "social_comment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "social_comment" ADD CONSTRAINT "social_comment_status_check" CHECK ("status" IN (''PENDING'', ''REPLIED'', ''PRIVATE'', ''IGNORED''));
+ALTER TABLE "social_comment" ADD CONSTRAINT "social_comment_channel_check" CHECK ("channel" IN (''FACEBOOK'', ''INSTAGRAM''));
+';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20261126000000_crm_ads_comments') THEN
+    INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+    VALUES (gen_random_uuid()::text, '1c202081f91ac2506f980e2f3d57bf31aefac3c19a3d0a36b6beb02348b769c2', now(), '20261126000000_crm_ads_comments', NULL, NULL, now(), 1);
+  END IF;
+END
+$migracion$;
+
 -- Comprobación: debe mostrar todas las tablas.
-SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation,
+SELECT to_regclass('public.lead') AS lead, to_regclass('public.integration') AS integration, to_regclass('public.product') AS product, to_regclass('public.cash_movement') AS cash_movement, to_regclass('public.sale') AS sale, to_regclass('public.deal') AS deal, to_regclass('public.conversation') AS conversation, to_regclass('public.social_comment') AS social_comment,
   (SELECT count(*) FROM information_schema.columns WHERE table_name = 'employee' AND column_name = 'access_code_hash') AS codigo_acceso;

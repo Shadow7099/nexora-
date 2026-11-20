@@ -4,7 +4,8 @@ import * as z from "zod";
 import { db } from "@/lib/db";
 import { ingestLead, leadSchema } from "@/server/crm";
 import { integrationCredentials } from "@/server/integrations";
-import { recordEcho, recordInbound, updateMessageStatus, type Channel } from "@/server/messages";
+import { recordEcho, recordInbound, updateMessageStatus, type AdReferral, type Channel } from "@/server/messages";
+import { ingestComment } from "@/server/social-comments";
 import { templateStatusFromWebhook } from "@/server/wa-templates";
 
 /**
@@ -16,7 +17,7 @@ import { templateStatusFromWebhook } from "@/server/wa-templates";
 
 const META_VERSION = "v21.0";
 /** «analyze»: conversaciones con mensajes nuevos que la IA debe leer después de responder el aviso. */
-export type WebhookResult = { status: number; body: string; contentType?: string; analyze?: { companyId: string; conversationIds: string[] } };
+export type WebhookResult = { status: number; body: string; contentType?: string; analyze?: { companyId: string; conversationIds: string[]; commentIds?: string[] } };
 const ok = (body = "ok"): WebhookResult => ({ status: 200, body });
 const fail = (status: number, body: string): WebhookResult => ({ status, body });
 const parseJson = (raw: string): unknown => {
@@ -53,15 +54,27 @@ export async function verifySubscription(provider: "META" | "WHATSAPP", token: s
 
 // ───────────────────────────── Meta: formularios de anuncios ─────────────────────────────
 
+/** Anuncio de clic a Messenger/Instagram (referral.source = ADS). */
+const metaReferral = z.object({
+  source: z.string().optional(),
+  ad_id: z.union([z.string(), z.number()]).optional(),
+  ads_context_data: z.object({ ad_title: z.string().optional(), photo_url: z.string().optional(), post_id: z.string().optional() }).partial().optional(),
+}).passthrough();
 const metaMessaging = z.object({
   sender: z.object({ id: z.string() }),
   recipient: z.object({ id: z.string() }),
   timestamp: z.number().optional(),
-  message: z.object({ mid: z.string(), text: z.string().optional(), is_echo: z.boolean().optional(), attachments: z.array(z.object({ type: z.string() })).optional() }).optional(),
+  referral: metaReferral.optional(),
+  message: z.object({ mid: z.string(), text: z.string().optional(), is_echo: z.boolean().optional(), attachments: z.array(z.object({ type: z.string() })).optional(), referral: metaReferral.optional() }).optional(),
 });
+export function adFromMetaReferral(r: z.infer<typeof metaReferral> | undefined): AdReferral | null {
+  if (!r || r.ad_id == null || (r.source && r.source !== "ADS")) return null;
+  return { id: String(r.ad_id), title: r.ads_context_data?.ad_title ?? null, url: r.ads_context_data?.photo_url ?? null, sourceType: "ad" };
+}
 const metaEvent = z.object({
   object: z.string(),
   entry: z.array(z.object({
+    id: z.string().optional(),
     changes: z.array(z.object({ field: z.string(), value: z.record(z.string(), z.unknown()) })).optional(),
     messaging: z.array(metaMessaging).optional(),
   })).default([]),
@@ -116,8 +129,20 @@ export async function handleMetaEvent(token: string, rawBody: string, signature:
     }
     const known = await db.conversation.findFirst({ where: { companyId: i.companyId, channel, externalUser: ev.sender.id }, select: { id: true } });
     const name = known ? null : await profileName(ev.sender.id, channel, i.secrets.pageAccessToken!, f);
-    const r = await recordInbound(i.companyId, { channel, externalUser: ev.sender.id, name, body, kind: ev.message.text ? "text" : "attachment", externalId: `${channel.toLowerCase()}:${ev.message.mid}`, at });
+    const ad = adFromMetaReferral(ev.message.referral ?? ev.referral);
+    const r = await recordInbound(i.companyId, { channel, externalUser: ev.sender.id, name, body, kind: ev.message.text ? "text" : "attachment", externalId: `${channel.toLowerCase()}:${ev.message.mid}`, at, ad });
     if (!r.duplicate) analyze.add(r.conversationId);
+  }
+
+  // Comentarios en publicaciones y anuncios → «Comentarios de redes» (la IA sugiere la respuesta).
+  const commentIds: string[] = [];
+  for (const entry of parsed.data.entry) {
+    for (const change of entry.changes ?? []) {
+      const c = commentFromChange(parsed.data.object, change, entry.id);
+      if (!c) continue;
+      const id = await ingestComment(i.companyId, c);
+      if (id) commentIds.push(id);
+    }
   }
 
   // Formularios de anuncios (leadgen) → cliente y oportunidad.
@@ -139,7 +164,42 @@ export async function handleMetaEvent(token: string, rawBody: string, signature:
     // Quien llena un formulario de anuncio con aviso de privacidad acepta ser contactado sobre esa solicitud.
     await ingestLead(i.companyId, "META", { ...lead, campaign: d.campaign_name ?? d.ad_name, consent: true, externalId: `meta:${leadId}` });
   }
-  return { ...ok(), analyze: { companyId: i.companyId, conversationIds: [...analyze] } };
+  return { ...ok(), analyze: { companyId: i.companyId, conversationIds: [...analyze], commentIds } };
+}
+
+const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : typeof v === "number" ? String(v) : null);
+const obj = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+
+/**
+ * Comentario nuevo de Instagram (field «comments») o de la página de Facebook
+ * (field «feed», item «comment», verb «add»). Se ignoran los de la propia
+ * cuenta (sus respuestas).
+ */
+export function commentFromChange(object: string, change: { field: string; value: Record<string, unknown> }, ownId?: string) {
+  const v = change.value;
+  if (object === "instagram" && change.field === "comments") {
+    const from = obj(v.from);
+    const id = str(v.id);
+    const text = str(v.text);
+    if (!id || !text || (ownId && str(from.id) === ownId)) return null;
+    return {
+      channel: "INSTAGRAM" as const, externalId: id, parentId: str(v.parent_id), postId: str(obj(v.media).id),
+      authorId: str(from.id), authorName: str(from.username) ? `@${str(from.username)}` : null, body: text,
+    };
+  }
+  if (object === "page" && change.field === "feed" && v.item === "comment" && v.verb === "add") {
+    const from = obj(v.from);
+    const id = str(v.comment_id);
+    const text = str(v.message);
+    if (!id || !text || (ownId && str(from.id) === ownId)) return null;
+    const created = typeof v.created_time === "number" ? new Date(v.created_time * 1000) : undefined;
+    const postId = str(v.post_id);
+    return {
+      channel: "FACEBOOK" as const, externalId: id, parentId: str(v.parent_id) !== postId ? str(v.parent_id) : null, postId,
+      postUrl: str(obj(v.post).permalink_url), authorId: str(from.id), authorName: str(from.name), body: text, at: created,
+    };
+  }
+  return null;
 }
 
 // ───────────────────────────── WhatsApp: mensajes entrantes ─────────────────────────────
@@ -156,6 +216,8 @@ const waEvent = z.object({
           text: z.object({ body: z.string() }).optional(),
           button: z.object({ text: z.string() }).optional(),
           interactive: z.object({ button_reply: z.object({ title: z.string() }).optional(), list_reply: z.object({ title: z.string() }).optional() }).optional(),
+          // Llegó desde un anuncio o publicación de Facebook/Instagram con botón de WhatsApp.
+          referral: z.object({ source_id: z.union([z.string(), z.number()]).optional(), source_type: z.string().optional(), source_url: z.string().optional(), headline: z.string().optional(), body: z.string().optional() }).passthrough().optional(),
         })).optional(),
         statuses: z.array(z.object({ id: z.string(), status: z.string(), errors: z.array(z.object({ title: z.string().optional(), message: z.string().optional() })).optional() })).optional(),
         // Cambio de estado de una plantilla (field = message_template_status_update).
@@ -189,6 +251,7 @@ export async function handleWhatsappEvent(token: string, rawBody: string, signat
       const r = await recordInbound(i.companyId, {
         channel: "WHATSAPP", externalUser: m.from, name, body: text ?? `[${m.type}]`, kind: text ? "text" : m.type, externalId: `wa:${m.id}`,
         at: m.timestamp ? new Date(Number(m.timestamp) * 1000) : undefined,
+        ad: m.referral?.source_id != null ? { id: String(m.referral.source_id), title: m.referral.headline || m.referral.body || null, url: m.referral.source_url ?? null, sourceType: m.referral.source_type } : null,
       });
       if (!r.duplicate) analyze.add(r.conversationId);
     }

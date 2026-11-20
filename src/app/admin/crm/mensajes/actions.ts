@@ -122,3 +122,73 @@ export async function sendTemplateAction(conversationId: string, _: ActionState,
     return toActionState(e);
   }
 }
+
+// ───────────────────── Bandeja estilo Ámbar: IA, anuncios, comentarios y demostración ─────────────────────
+
+const run = async (fn: () => Promise<unknown>, message: string): Promise<ActionState> => {
+  try {
+    await fn();
+    refresh();
+    return { ok: true, message };
+  } catch (e) {
+    return toActionState(e);
+  }
+};
+
+export async function autoReplyAction(on: boolean): Promise<ActionState> {
+  const { setAutoReply } = await import("@/server/crm-ai");
+  return run(async () => setAutoReply(await admin(), on), on ? "Respuesta automática encendida: la IA responde sola los chats activos." : "Respuesta automática apagada: la IA solo sugiere.");
+}
+
+export async function resolveHumanAction(conversationId: string): Promise<ActionState> {
+  const { resolveHuman } = await import("@/server/messages");
+  return run(async () => resolveHuman(await admin(), conversationId), "Marcado como resuelto.");
+}
+
+export async function loadDemoAction(): Promise<ActionState> {
+  const { loadDemo } = await import("@/server/crm-demo");
+  try {
+    const r = await loadDemo(await admin());
+    refresh();
+    return { ok: true, message: `Listo: ${r.chats} chats y ${r.comments} comentarios de demostración.` };
+  } catch (e) {
+    return toActionState(e);
+  }
+}
+
+export async function clearDemoAction(): Promise<ActionState> {
+  const { clearDemo } = await import("@/server/crm-demo");
+  return run(async () => clearDemo(await admin()), "Demostración borrada.");
+}
+
+export async function simulateCustomerAction(conversationId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const { simulateCustomer } = await import("@/server/crm-demo");
+  try {
+    const r = await simulateCustomer(await admin(), conversationId, fd.get("text"));
+    refresh();
+    return { ok: true, message: "sent" in r && r.sent ? "La IA respondió sola." : "La IA dejó su respuesta sugerida." };
+  } catch (e) {
+    return { ...toActionState(e), data: { text: String(fd.get("text") ?? "") } };
+  }
+}
+
+export async function replyCommentAction(commentId: string, mode: "publico" | "privado", _: ActionState, fd: FormData): Promise<ActionState> {
+  const { replyComment } = await import("@/server/social-comments");
+  try {
+    const r = await replyComment(await admin(), commentId, mode, fd.get("text"));
+    refresh();
+    return { ok: true, message: mode === "publico" ? "Respondido en público." : "Mensaje privado enviado: el chat quedó en Chats.", data: r.conversationId ? { conversationId: r.conversationId } : undefined };
+  } catch (e) {
+    return { ...toActionState(e), data: { text: String(fd.get("text") ?? "") } };
+  }
+}
+
+export async function ignoreCommentAction(commentId: string): Promise<ActionState> {
+  const { ignoreComment } = await import("@/server/social-comments");
+  return run(async () => ignoreComment(await admin(), commentId), "Descartado.");
+}
+
+export async function suggestCommentAction(commentId: string): Promise<ActionState> {
+  const s = await import("@/server/social-comments");
+  return run(async () => s.suggestCommentAction(await admin(), commentId), "Sugerencia actualizada.");
+}
