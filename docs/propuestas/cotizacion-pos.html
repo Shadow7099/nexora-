@@ -16,6 +16,8 @@ body { margin:0; font-family:"Inter","Helvetica Neue",Arial,sans-serif; color:va
 .price { background:#fff; color:var(--fg); border-radius:12px; padding:5mm 6mm; text-align:center; min-width:58mm; }
 .price .v { font-size:22pt; font-weight:800; color:var(--p); line-height:1.1; }
 .price .s { font-size:9pt; color:var(--mu); }
+.price .v2 { font-size:16pt; font-weight:800; color:var(--fg); line-height:1.1; }
+.price .sep { height:1px; background:var(--line); margin:2.5mm 0; }
 h2 { font-size:13pt; margin:5mm 0 2.5mm; color:var(--p); }
 p { margin:0 0 2.5mm; }
 table { width:100%; border-collapse:collapse; }
@@ -25,15 +27,15 @@ td.m { font-weight:700; white-space:nowrap; }
 td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
 .tot td { font-weight:800; font-size:11.5pt; background:var(--soft); }
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:3mm; }
-.card { border:1px solid var(--line); border-radius:10px; padding:3mm 4mm; }
+.card { border:1px solid var(--line); border-radius:10px; padding:2.5mm 4mm; }
 .card b { display:block; margin-bottom:1mm; } .card span { color:var(--mu); font-size:9pt; }
 .shots { display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
 .shot { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
 .shot img { display:block; width:100%; }
-.shot figcaption { font-size:8.5pt; color:var(--mu); padding:2mm 3mm; }
+.shot figcaption { font-size:8.5pt; color:var(--mu); padding:1.5mm 3mm; }
 .note { font-size:8.6pt; color:var(--mu); }
 .ok { display:inline-block; background:var(--oks); color:var(--ok); font-weight:700; border-radius:999px; padding:.6mm 2.5mm; font-size:8.5pt; }
-.sign { display:grid; grid-template-columns:1fr 1fr; gap:12mm; margin-top:9mm; }
+.sign { display:grid; grid-template-columns:1fr 1fr; gap:12mm; margin-top:5mm; }
 .sign div { border-top:1px solid var(--fg); padding-top:2mm; font-size:9pt; color:var(--mu); }
 .foot { position:absolute; left:17mm; right:17mm; bottom:8mm; display:flex; justify-content:space-between; font-size:8pt; color:var(--mu); border-top:1px solid var(--line); padding-top:3mm; }
 </style></head><body>
@@ -44,7 +46,7 @@ td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
  <div><div class="k">Cotización · Tienda de hilos</div>
  <h1>Punto de venta, inventario, facturación y caja</h1>
  <p>Un solo sistema para vender con cuadros grandes y fáciles, controlar el stock de cada color y gramaje, emitir las ventas y cuadrar la caja del día.</p></div>
- <div class="price"><div class="s">Valor mensual</div><div class="v">$1.200.000</div><div class="s">pesos colombianos</div></div>
+ <div class="price"><div class="s">Montaje (pago único)</div><div class="v2">$1.000.000</div><div class="sep"></div><div class="s">Mensualidad</div><div class="v">$300.000</div><div class="s">pesos colombianos</div></div>
 </div>
 
 <h2>Módulos incluidos</h2>
@@ -67,7 +69,7 @@ td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
  <li>Ingresos y egresos del día por medio de pago; cada venta entra sola a la caja.</li>
  <li>Cierre de caja diario por sede con lo contado frente a lo esperado, y reapertura con motivo.</li>
  <li>Todo queda registrado: quién hizo cada movimiento y cuándo.</li></ul></td></tr>
-<tr class="tot"><td>Total mensual</td><td>$1.200.000 COP</td></tr>
+<tr class="tot"><td>Inversión</td><td>Montaje $1.000.000 (pago único) · Mensualidad $300.000 COP</td></tr>
 </tbody></table>
 
 <div class="foot"><span>Nexora · Cotización COT-2026-011</span><span>1 / 2</span></div>
@@ -85,14 +87,14 @@ td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
 
 <h2>También incluido</h2>
 <div class="grid">
- <div class="card"><b>Catálogo inicial listo</b><span>Categorías de hilos, lanas y accesorios, con sus gramajes, colores y precios, cargados para empezar a vender.</span></div>
+ <div class="card"><b>Montaje del catálogo</b><span>Con el pago del montaje cargamos categorías, productos, gramajes, colores, precios e inventario inicial de la tienda, listos para vender.</span></div>
  <div class="card"><b>Funciona en cualquier equipo</b><span>Computador, tableta o celular, sin instalar programas ni comprar equipos especiales.</span></div>
  <div class="card"><b>Capacitación</b><span>Acompañamiento para que el equipo de la tienda venda, cobre y cierre caja desde el primer día.</span></div>
  <div class="card"><b>Datos seguros</b><span>Copia en la nube, acceso con usuario por persona y registro de cambios.</span></div>
 </div>
 
 <h2>Condiciones</h2>
-<p class="note">Valor mensual de $1.200.000 COP por los cuatro módulos (punto de venta, inventario, facturación y caja), sujeto a los impuestos que apliquen. Pago mes anticipado. Sin cláusula de permanencia: se puede cancelar en cualquier momento con aviso de 30 días. La facturación electrónica ante la DIAN requiere una cuenta activa del cliente en Siigo o Alegra; su costo es aparte. Vigencia de esta cotización: 30 días a partir de su fecha.</p>
+<p class="note">Montaje: $1.000.000 COP, pago único al iniciar (configuración, carga del catálogo e inventario inicial, y capacitación). Mensualidad: $300.000 COP por los cuatro módulos (punto de venta, inventario, facturación y caja), pago mes anticipado desde la puesta en marcha. Valores sujetos a los impuestos que apliquen. Sin cláusula de permanencia: se puede cancelar en cualquier momento con aviso de 30 días. La facturación electrónica ante la DIAN requiere una cuenta activa del cliente en Siigo o Alegra; su costo es aparte. Vigencia de esta cotización: 30 días a partir de su fecha.</p>
 
 <div class="sign"><div>Nexora</div><div>Aceptación del cliente · Nombre, firma y fecha</div></div>
 <div class="foot"><span>Nexora · nexora-tau-liard.vercel.app</span><span>2 / 2</span></div>
