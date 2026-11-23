@@ -78,3 +78,7 @@ Supabase hace respaldos diarios en los planes pagos (el gratuito no garantiza re
 ## Aprendizaje diario de la IA (Vercel Cron)
 
 `vercel.json` programa `/api/cron/aprendizaje-ia` todos los días a las 12:40 UTC (7:40 a. m. en Colombia). Para que corra, crea en Vercel la variable **`CRON_SECRET`** (Production, tipo Sensitive) con un valor aleatorio largo; Vercel la envía sola en la cabecera `Authorization`. Sin ella, la ruta responde 503 y no hace nada.
+
+## Actualizaciones de la base de datos (automáticas)
+
+Cada despliegue de producción en Vercel ejecuta `scripts/migrar-produccion.mjs` antes de `next build`: aplica `docs/sql/aplicar-en-produccion.sql`, que solo crea lo que falta y registra cada migración (se puede ejecutar siempre). El registro del build muestra una línea `[migraciones]` con el resultado. Si falla, el despliegue sigue y los módulos afectados muestran «se está activando»; el mensaje de Postgres queda en ese registro. Al agregar una migración, súmala a `scripts/sql-produccion.py` y vuelve a generar el archivo.
