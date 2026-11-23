@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Store,
   CalendarCheck,
   Building2,
   CalendarClock,
@@ -42,6 +43,7 @@ export const adminNav: NavItem[] = [
   { href: "/admin/horarios", label: "Horarios", icon: CalendarClock, phase: 2 },
   { href: "/admin/solicitudes", label: "Solicitudes", icon: Inbox, phase: 2 },
   { href: "/admin/pre-nomina", label: "Pre-nómina", icon: Wallet, phase: 6 },
+  { href: "/admin/pos", label: "Punto de venta", icon: Store, phase: 8 },
   { href: "/admin/ventas", label: "Ventas", icon: ShoppingCart, phase: 8 },
   { href: "/admin/crm/mensajes", label: "Mensajes", icon: MessageCircle, phase: 8 },
   { href: "/admin/crm/agenda", label: "Agenda", icon: CalendarCheck, phase: 8 },

@@ -139,6 +139,12 @@ En **Liquidación del período** ve cuánto sale y a quién: neto a pagar a los 
   - **TikTok y formularios web:** activa «Entrada de leads» y envía a su URL privada un JSON con name, phone, email, message, campaign y source (TIKTOK o WEB), por ejemplo desde Zapier o Make.
   - El cliente se reconoce por celular o correo (no se duplica) y el mismo aviso nunca se registra dos veces.
 
+### Punto de venta (POS)
+
+**Punto de venta** (menú) vende tocando cuadros grandes, pensado para cualquier persona: **Categoría → Tipo → Producto → Gramaje o tamaño → Color**. Cada color se ve como un ovillo de ese color con su precio y cuántas unidades quedan; los agotados se ven apagados. Tocar un color lo agrega a la **Venta actual** (con botones grandes de − y +). **Cobrar** → cómo paga (Efectivo, Nequi/Transferencia, Tarjeta) → en efectivo, toca el billete y Nexora muestra la **devuelta** → **Terminar venta**. La venta queda numerada, descuenta el inventario y entra a la caja del día, igual que en Ventas.
+
+**Catálogo** (botón arriba a la derecha): categorías y subcategorías con su dibujo y color, y **Nuevo producto con sus variantes**: nombre, gramajes con su precio (con IVA) y colores (toca los de la paleta o agrega uno con su nombre y color). Nexora crea un producto del inventario por cada gramaje × color, con su código y stock inicial. **Cargar la tienda de hilos de ejemplo** arma una tienda completa (hilos de crochet, para bordar y de coser, lanas y accesorios) para empezar.
+
 ### Mensajes (WhatsApp, Messenger e Instagram)
 
 En **Mensajes** están todas las conversaciones, unidas a la ficha de cada cliente (como en el CRM de Ámbar Couture).

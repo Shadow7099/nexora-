@@ -21,6 +21,7 @@ PENDING = [
     ("20261125000000_access_code", None),
     ("20261126000000_crm_ads_comments", "social_comment"),
     ("20261127000000_agenda_learning", "appointment"),
+    ("20261128000000_pos", "pos_category"),
 ]
 # None: se aplica si la migración aún no está registrada (la 25 borra la tabla de la 24,
 # así que la existencia de una tabla ya no sirve para saber si se aplicó).
