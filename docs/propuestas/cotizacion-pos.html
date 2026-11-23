@@ -21,11 +21,12 @@ body { margin:0; font-family:"Inter","Helvetica Neue",Arial,sans-serif; color:va
 h2 { font-size:13pt; margin:5mm 0 2.5mm; color:var(--p); }
 p { margin:0 0 2.5mm; }
 table { width:100%; border-collapse:collapse; }
-th,td { padding:2.4mm 3mm; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+th,td { padding:2mm 3mm; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
 th { font-size:8pt; text-transform:uppercase; letter-spacing:.06em; color:var(--mu); background:var(--soft); }
-td.m { font-weight:700; white-space:nowrap; }
-td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
+td.m { font-weight:700; width:42mm; }
+td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.3mm; }
 .tot td { font-weight:800; font-size:11.5pt; background:var(--soft); }
+.gift td { background:#F0FBF4; border-bottom:1px solid #BBE5C9; }
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:3mm; }
 .card { border:1px solid var(--line); border-radius:10px; padding:2.5mm 4mm; }
 .card b { display:block; margin-bottom:1mm; } .card span { color:var(--mu); font-size:9pt; }
@@ -45,7 +46,7 @@ td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
 <div class="hero">
  <div><div class="k">Cotización · Tienda de hilos</div>
  <h1>Punto de venta, inventario, facturación y caja</h1>
- <p>Un solo sistema para vender con cuadros grandes y fáciles, controlar el stock de cada color y gramaje, emitir las ventas y cuadrar la caja del día.</p></div>
+ <p>Un solo sistema para vender con cuadros grandes y fáciles, controlar el stock de cada color y gramaje, emitir las ventas y cuadrar la caja del día. <b>De obsequio: control de personal y nómina.</b></p></div>
  <div class="price"><div class="s">Montaje (pago único)</div><div class="v2">$1.000.000</div><div class="sep"></div><div class="s">Mensualidad</div><div class="v">$300.000</div><div class="s">pesos colombianos</div></div>
 </div>
 
@@ -54,21 +55,21 @@ td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
 <thead><tr><th>Módulo</th><th>Qué incluye</th></tr></thead>
 <tbody>
 <tr><td class="m">Punto de venta (POS)</td><td><ul>
- <li>Venta por cuadros grandes: Categoría → Tipo → Producto → Gramaje → Color, con un toque por paso.</li>
- <li>Cada color se ve como un ovillo de su color real, con precio y unidades disponibles; los agotados no se pueden elegir.</li>
- <li>Cobro en efectivo (billetes rápidos y devuelta), Nequi/transferencia o tarjeta. Pensado para que cualquier persona lo use.</li></ul></td></tr>
+ <li>Venta por cuadros grandes: Categoría → Tipo → Producto → Gramaje → Color, un toque por paso; cada color se ve como un ovillo de su color real.</li>
+ <li>Cobro en efectivo (con devuelta), Nequi/transferencia o tarjeta. Pensado para que cualquier persona lo use.</li></ul></td></tr>
 <tr><td class="m">Inventario</td><td><ul>
- <li>Productos con variantes (gramaje × color), cada una con su código y su stock por sede.</li>
- <li>Entradas, salidas, ajustes por conteo y traslados entre sedes; alerta de stock mínimo.</li>
- <li>Cada venta descuenta el stock automáticamente; no deja vender más de lo que hay.</li></ul></td></tr>
+ <li>Productos con variantes (gramaje × color), cada una con su código y stock por sede; alerta de stock mínimo.</li>
+ <li>Cada venta descuenta el stock sola y no deja vender más de lo que hay.</li></ul></td></tr>
 <tr><td class="m">Facturación</td><td><ul>
- <li>Ventas numeradas sin saltos, con cliente o consumidor final, IVA por producto y comprobante en PDF.</li>
- <li>Anulación con motivo que devuelve el stock y ajusta la caja; historial y reportes de ventas.</li>
+ <li>Ventas numeradas, IVA por producto, comprobante en PDF y anulación con motivo.</li>
  <li>Factura electrónica DIAN mediante conexión con Siigo o Alegra (se activa con la cuenta del cliente).</li></ul></td></tr>
 <tr><td class="m">Caja</td><td><ul>
  <li>Ingresos y egresos del día por medio de pago; cada venta entra sola a la caja.</li>
- <li>Cierre de caja diario por sede con lo contado frente a lo esperado, y reapertura con motivo.</li>
- <li>Todo queda registrado: quién hizo cada movimiento y cuándo.</li></ul></td></tr>
+ <li>Cierre diario por sede (contado frente a esperado) y registro de quién hizo cada movimiento.</li></ul></td></tr>
+<tr class="gift"><td class="m">🎁 Control de personal y nómina<br><span class="ok">OBSEQUIO</span></td><td><ul>
+ <li>Marcación de entrada y salida desde el celular de cada empleado con código y ubicación (QR por sede), horarios y turnos.</li>
+ <li>Novedades, permisos, horas extra y pre-nómina colombiana (recargos nocturnos, dominicales y festivos) con comprobantes de pago.</li>
+ <li>Sin costo mientras esté vigente la mensualidad (valor regular desde $59.900 al mes).</li></ul></td></tr>
 <tr class="tot"><td>Inversión</td><td>Montaje $1.000.000 (pago único) · Mensualidad $300.000 COP</td></tr>
 </tbody></table>
 
@@ -94,7 +95,7 @@ td ul { margin:0; padding-left:4mm; } td li { margin-bottom:.6mm; }
 </div>
 
 <h2>Condiciones</h2>
-<p class="note">Montaje: $1.000.000 COP, pago único al iniciar (configuración, carga del catálogo e inventario inicial, y capacitación). Mensualidad: $300.000 COP por los cuatro módulos (punto de venta, inventario, facturación y caja), pago mes anticipado desde la puesta en marcha. Valores sujetos a los impuestos que apliquen. Sin cláusula de permanencia: se puede cancelar en cualquier momento con aviso de 30 días. La facturación electrónica ante la DIAN requiere una cuenta activa del cliente en Siigo o Alegra; su costo es aparte. Vigencia de esta cotización: 30 días a partir de su fecha.</p>
+<p class="note">Montaje: $1.000.000 COP, pago único al iniciar (configuración, carga del catálogo e inventario inicial, y capacitación). Mensualidad: $300.000 COP por los cuatro módulos (punto de venta, inventario, facturación y caja), pago mes anticipado desde la puesta en marcha. El módulo de control de personal y nómina se entrega de obsequio, sin costo, mientras la mensualidad esté vigente. Valores sujetos a los impuestos que apliquen. Sin cláusula de permanencia: se puede cancelar en cualquier momento con aviso de 30 días. La facturación electrónica ante la DIAN requiere una cuenta activa del cliente en Siigo o Alegra; su costo es aparte. Vigencia de esta cotización: 30 días a partir de su fecha.</p>
 
 <div class="sign"><div>Nexora</div><div>Aceptación del cliente · Nombre, firma y fecha</div></div>
 <div class="foot"><span>Nexora · nexora-tau-liard.vercel.app</span><span>2 / 2</span></div>
